@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-04-07T12:02:20.370106Z",
+  "seed": 0,
+  "method": "tausb_mask",
+  "steps": 40,
+  "torch_version": "2.0.0+cu118",
+  "cuda_available": true,
+  "cuda_device_count": 1,
+  "cudnn_enabled": true,
+  "cudnn_version": 8700,
+  "cuda_devices": [
+    "NVIDIA GeForce RTX 4090 D"
+  ],
+  "git_commit": "unknown"
+}

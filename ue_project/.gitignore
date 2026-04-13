@@ -1,0 +1,29 @@
+# --------------- 1. 排除你的数据集文件夹（必填！改成你自己的） ---------------
+VOC_0712_Kaggle_Ready/
+dataset/
+images/
+train/
+test/
+taus_masks/
+labels/
+
+# --------------- 2. 自动排除不需要的文件（直接复制，不用改） ---------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 排除模型权重、压缩包
+*.pth
+*.zip
+*.rar
+*.tar
+*.7z
+
+# 排除虚拟环境
+venv/
+env/
+.conda/
+
+# 排除系统文件
+.DS_Store

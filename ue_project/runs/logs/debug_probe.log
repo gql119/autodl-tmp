@@ -1,0 +1,385 @@
+[launch_one] method= tausb_mask
+[launch_one] steps= 40
+[launch_one] seed= 0
+[launch_one] stage= all
+[launch_one] run_root= /root/autodl-tmp/ue_project/runs
+[launch_one] artifact_root= /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0
+[launch_one] poisoned_root= /root/autodl-tmp/ue_project/runs/poisoned_datasets/tausb_mask/steps40/seed0
+[launch_one] resume= False
+[TAUSB] training global universal params ...
+
+[DEBUG PROBE] Step: 120 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.09159407 | Grad L2-Norm: 0.20925555
+  -> Suppress Small [0,0,0,0]: 0.05809760 | Grad L2-Norm: 0.00435716
+  -> Batch Max_D: 0.069006
+
+[DEBUG PROBE] Step: 240 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.14280377 | Grad L2-Norm: 0.16523057
+  -> Suppress Small [0,0,0,0]: 0.08145587 | Grad L2-Norm: 0.00518443
+  -> Batch Max_D: 0.071322
+
+[DEBUG PROBE] Step: 360 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.04647868 | Grad L2-Norm: 0.05088928
+  -> Suppress Small [0,0,0,0]: 0.09461671 | Grad L2-Norm: 0.00310708
+  -> Batch Max_D: 0.046166
+
+[DEBUG PROBE] Step: 480 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.00999272 | Grad L2-Norm: 0.02337742
+  -> Suppress Small [0,0,0,0]: 0.10255548 | Grad L2-Norm: 0.00570373
+  -> Batch Max_D: 0.056881
+
+[DEBUG PROBE] Step: 600 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.00575544 | Grad L2-Norm: 0.00667564
+  -> Suppress Small [0,0,0,0]: 0.06171187 | Grad L2-Norm: 0.00595719
+  -> Batch Max_D: 0.043995
+
+[DEBUG PROBE] Step: 720 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.01506589 | Grad L2-Norm: 0.01309268
+  -> Suppress Small [0,0,0,0]: 0.03613720 | Grad L2-Norm: 0.00673791
+  -> Batch Max_D: 0.040769
+
+[DEBUG PROBE] Step: 840 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.00685279 | Grad L2-Norm: 0.01520619
+  -> Suppress Small [0,0,0,0]: 0.02021629 | Grad L2-Norm: 0.00622853
+  -> Batch Max_D: 0.045228
+
+[DEBUG PROBE] Step: 960 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.00035292 | Grad L2-Norm: 0.00720269
+  -> Suppress Small [0,0,0,0]: 0.01041227 | Grad L2-Norm: 0.00435288
+  -> Batch Max_D: 0.043414
+
+[DEBUG PROBE] Step: 1080 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.00799562 | Grad L2-Norm: 0.01993623
+  -> Suppress Small [0,0,0,0]: 0.00429819 | Grad L2-Norm: 0.00590019
+  -> Batch Max_D: 0.047331
+
+[DEBUG PROBE] Step: 1200 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.00889395 | Grad L2-Norm: 0.02123449
+  -> Suppress Small [0,0,0,0]: 0.01456774 | Grad L2-Norm: 0.00806304
+  -> Batch Max_D: 0.034596
+
+[DEBUG PROBE] Step: 1320 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.00445303 | Grad L2-Norm: 0.03556461
+  -> Suppress Small [0,0,0,0]: 0.03744139 | Grad L2-Norm: 0.00547864
+  -> Batch Max_D: 0.036819
+
+[DEBUG PROBE] Step: 1440 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.04388991 | Grad L2-Norm: 0.02648569
+  -> Suppress Small [0,0,0,0]: 0.05155839 | Grad L2-Norm: 0.00711133
+  -> Batch Max_D: 0.046303
+
+[DEBUG PROBE] Step: 1560 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.02816610 | Grad L2-Norm: 0.00668914
+  -> Suppress Small [0,0,0,0]: 0.06024424 | Grad L2-Norm: 0.00545290
+  -> Batch Max_D: 0.051943
+
+[DEBUG PROBE] Step: 1680 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.02329861 | Grad L2-Norm: 0.01362540
+  -> Suppress Small [0,0,0,0]: 0.06532090 | Grad L2-Norm: 0.00825975
+  -> Batch Max_D: 0.037057
+
+[DEBUG PROBE] Step: 1800 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.05560662 | Grad L2-Norm: 0.02026035
+  -> Suppress Small [0,0,0,0]: 0.06763274 | Grad L2-Norm: 0.01017958
+  -> Batch Max_D: 0.047892
+
+[DEBUG PROBE] Step: 1920 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.09591109 | Grad L2-Norm: 0.02924548
+  -> Suppress Small [0,0,0,0]: 0.06929184 | Grad L2-Norm: 0.00420724
+  -> Batch Max_D: 0.062275
+
+[DEBUG PROBE] Step: 2040 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.07280037 | Grad L2-Norm: 0.02265446
+  -> Suppress Small [0,0,0,0]: 0.07107956 | Grad L2-Norm: 0.00421501
+  -> Batch Max_D: 0.043378
+
+[DEBUG PROBE] Step: 2160 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.04809738 | Grad L2-Norm: 0.03871853
+  -> Suppress Small [0,0,0,0]: 0.07216721 | Grad L2-Norm: 0.00794144
+  -> Batch Max_D: 0.034154
+
+[DEBUG PROBE] Step: 2280 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.01016338 | Grad L2-Norm: 0.01560300
+  -> Suppress Small [0,0,0,0]: 0.07282793 | Grad L2-Norm: 0.00694957
+  -> Batch Max_D: 0.023701
+
+[DEBUG PROBE] Step: 2400 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.05048494 | Grad L2-Norm: 0.01041894
+  -> Suppress Small [0,0,0,0]: 0.02089330 | Grad L2-Norm: 0.00397699
+  -> Batch Max_D: 0.034821
+
+[DEBUG PROBE] Step: 2520 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.06096389 | Grad L2-Norm: 0.03568118
+  -> Suppress Small [0,0,0,0]: -0.03849443 | Grad L2-Norm: 0.00766034
+  -> Batch Max_D: 0.029961
+
+[DEBUG PROBE] Step: 2640 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.07190902 | Grad L2-Norm: 0.01041553
+  -> Suppress Small [0,0,0,0]: -0.07539613 | Grad L2-Norm: 0.00604512
+  -> Batch Max_D: 0.042190
+
+[DEBUG PROBE] Step: 2760 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.07330688 | Grad L2-Norm: 0.09828574
+  -> Suppress Small [0,0,0,0]: -0.09771277 | Grad L2-Norm: 0.00473167
+  -> Batch Max_D: 0.056055
+
+[DEBUG PROBE] Step: 2880 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.07398203 | Grad L2-Norm: 0.03458950
+  -> Suppress Small [0,0,0,0]: -0.11119574 | Grad L2-Norm: 0.00915826
+  -> Batch Max_D: 0.040727
+
+[DEBUG PROBE] Step: 3000 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.09157272 | Grad L2-Norm: 0.07164199
+  -> Suppress Small [0,0,0,0]: -0.11933438 | Grad L2-Norm: 0.00917135
+  -> Batch Max_D: 0.049948
+
+[DEBUG PROBE] Step: 3120 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.09559867 | Grad L2-Norm: 0.01211919
+  -> Suppress Small [0,0,0,0]: -0.12466998 | Grad L2-Norm: 0.00468839
+  -> Batch Max_D: 0.039039
+
+[DEBUG PROBE] Step: 3240 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.06522276 | Grad L2-Norm: 0.01084499
+  -> Suppress Small [0,0,0,0]: -0.12838373 | Grad L2-Norm: 0.00366533
+  -> Batch Max_D: 0.058631
+
+[DEBUG PROBE] Step: 3360 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.01718171 | Grad L2-Norm: 0.01054823
+  -> Suppress Small [0,0,0,0]: -0.13062027 | Grad L2-Norm: 0.00645958
+  -> Batch Max_D: 0.033143
+
+[DEBUG PROBE] Step: 3480 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.02281008 | Grad L2-Norm: 0.01110505
+  -> Suppress Small [0,0,0,0]: -0.13196634 | Grad L2-Norm: 0.00862543
+  -> Batch Max_D: 0.031060
+
+[DEBUG PROBE] Step: 3600 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.07901319 | Grad L2-Norm: 0.03886678
+  -> Suppress Small [0,0,0,0]: -0.13277596 | Grad L2-Norm: 0.01279073
+  -> Batch Max_D: 0.051634
+
+[DEBUG PROBE] Step: 3720 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.10608070 | Grad L2-Norm: 0.01336884
+  -> Suppress Small [0,0,0,0]: -0.13326263 | Grad L2-Norm: 0.00515842
+  -> Batch Max_D: 0.053432
+
+[DEBUG PROBE] Step: 3840 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.11355234 | Grad L2-Norm: 0.03076207
+  -> Suppress Small [0,0,0,0]: -0.13355505 | Grad L2-Norm: 0.00494922
+  -> Batch Max_D: 0.047557
+
+[DEBUG PROBE] Step: 3960 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.07470469 | Grad L2-Norm: 0.01052260
+  -> Suppress Small [0,0,0,0]: -0.13373064 | Grad L2-Norm: 0.00386564
+  -> Batch Max_D: 0.048685
+
+[DEBUG PROBE] Step: 4080 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.03166932 | Grad L2-Norm: 0.00382542
+  -> Suppress Small [0,0,0,0]: -0.13383603 | Grad L2-Norm: 0.00354039
+  -> Batch Max_D: 0.043559
+
+[DEBUG PROBE] Step: 4200 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.05269263 | Grad L2-Norm: 0.00783396
+  -> Suppress Small [0,0,0,0]: -0.13389926 | Grad L2-Norm: 0.00646303
+  -> Batch Max_D: 0.043763
+
+[DEBUG PROBE] Step: 4320 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.08280718 | Grad L2-Norm: 0.01333947
+  -> Suppress Small [0,0,0,0]: -0.13393718 | Grad L2-Norm: 0.00543791
+  -> Batch Max_D: 0.037762
+
+[DEBUG PROBE] Step: 4440 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.10898629 | Grad L2-Norm: 0.03137719
+  -> Suppress Small [0,0,0,0]: -0.13395993 | Grad L2-Norm: 0.00758018
+  -> Batch Max_D: 0.055868
+
+[DEBUG PROBE] Step: 4560 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.04303653 | Grad L2-Norm: 0.00815946
+  -> Suppress Small [0,0,0,0]: -0.13397354 | Grad L2-Norm: 0.00487962
+  -> Batch Max_D: 0.048826
+
+[DEBUG PROBE] Step: 4680 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.12434922 | Grad L2-Norm: 0.03708681
+  -> Suppress Small [0,0,0,0]: -0.13398169 | Grad L2-Norm: 0.00658212
+  -> Batch Max_D: 0.062805
+
+[DEBUG PROBE] Step: 4800 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.13629724 | Grad L2-Norm: 0.04314924
+  -> Suppress Small [0,0,0,0]: -0.13398662 | Grad L2-Norm: 0.00459107
+  -> Batch Max_D: 0.054862
+
+[DEBUG PROBE] Step: 4920 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.01599229 | Grad L2-Norm: 0.00525045
+  -> Suppress Small [0,0,0,0]: -0.13398963 | Grad L2-Norm: 0.00502223
+  -> Batch Max_D: 0.039888
+
+[DEBUG PROBE] Step: 5040 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.10422497 | Grad L2-Norm: 0.08214289
+  -> Suppress Small [0,0,0,0]: -0.13399145 | Grad L2-Norm: 0.01021395
+  -> Batch Max_D: 0.061778
+
+[DEBUG PROBE] Step: 5160 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.07095547 | Grad L2-Norm: 0.07069471
+  -> Suppress Small [0,0,0,0]: -0.13399254 | Grad L2-Norm: 0.00544859
+  -> Batch Max_D: 0.055793
+
+[DEBUG PROBE] Step: 5280 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.05012512 | Grad L2-Norm: 0.05025907
+  -> Suppress Small [0,0,0,0]: -0.13399321 | Grad L2-Norm: 0.00486260
+  -> Batch Max_D: 0.058019
+
+[DEBUG PROBE] Step: 5400 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.05356070 | Grad L2-Norm: 0.01360602
+  -> Suppress Small [0,0,0,0]: -0.13399181 | Grad L2-Norm: 0.00461305
+  -> Batch Max_D: 0.045592
+
+[DEBUG PROBE] Step: 5520 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.07350744 | Grad L2-Norm: 0.10894132
+  -> Suppress Small [0,0,0,0]: -0.13399005 | Grad L2-Norm: 0.00684786
+  -> Batch Max_D: 0.056697
+
+[DEBUG PROBE] Step: 5640 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.07125448 | Grad L2-Norm: 0.02513928
+  -> Suppress Small [0,0,0,0]: -0.13398901 | Grad L2-Norm: 0.00588174
+  -> Batch Max_D: 0.031783
+
+[DEBUG PROBE] Step: 5760 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.04500467 | Grad L2-Norm: 0.02500197
+  -> Suppress Small [0,0,0,0]: -0.13398840 | Grad L2-Norm: 0.00620019
+  -> Batch Max_D: 0.053826
+
+[DEBUG PROBE] Step: 5880 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.01154441 | Grad L2-Norm: 0.01109310
+  -> Suppress Small [0,0,0,0]: -0.13398804 | Grad L2-Norm: 0.00440219
+  -> Batch Max_D: 0.043654
+
+[DEBUG PROBE] Step: 6000 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.05313936 | Grad L2-Norm: 0.05940802
+  -> Suppress Small [0,0,0,0]: -0.13398781 | Grad L2-Norm: 0.00863830
+  -> Batch Max_D: 0.040545
+
+[DEBUG PROBE] Step: 6095 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.05593880 | Grad L2-Norm: 0.01685347
+  -> Suppress Small [0,0,0,0]: -0.13426647 | Grad L2-Norm: 0.00540346
+  -> Batch Max_D: 0.050678
+[TAUSB][epoch 1/30] A_clean=0.024410 A_adv=0.024353 L_ind=0.015054 Sat_Ratio=0.00% Max_D=0.0627
+
+[DEBUG PROBE] Step: 6215 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.00220557 | Grad L2-Norm: 0.01795866
+  -> Suppress Small [0,0,0,0]: -0.13475664 | Grad L2-Norm: 0.00900931
+  -> Batch Max_D: 0.031815
+
+[DEBUG PROBE] Step: 6335 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.03932524 | Grad L2-Norm: 0.01860484
+  -> Suppress Small [0,0,0,0]: -0.13504925 | Grad L2-Norm: 0.00526719
+  -> Batch Max_D: 0.041468
+
+[DEBUG PROBE] Step: 6455 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.03794529 | Grad L2-Norm: 0.01940388
+  -> Suppress Small [0,0,0,0]: -0.13522391 | Grad L2-Norm: 0.00748941
+  -> Batch Max_D: 0.040789
+
+[DEBUG PROBE] Step: 6575 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.03666101 | Grad L2-Norm: 0.00726811
+  -> Suppress Small [0,0,0,0]: -0.13532814 | Grad L2-Norm: 0.00529389
+  -> Batch Max_D: 0.046231
+
+[DEBUG PROBE] Step: 6695 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.02725162 | Grad L2-Norm: 0.02171193
+  -> Suppress Small [0,0,0,0]: -0.13539034 | Grad L2-Norm: 0.01377121
+  -> Batch Max_D: 0.047963
+
+[DEBUG PROBE] Step: 6815 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.00869967 | Grad L2-Norm: 0.00307820
+  -> Suppress Small [0,0,0,0]: -0.13542745 | Grad L2-Norm: 0.00501326
+  -> Batch Max_D: 0.057460
+
+[DEBUG PROBE] Step: 6935 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.00461349 | Grad L2-Norm: 0.02807737
+  -> Suppress Small [0,0,0,0]: -0.13544957 | Grad L2-Norm: 0.00563124
+  -> Batch Max_D: 0.040846
+
+[DEBUG PROBE] Step: 7055 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.00367980 | Grad L2-Norm: 0.02387286
+  -> Suppress Small [0,0,0,0]: -0.13546275 | Grad L2-Norm: 0.00704059
+  -> Batch Max_D: 0.043014
+
+[DEBUG PROBE] Step: 7175 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.02374581 | Grad L2-Norm: 0.01067426
+  -> Suppress Small [0,0,0,0]: -0.13547060 | Grad L2-Norm: 0.00452801
+  -> Batch Max_D: 0.056143
+
+[DEBUG PROBE] Step: 7295 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.02596015 | Grad L2-Norm: 0.01131235
+  -> Suppress Small [0,0,0,0]: -0.13547529 | Grad L2-Norm: 0.01065594
+  -> Batch Max_D: 0.053511
+
+[DEBUG PROBE] Step: 7415 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.01564024 | Grad L2-Norm: 0.01873608
+  -> Suppress Small [0,0,0,0]: -0.13547808 | Grad L2-Norm: 0.00723805
+  -> Batch Max_D: 0.050933
+
+[DEBUG PROBE] Step: 7535 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.02019030 | Grad L2-Norm: 0.03402082
+  -> Suppress Small [0,0,0,0]: -0.13539323 | Grad L2-Norm: 0.00636792
+  -> Batch Max_D: 0.040704
+
+[DEBUG PROBE] Step: 7655 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.00026927 | Grad L2-Norm: 0.02076819
+  -> Suppress Small [0,0,0,0]: -0.13529660 | Grad L2-Norm: 0.00461358
+  -> Batch Max_D: 0.039505
+
+[DEBUG PROBE] Step: 7775 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.00239055 | Grad L2-Norm: 0.00894673
+  -> Suppress Small [0,0,0,0]: -0.13523911 | Grad L2-Norm: 0.00465068
+  -> Batch Max_D: 0.044423
+
+[DEBUG PROBE] Step: 7895 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.00837338 | Grad L2-Norm: 0.00535307
+  -> Suppress Small [0,0,0,0]: -0.13384773 | Grad L2-Norm: 0.00638293
+  -> Batch Max_D: 0.046179
+
+[DEBUG PROBE] Step: 8015 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.02020923 | Grad L2-Norm: 0.02656319
+  -> Suppress Small [0,0,0,0]: -0.13275868 | Grad L2-Norm: 0.00594294
+  -> Batch Max_D: 0.053437
+
+[DEBUG PROBE] Step: 8135 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.06581733 | Grad L2-Norm: 0.01359925
+  -> Suppress Small [0,0,0,0]: -0.13210995 | Grad L2-Norm: 0.00350952
+  -> Batch Max_D: 0.043534
+
+[DEBUG PROBE] Step: 8255 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.04751130 | Grad L2-Norm: 0.02935516
+  -> Suppress Small [0,0,0,0]: -0.12585230 | Grad L2-Norm: 0.00467228
+  -> Batch Max_D: 0.033513
+
+[DEBUG PROBE] Step: 8375 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.00335202 | Grad L2-Norm: 0.03574922
+  -> Suppress Small [0,0,0,0]: -0.11985497 | Grad L2-Norm: 0.00902474
+  -> Batch Max_D: 0.052252
+
+[DEBUG PROBE] Step: 8495 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.01412312 | Grad L2-Norm: 0.00485819
+  -> Suppress Small [0,0,0,0]: -0.11628311 | Grad L2-Norm: 0.00338953
+  -> Batch Max_D: 0.036880
+
+[DEBUG PROBE] Step: 8615 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.04269978 | Grad L2-Norm: 0.00353456
+  -> Suppress Small [0,0,0,0]: -0.11415630 | Grad L2-Norm: 0.00858213
+  -> Batch Max_D: 0.028831
+
+[DEBUG PROBE] Step: 8735 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.04441559 | Grad L2-Norm: 0.17605951
+  -> Suppress Small [0,0,0,0]: -0.11289004 | Grad L2-Norm: 0.00424383
+  -> Batch Max_D: 0.066583
+
+[DEBUG PROBE] Step: 8855 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.01743027 | Grad L2-Norm: 0.00745116
+  -> Suppress Small [0,0,0,0]: -0.11213502 | Grad L2-Norm: 0.00491318
+  -> Batch Max_D: 0.048836
+
+[DEBUG PROBE] Step: 8975 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.05386205 | Grad L2-Norm: 0.04237288
+  -> Suppress Small [0,0,0,0]: -0.11168186 | Grad L2-Norm: 0.00680444
+  -> Batch Max_D: 0.047508

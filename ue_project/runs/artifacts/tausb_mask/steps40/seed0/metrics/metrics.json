@@ -1,0 +1,15 @@
+{
+  "method": "tausb_mask",
+  "steps": 40,
+  "seed": 0,
+  "mAP50_target": 0.2014664468181697,
+  "mAP50_non_target": 0.7101467418048149,
+  "mAP50_all": 0.6847127270554827,
+  "AP_person_free_non_target": 0.5827836342007876,
+  "AP_person_cooccur_non_target": 0.5570517794030431,
+  "PSNR": NaN,
+  "LPIPS": NaN,
+  "average_perturbed_area_ratio": 0.0,
+  "target_collapse_score": 0.7512759915825066,
+  "non_target_retention_score": 0.9104445407754036
+}

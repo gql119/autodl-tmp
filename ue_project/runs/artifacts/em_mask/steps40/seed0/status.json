@@ -1,0 +1,46 @@
+{
+  "method": "em_mask",
+  "steps": 40,
+  "seed": 0,
+  "created_at": "2026-04-05T04:27:11.177868Z",
+  "updated_at": "2026-04-05T09:17:20.551995Z",
+  "current_stage": "",
+  "completed_stages": [
+    "generate_poisoned_dataset",
+    "train_victim",
+    "evaluate"
+  ],
+  "stage_state": {
+    "generate_poisoned_dataset": {
+      "status": "completed",
+      "start_time": "2026-04-05T04:27:11.178219Z",
+      "processed": 16551,
+      "total": 16551,
+      "end_time": "2026-04-05T06:41:10.905554Z",
+      "manifest_csv": "/root/autodl-tmp/ue_project/runs/poisoned_datasets/em_mask/steps40/seed0/manifest.csv"
+    },
+    "train_victim": {
+      "status": "completed",
+      "start_time": "2026-04-05T06:41:10.919091Z",
+      "end_time": "2026-04-05T09:14:48.490703Z",
+      "deleted_cache_files": 1,
+      "train_data_yaml": "/root/autodl-tmp/ue_project/runs/artifacts/em_mask/steps40/seed0/train_data.yaml",
+      "latest_checkpoint": "/root/autodl-tmp/ue_project/runs/artifacts/em_mask/steps40/seed0/checkpoints/latest.pt",
+      "best_checkpoint": "/root/autodl-tmp/ue_project/runs/artifacts/em_mask/steps40/seed0/checkpoints/best.pt",
+      "train_run_dir": "/root/autodl-tmp/ue_project/runs/artifacts/em_mask/steps40/seed0/train_runs/victim",
+      "latest_epoch": 199,
+      "bundle_path": "/root/autodl-tmp/ue_project/runs/bundles/em_mask_steps40_seed0_compact.zip",
+      "save_every_n_epochs": 10,
+      "pack_every_n_epochs": 10,
+      "resume_enabled": false
+    },
+    "evaluate": {
+      "status": "completed",
+      "start_time": "2026-04-05T09:14:51.306456Z",
+      "end_time": "2026-04-05T09:17:20.551978Z",
+      "metrics_json": "/root/autodl-tmp/ue_project/runs/artifacts/em_mask/steps40/seed0/metrics/metrics.json",
+      "metrics_csv": "/root/autodl-tmp/ue_project/runs/artifacts/em_mask/steps40/seed0/metrics/metrics.csv",
+      "eval_log": "/root/autodl-tmp/ue_project/runs/artifacts/em_mask/steps40/seed0/logs/eval_log.txt"
+    }
+  }
+}

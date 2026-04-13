@@ -1,0 +1,15 @@
+Unified evaluation complete.
+method: em_mask
+steps: 40
+seed: 0
+mAP50_target: 0.3195594258618838
+mAP50_non_target: 0.7243401070895341
+mAP50_all: 0.7041010730281516
+AP_person_free_non_target: 0.5800472778075255
+AP_person_cooccur_non_target: 0.5753249742701467
+PSNR: 35.38572092801516
+LPIPS: 0.02996782958507538
+average_perturbed_area_ratio: 0.6923928302985597
+target_collapse_score: 0.6054821902939707
+non_target_retention_score: 0.9286411629353001
+poisoned_count: 6095

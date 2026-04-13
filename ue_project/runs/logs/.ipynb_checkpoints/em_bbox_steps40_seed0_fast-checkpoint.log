@@ -1,0 +1,20 @@
+[launch_one] method= em_bbox
+[launch_one] steps= 40
+[launch_one] seed= 0
+[launch_one] stage= all
+[launch_one] run_root= /root/autodl-tmp/ue_project/runs
+[launch_one] artifact_root= /root/autodl-tmp/ue_project/runs/artifacts/em_bbox/steps40/seed0
+[launch_one] poisoned_root= /root/autodl-tmp/ue_project/runs/poisoned_datasets/em_bbox/steps40/seed0
+[launch_one] resume= False
+Traceback (most recent call last):
+  File "ue_framework/launch_one.py", line 112, in <module>
+    main()
+  File "ue_framework/launch_one.py", line 106, in main
+    _run_stage(ctx, s)
+  File "ue_framework/launch_one.py", line 25, in _run_stage
+    run_generate_poisoned_dataset(ctx)
+  File "/root/autodl-tmp/ue_project/ue_framework/stages/generate.py", line 211, in run_generate_poisoned_dataset
+    result = generator.generate(
+  File "/root/autodl-tmp/ue_project/ue_framework/methods/em.py", line 46, in generate
+    loss = -torch.mean(target_scores)
+KeyboardInterrupt

@@ -1,0 +1,2 @@
+method,steps,seed,mAP50_target,mAP50_non_target,mAP50_all,AP_person_free_non_target,AP_person_cooccur_non_target,PSNR,LPIPS,average_perturbed_area_ratio,target_collapse_score,non_target_retention_score
+em_mask,40,0,0.3195594258618838,0.7243401070895341,0.7041010730281516,0.5800472778075255,0.5753249742701467,35.38572092801516,0.02996782958507538,0.6923928302985597,0.6054821902939707,0.9286411629353001

@@ -1,0 +1,47 @@
+{
+  "method": "tausb_mask",
+  "steps": 40,
+  "seed": 1,
+  "created_at": "2026-04-03T21:18:13.441393Z",
+  "updated_at": "2026-04-04T01:17:36.028443Z",
+  "current_stage": "",
+  "completed_stages": [
+    "generate_poisoned_dataset",
+    "train_victim",
+    "evaluate"
+  ],
+  "stage_state": {
+    "generate_poisoned_dataset": {
+      "status": "completed",
+      "start_time": "2026-04-03T21:18:13.441733Z",
+      "tausb_global_params": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/noise/global_params.pt",
+      "processed": 16551,
+      "total": 16551,
+      "end_time": "2026-04-03T22:36:42.003834Z",
+      "manifest_csv": "/root/autodl-tmp/ue_project/runs/poisoned_datasets/tausb_mask/steps40/seed1/manifest.csv"
+    },
+    "train_victim": {
+      "status": "completed",
+      "start_time": "2026-04-03T22:36:42.011437Z",
+      "end_time": "2026-04-04T01:14:40.454398Z",
+      "deleted_cache_files": 1,
+      "train_data_yaml": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/train_data.yaml",
+      "latest_checkpoint": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/checkpoints/latest.pt",
+      "best_checkpoint": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/checkpoints/best.pt",
+      "train_run_dir": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/train_runs/victim",
+      "latest_epoch": 199,
+      "bundle_path": "/root/autodl-tmp/ue_project/runs/bundles/tausb_mask_steps40_seed1_compact.zip",
+      "save_every_n_epochs": 10,
+      "pack_every_n_epochs": 10,
+      "resume_enabled": false
+    },
+    "evaluate": {
+      "status": "completed",
+      "start_time": "2026-04-04T01:14:44.815413Z",
+      "end_time": "2026-04-04T01:17:36.028417Z",
+      "metrics_json": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/metrics/metrics.json",
+      "metrics_csv": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/metrics/metrics.csv",
+      "eval_log": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/logs/eval_log.txt"
+    }
+  }
+}

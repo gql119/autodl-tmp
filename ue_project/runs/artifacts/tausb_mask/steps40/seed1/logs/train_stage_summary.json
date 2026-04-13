@@ -1,0 +1,12 @@
+{
+  "deleted_cache_files": 1,
+  "train_data_yaml": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/train_data.yaml",
+  "latest_checkpoint": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/checkpoints/latest.pt",
+  "best_checkpoint": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/checkpoints/best.pt",
+  "train_run_dir": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/train_runs/victim",
+  "latest_epoch": 199,
+  "bundle_path": "/root/autodl-tmp/ue_project/runs/bundles/tausb_mask_steps40_seed1_compact.zip",
+  "save_every_n_epochs": 10,
+  "pack_every_n_epochs": 10,
+  "resume_enabled": false
+}

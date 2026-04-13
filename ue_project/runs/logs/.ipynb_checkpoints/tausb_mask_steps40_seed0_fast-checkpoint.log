@@ -1,0 +1,45 @@
+[launch_one] method= tausb_mask
+[launch_one] steps= 40
+[launch_one] seed= 0
+[launch_one] stage= all
+[launch_one] run_root= /root/autodl-tmp/ue_project/runs
+[launch_one] artifact_root= /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0
+[launch_one] poisoned_root= /root/autodl-tmp/ue_project/runs/poisoned_datasets/tausb_mask/steps40/seed0
+[launch_one] resume= False
+[BasePoisonGenerator] mid feature hook module: model.18
+[TAUSB] training global universal params ...
+
+[DEBUG PROBE] Step: 0 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: 0.00999999 | Grad L2-Norm: 0.03835139
+  -> Suppress Small [0,0,0,0]: 0.00000000 | Grad L2-Norm: -1.00000000
+  -> Batch Max_D: 0.000000
+
+[DEBUG PROBE] Step: 5 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.01448197 | Grad L2-Norm: 0.03754381
+  -> Suppress Small [0,0,0,0]: 0.00000000 | Grad L2-Norm: -1.00000000
+  -> Batch Max_D: 0.011622
+
+[DEBUG PROBE] Step: 10 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.02321693 | Grad L2-Norm: 0.07968894
+  -> Suppress Small [0,0,0,0]: 0.00000000 | Grad L2-Norm: -1.00000000
+  -> Batch Max_D: 0.015449
+
+[DEBUG PROBE] Step: 15 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.02694851 | Grad L2-Norm: 0.01848671
+  -> Suppress Small [0,0,0,0]: 0.00000000 | Grad L2-Norm: -1.00000000
+  -> Batch Max_D: 0.014286
+
+[DEBUG PROBE] Step: 20 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.02389070 | Grad L2-Norm: 0.02469424
+  -> Suppress Small [0,0,0,0]: 0.00000000 | Grad L2-Norm: -1.00000000
+  -> Batch Max_D: 0.012623
+
+[DEBUG PROBE] Step: 25 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.02628835 | Grad L2-Norm: 0.04315398
+  -> Suppress Small [0,0,0,0]: 0.00000000 | Grad L2-Norm: -1.00000000
+  -> Batch Max_D: 0.016297
+
+[DEBUG PROBE] Step: 30 | Eps: 0.062745
+  -> Fourier Coeff [0,0]: -0.03860261 | Grad L2-Norm: 0.06607742
+  -> Suppress Small [0,0,0,0]: 0.00000000 | Grad L2-Norm: -1.00000000
+  -> Batch Max_D: 0.022167

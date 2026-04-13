@@ -1,0 +1,36 @@
+{
+  "latest": {
+    "epoch": 30,
+    "align_clean_topk": 0.03321221930155267,
+    "align_adv_topk": 0.02876605729314045,
+    "target_prob_clean_mean": 0.0,
+    "target_prob_adv_mean": 0.0,
+    "overlap_clean_mean": 0.0,
+    "overlap_adv_mean": 0.0,
+    "shape_loss": 0.0,
+    "preserve_loss": 0.0,
+    "cls_aux_loss": 0.0,
+    "gate_positive_ratio": 0.011904762126505375,
+    "perturbed_area_ratio_mean": 0.0,
+    "L_induce": -0.0044461620084122215,
+    "L_tv": 0.0,
+    "L_budget": 0.21848546007540837,
+    "L_total": 0.0,
+    "mean_abs_delta": 0.006875263119886839,
+    "max_abs_delta": 0.0627450942993164,
+    "saturation_ratio": 0.03278818722638784,
+    "grad_norm_fourier": 0.005974314641207457,
+    "grad_norm_suppress": 0.006520128808915615
+  },
+  "global_params_path": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/noise/global_params.pt",
+  "coords": [
+    [
+      535,
+      84
+    ],
+    [
+      552,
+      126
+    ]
+  ]
+}
