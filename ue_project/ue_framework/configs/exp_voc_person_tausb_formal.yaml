@@ -98,24 +98,25 @@ methods:
     tanh_temp: 1.0
 
     # ====================================================
-    # 🚨 2. 核心损失权重 (课程学习的最大目标值)
+    # 🚨 2. 核心损失权重 (TSVC-DA 新引擎)
     # ====================================================
-    lambda_induce: 30.0          # 四维主炮的基准缩放系数
+    # 删除废弃的 lambda_induce, lambda_shape, lambda_cls_aux
     
-    # 【防线基石】保护权重必须拉高！
-    # 因为主炮太猛，我们需要强大的拉力维持非目标特征。
-    # 代码中前 15 轮会乘以 0.3 (即实际权重 3.0)，后期拉满到 10.0。
-    lambda_preserve: 10.0        
+    # 【核心 A】空间方差坍缩权重 (Collapse)
+    # 负责压平目标区域的空间起伏，致盲定位。建议在 10.0 - 20.0 之间调整。
+    lambda_tsvc: 15.0       
     
-    lambda_shape: 5.0            # 第 25 轮之后开始发力，彻底粉碎深层语义
-    enable_shape_entanglement: True
+    # 【核心 B】双重语义锚定权重 (Semantic Anchor)
+    # 负责死死拉住均值向量的余弦方向和 L2 范数，存活分类。
+    lambda_sem: 5.0         
     
-    lambda_cls_aux: 0.0          
+    # 【防线基石】非目标区域保护权重
+    # 由于现在的 TSVC 专注于深层特征空间，10.0 可能会产生过强的拉扯，建议先降至 5.0 观察。
+    lambda_preserve: 5.0    
     
     # 【核心防御】极低的 TV 损失！
-    # 绝不能让 TV 惩罚把我们用 Tanh 辛苦拉出来的“硬边缘”给磨平了
     lambda_tv: 0.0001            
-    lambda_budget: 0.0           
+    lambda_budget: 0.0 
 
     # ====================================================
     # ⚙️ 3. 运行环境与能量释放
@@ -124,7 +125,7 @@ methods:
     
     # 【防 OOM 设定】16 组基底 + 多层 Hook 极其吃显存。
     # 如果你的显卡 (如 4090/A100) 报 OOM，请降至 12 或 8。
-    universal_batch_size: 32
+    universal_batch_size: 16
     
     eot_samples: 2               # 配合代码中的 EG-style Dropout
     

@@ -75,10 +75,10 @@ class _TAUSBCommon(BasePoisonGenerator):
         self.align_beta = float(method_cfg.get("align_beta", 6.0))
         self.assignment_topk = int(method_cfg.get("assignment_topk", 100))
 
-        self.lambda_induce = float(method_cfg.get("lambda_induce", 30.0))
-        self.lambda_shape = float(method_cfg.get("lambda_shape", 0.0))
-        self.lambda_preserve = float(method_cfg.get("lambda_preserve", 0.0))
-        self.lambda_cls_aux = float(method_cfg.get("lambda_cls_aux", 0.0))
+        self.lambda_tsvc = float(method_cfg.get("lambda_tsvc", 10.0))
+        self.lambda_sem = float(method_cfg.get("lambda_sem", 5.0))
+        self.lambda_preserve = float(method_cfg.get("lambda_preserve", 5.0))
+        
         self.lambda_tv = float(method_cfg.get("lambda_tv", 0.0))
         self.lambda_budget = float(method_cfg.get("lambda_budget", 0.0))
 
@@ -112,7 +112,7 @@ class _TAUSBCommon(BasePoisonGenerator):
         self.multi_features = {}
         self._register_multi_layer_hooks()
         
-                # ====================================================
+        # ====================================================
         # 实例级离线拓扑 mask 配置
         # ====================================================
         self.instance_mask_dir = str(cfg.get("data", {}).get("instance_mask_dir", "") or "")
@@ -340,8 +340,6 @@ class TAUSBMaskGenerator(_TAUSBCommon):
             image_path=image_path,
         )
             
-        
-
         # 🚑 放宽拦截条件：只要核心区像素总数大于 10 就加扰 (防全盘被过滤)
         if float(inner_np.sum()) <= 10.0:  
             zero = image * 0.0
@@ -504,35 +502,26 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
         latest_diag = {}
 
         for epoch in range(self.universal_epochs):
-            cur_lambda_induce = self.lambda_induce
-            
             # 🛡️ 双轨保护提前介入
             if epoch < 15:
                 cur_lambda_preserve = self.lambda_preserve * 0.3  
-                cur_lambda_shape = 0.0
             elif epoch < 25:
                 warmup_ratio = 0.3 + min(0.7, (epoch - 15) / 10.0 * 0.7)
                 cur_lambda_preserve = self.lambda_preserve * warmup_ratio
-                cur_lambda_shape = 0.0
             else:
                 cur_lambda_preserve = self.lambda_preserve
                 warmup_ratio = min(1.0, (epoch - 25) / 5.0)
-                cur_lambda_shape = self.lambda_shape * warmup_ratio
-                cur_lambda_induce = self.lambda_induce - (self.lambda_induce * 0.33) * warmup_ratio
 
+            # 📊 更新诊断字典：剥离了原来的四维打击指标，加入了 SLD 相关度量
             epoch_diag = {
                 "align_clean_topk": 0.0,
                 "align_adv_topk": 0.0,
-                "target_prob_clean_mean": 0.0,
-                "target_prob_adv_mean": 0.0,
-                "overlap_clean_mean": 0.0,
-                "overlap_adv_mean": 0.0,
-                "shape_loss": 0.0,
+                "L_tsvc": 0.0,
+                "L_sem": 0.0,
+                "sld_score": 0.0,
                 "preserve_loss": 0.0,
-                "cls_aux_loss": 0.0,
                 "gate_positive_ratio": 0.0,
                 "perturbed_area_ratio_mean": 0.0,
-                "L_induce": 0.0,
                 "L_tv": 0.0,
                 "L_budget": 0.0,
                 "L_total": 0.0,
@@ -552,10 +541,10 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 optimizer.zero_grad(set_to_none=True)
 
                 valid_items = []
-                # 新增：每个 batch 的 support 来源统计
                 batch_prebaked = 0
                 batch_fallback = 0
                 batch_empty = 0
+                
                 for data in batch_list:
                     inner_np, ring_np, support_source = self._build_support(
                         image_shape=data["clean_np"].shape,
@@ -641,18 +630,15 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 )
 
                 eot_count = max(1, self.eot_samples)
-                L_induce = torch.zeros((), device=self.device)
-                L_shape = torch.zeros((), device=self.device)
-                L_preserve = torch.zeros((), device=self.device)
-                L_cls_aux = torch.zeros((), device=self.device)
-
+                
+                L_tsvc_total = torch.zeros((), device=self.device)
+                L_sem_total = torch.zeros((), device=self.device)
+                L_preserve_total = torch.zeros((), device=self.device)
+                
                 align_clean_topk_acc = 0.0
                 align_adv_topk_acc = 0.0
-                tp_clean_acc = 0.0
-                tp_adv_acc = 0.0
-                ov_clean_acc = 0.0
-                ov_adv_acc = 0.0
                 gate_ratio_acc = 0.0
+                batch_sld_score_acc = 0.0
 
                 for _ in range(eot_count):
                     clean_aug, adv_aug = self._apply_shared_eot_pair_batched(img_t, adv)
@@ -662,19 +648,26 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         preds_clean = self._forward_raw(clean_aug)
                         features_clean_cache = {k: v.detach() for k, v in self.multi_features.items()}
 
+                        single_batch_probe = dict(single_batch)
+                        single_batch_probe["image_shape"] = (batch_h, batch_w)
+
+                        _ = self.hijacked.get_assigned_targets_and_loss(
+                            preds_clean,
+                            single_batch_probe,
+                        )
+
                         cache_clean = self.hijacked.cache_assign_inputs_only(
                             preds=preds_clean,
                             batch=single_batch,
                             image_shape=(batch_h, batch_w),
                             assignment_topk=self.assignment_topk,
                         )
-                        if not cache_clean:
-                            continue
 
-                        gate = cache_clean.get("fg_mask", None)
-                        if gate is None or gate.numel() == 0:
-                            continue
+                    if not cache_clean:
+                        continue
 
+                    gate = cache_clean.get("fg_mask", None)
+                    if gate is not None and gate.numel() > 0:
                         shadow_clean = self.shadow_tal(
                             pred_scores_logits=cache_clean["pred_scores_logits"],
                             pred_bboxes=cache_clean["pred_bboxes"],
@@ -684,6 +677,8 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                             gate=gate,
                             topk=self.assignment_topk,
                         )
+                        align_clean_topk_acc += float(shadow_clean["topk_alignment"].mean().item())
+                        gate_ratio_acc += float(shadow_clean["gate_positive_ratio"].item())
 
                     self._clear_multi_features()
                     preds_adv = self._forward_raw(adv_aug)
@@ -695,69 +690,81 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         image_shape=(batch_h, batch_w),
                         assignment_topk=self.assignment_topk,
                     )
-                    shadow_adv = self.shadow_tal(
-                        pred_scores_logits=cache_adv["pred_scores_logits"],
-                        pred_bboxes=cache_adv["pred_bboxes"],
-                        gt_labels=cache_adv["gt_labels"],
-                        gt_bboxes=cache_adv["gt_bboxes"],
-                        mask_gt=cache_adv["mask_gt"],
-                        gate=gate,
-                        topk=self.assignment_topk,
-                    )
-
-                    # ====================================================
-                    # 🚀 Track 0: TAUS-Hybrid 核动力引擎 (绝对梯度阻断)
-                    # ====================================================
-                    A_clean = shadow_clean["topk_alignment"]
-                    A_adv = shadow_adv["topk_alignment"]
-                    L_induce_aux = (A_adv.mean() - A_clean.mean())
-
-                    pred_logits_adv = cache_adv["pred_scores_logits"] 
-                    pred_bboxes_adv = cache_adv["pred_bboxes"]
                     
-                    # 🛡️ 截断非目标类的梯度，只允许目标类更新扰动
-                    pred_probs_adv_raw = torch.sigmoid(pred_logits_adv)
-                    pred_probs_target = pred_probs_adv_raw[:, :, self.target_class_id:self.target_class_id+1]
-                    pred_probs_non_target = pred_probs_adv_raw[:, :, :self.target_class_id].detach() 
-                    pred_probs_non_target_post = pred_probs_adv_raw[:, :, self.target_class_id+1:].detach() 
-                    
-                    pred_probs_adv = torch.cat([pred_probs_non_target, pred_probs_target, pred_probs_non_target_post], dim=2)
-
-                    gate_clean = cache_clean.get("fg_mask", None)
-
-                    L_attack_main = torch.zeros((), device=self.device)
-                    
-                    # 🚑 移除了导致静默罢工的 gt_labels 形状判断，依赖物理掩码隔离背景
-                    if gate_clean is not None and gate_clean.sum() > 0:
-                        valid_probs = pred_probs_adv[gate_clean] 
-                        valid_bboxes = pred_bboxes_adv[gate_clean]
-
-                        L_person = torch.mean(valid_probs[:, self.target_class_id])
-                        L_box = torch.mean((valid_bboxes[:, 2] + valid_bboxes[:, 3]) / self.imgsz)
-                        
-                        max_conf, _ = torch.max(valid_probs, dim=1)
-                        L_obj = torch.mean(max_conf ** 2)
-                        
-                        L_entropy = torch.mean(torch.var(valid_probs, dim=1))
-                        # 🚑 更加保守的动态熵权重上限，最高到 2.5
-                        dynamic_entropy_weight = 1.0 if epoch < 15 else min(2.5, 1.0 + (epoch - 15) * 0.15)
-
-                        L_attack_main = (
-                            1.0 * L_person + 
-                            1.5 * L_box + 
-                            2.0 * L_obj + 
-                            dynamic_entropy_weight * L_entropy
+                    if gate is not None and gate.numel() > 0:
+                        shadow_adv = self.shadow_tal(
+                            pred_scores_logits=cache_adv["pred_scores_logits"],
+                            pred_bboxes=cache_adv["pred_bboxes"],
+                            gt_labels=cache_adv["gt_labels"],
+                            gt_bboxes=cache_adv["gt_bboxes"],
+                            mask_gt=cache_adv["mask_gt"],
+                            gate=gate,
+                            topk=self.assignment_topk,
                         )
+                        align_adv_topk_acc += float(shadow_adv["topk_alignment"].mean().item())
 
-                    L_induce = L_induce + (L_attack_main + 0.5 * L_induce_aux)
+                    # ====================================================
+                    # 🚀 TSVC-DA: 特征层高平捷径诱导 (替代了输出层四维打击)
+                    # ====================================================
+                    L_shortcut_tsvc = torch.zeros((), device=self.device)
+                    L_semantic_anchor = torch.zeros((), device=self.device)
+                    valid_layers = 0 
+                    
+                    for layer_name in self.shape_layers: 
+                        if layer_name in features_adv_cache and layer_name in features_clean_cache:
+                            Z_adv = features_adv_cache[layer_name]      # [B, C, H, W]
+                            Z_clean = features_clean_cache[layer_name]  # [B, C, H, W]
+                            B, C, H, W = Z_adv.shape
 
+                            # 1. Proxy Topology Mask (利用现有物理拓扑)
+                            M_proxy = F.adaptive_avg_pool2d(inner_t, output_size=(H, W))
+                            num_assigned_pixels = M_proxy.sum(dim=(2, 3), keepdim=True) + 1e-6
+                            
+                            if num_assigned_pixels.sum() < 1.0:
+                                continue
+                                
+                            valid_layers += 1
 
+                            # 2. Semantic Prototype (均值)
+                            Z_adv_mean = (Z_adv * M_proxy).sum(dim=(2, 3), keepdim=True) / num_assigned_pixels
+                            Z_clean_mean = (Z_clean * M_proxy).sum(dim=(2, 3), keepdim=True) / num_assigned_pixels
+                            
+                            # ⚔️ 核心 A：空间方差坍缩
+                            squared_diff = (Z_adv - Z_adv_mean.detach()) ** 2
+                            spatial_variance = (squared_diff * M_proxy).sum(dim=(2, 3), keepdim=True) / num_assigned_pixels
+                            L_collapse = spatial_variance.mean() 
+                            
+                            # ⚓ 核心 B：双重语义锚定
+                            adv_mean_flat = Z_adv_mean.view(B, -1)
+                            clean_mean_flat = Z_clean_mean.detach().view(B, -1)
+                            
+                            cos_sim = F.cosine_similarity(adv_mean_flat, clean_mean_flat, dim=1)
+                            L_cos = (1.0 - cos_sim).mean()
+                            
+                            adv_norm = adv_mean_flat.norm(dim=1)
+                            clean_norm = clean_mean_flat.norm(dim=1)
+                            L_energy = ((adv_norm - clean_norm) ** 2).mean()
+
+                            L_shortcut_tsvc += L_collapse
+                            L_semantic_anchor += L_cos + L_energy
+
+                            # 记录 SLD-Score
+                            semantic_energy_val = (adv_norm ** 2).mean().item()
+                            spatial_variance_val = spatial_variance.mean().item()
+                            batch_sld_score_acc += semantic_energy_val / (spatial_variance_val + 1e-6)
+
+                    if valid_layers > 0:
+                        L_shortcut_tsvc = L_shortcut_tsvc / valid_layers
+                        L_semantic_anchor = L_semantic_anchor / valid_layers
+                        batch_sld_score_acc = batch_sld_score_acc / valid_layers
+
+                    # ====================================================
+                    # 🛡️ Track A: Non-Target Preserve (原汁原味)
+                    # ====================================================
                     M_supp_spatial = inner_t 
                     M_non_supp_spatial = 1.0 - M_supp_spatial
-
-                    # ====================================================
-                    # 🛡️ Track A: 浅层特征与非目标 Logits 的严格保护
-                    # ====================================================
+                    L_preserve = torch.zeros((), device=self.device)
+                    
                     if cur_lambda_preserve > 0:
                         L_preserve_feat = torch.zeros((), device=self.device)
                         for layer_name in self.preserve_layers:
@@ -768,7 +775,6 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                                 mse_map = F.mse_loss(z_c, z_a, reduction='none').mean(dim=1, keepdim=True)
                                 L_preserve_feat = L_preserve_feat + (mse_map * M_bg).sum() / (M_bg.sum() + 1e-6)
                         
-                        # 强迫非目标类的预测保持原状
                         non_target_indices = torch.arange(self.num_classes, device=self.device) != self.target_class_id
                         clean_non_target_logits = cache_clean["pred_scores_logits"][:, :, non_target_indices]
                         adv_non_target_logits = cache_adv["pred_scores_logits"][:, :, non_target_indices]
@@ -777,52 +783,34 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                             torch.sigmoid(adv_non_target_logits),
                             torch.sigmoid(clean_non_target_logits.detach())
                         )
-                        
-                        L_preserve = L_preserve + (L_preserve_logits + 0.5 * L_preserve_feat)
+                        L_preserve = L_preserve_logits + 0.5 * L_preserve_feat
 
-                    # ====================================================
-                    # ⚔️ Track B: 深层颈部特征正交错位
-                    # ====================================================
-                    if cur_lambda_shape > 0:
-                        L_shape_step = torch.zeros((), device=self.device)
-                        for layer_name in self.shape_layers:
-                            if layer_name in features_clean_cache and layer_name in features_adv_cache:
-                                z_c = features_clean_cache[layer_name]
-                                z_a = features_adv_cache[layer_name]
-                                M_fg = F.adaptive_avg_pool2d(M_supp_spatial, output_size=z_a.shape[-2:])
-                                
-                                cos_sim_map = F.cosine_similarity(z_c, z_a, dim=1).unsqueeze(1)
-                                masked_cos_sim = (cos_sim_map * M_fg).sum() / (M_fg.sum() + 1e-6)
-                                L_shape_step = L_shape_step + (1.0 - masked_cos_sim)
-                                
-                        L_shape = L_shape + L_shape_step
+                    # 累加 EOT 的 Loss
+                    L_tsvc_total += L_shortcut_tsvc
+                    L_sem_total += L_semantic_anchor
+                    L_preserve_total += L_preserve
 
-                    target_logits_adv = cache_adv["pred_scores_logits"][:, :, self.target_class_id]
-                    L_cls_aux = L_cls_aux + torch.sigmoid(target_logits_adv).mean()
-
-                    align_clean_topk_acc += float(A_clean.mean().item())
-                    align_adv_topk_acc += float(A_adv.mean().item())
-                    tp_clean_acc += float(shadow_clean["target_prob_mean"].item())
-                    tp_adv_acc += float(shadow_adv["target_prob_mean"].item())
-                    ov_clean_acc += float(shadow_clean["overlap_mean"].item())
-                    ov_adv_acc += float(shadow_adv["overlap_mean"].item())
-                    gate_ratio_acc += float(shadow_clean["gate_positive_ratio"].item())
-
-                L_induce = L_induce / eot_count
-                L_shape = L_shape / eot_count
-                L_preserve = L_preserve / eot_count
-                L_cls_aux = L_cls_aux / eot_count
+                # 计算 EOT 平均
+                L_tsvc_final = L_tsvc_total / eot_count
+                L_sem_final = L_sem_total / eot_count
+                L_preserve_final = L_preserve_total / eot_count
 
                 L_tv = self._tv_loss(raw_perturb)
                 L_budget = F.relu(torch.max(torch.abs(raw_perturb)) - self.eps)
 
+                # ====================================================
+                # 🎯 终极 Loss 融合 (以 High-and-Flat 理论为核心)
+                # ====================================================
+                # 新机制权重 (可能需根据你自己的模型 loss 数值做微调)
+                lambda_tsvc = 10.0 
+                lambda_sem = 5.0
+                
                 total_loss = (
-                    cur_lambda_induce * L_induce
-                    + cur_lambda_shape * L_shape
-                    + cur_lambda_preserve * L_preserve
-                    + self.lambda_cls_aux * L_cls_aux
-                    + self.lambda_tv * L_tv
-                    + self.lambda_budget * L_budget
+                    self.lambda_tsvc * L_tsvc_final             
+                    + self.lambda_sem * L_sem_final          
+                    + cur_lambda_preserve * L_preserve_final 
+                    + self.lambda_tv * L_tv  
+                    + self.lambda_budget * L_budget          
                 )
 
                 total_loss.backward()
@@ -867,12 +855,17 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 if batch_count == 0 or global_step % 5 == 0:
                     print(f"\n[DEBUG PROBE] Step: {global_step} | Eps: {self.eps:.6f}")
                     print(f"  -> Fourier Coeff [0,0]: {self.fourier_coeff[0, 0].item():.8f} | Grad L2-Norm: {grad_norm_fourier:.8f}")
-                    print(f"  -> Curr Weights: Induce={cur_lambda_induce:.1f} Shape={cur_lambda_shape:.1f} Pres={cur_lambda_preserve:.1f}")
+                    print(f"  -> Curr Weights: TSVC={lambda_tsvc:.1f} Sem={lambda_sem:.1f} Pres={cur_lambda_preserve:.1f}")
                     print(f"  -> Batch Max_D: {torch.max(torch.abs(raw_perturb)).item():.6f}")
+                    print(f"  -> SLD-Score (Proxy): {batch_sld_score_acc / eot_count:.4f}")
 
+                # 更新字典
                 epoch_diag["align_clean_topk"] += align_clean_topk_acc / eot_count
                 epoch_diag["align_adv_topk"] += align_adv_topk_acc / eot_count
-                epoch_diag["L_induce"] += float(L_induce.item())
+                epoch_diag["L_tsvc"] += float(L_tsvc_final.item())
+                epoch_diag["L_sem"] += float(L_sem_final.item())
+                epoch_diag["sld_score"] += batch_sld_score_acc / eot_count
+                epoch_diag["preserve_loss"] += float(L_preserve_final.item())
                 epoch_diag["L_budget"] += float(L_budget.item())
                 epoch_diag["gate_positive_ratio"] += gate_ratio_acc / eot_count
                 
@@ -880,7 +873,6 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 batch_mean_d = float(torch.mean(torch.abs(perturb)).item())
                 
                 batch_sat_ratio = float(torch.mean((torch.abs(raw_perturb) > self.eps - 1e-5).float()).item())
-                # 精准面积统计
                 batch_area_mask = (torch.max(torch.abs(perturb), dim=1)[0] > (1.0 / 255.0)).float()
                 batch_area_ratio = float(torch.mean(batch_area_mask).item())
                 
@@ -907,10 +899,9 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
             latest_diag = row
             
             print(
-                f"[TAUSB][epoch {epoch + 1}/{self.universal_epochs}] "
-                f"A_clean={row['align_clean_topk']:.6f} A_adv={row['align_adv_topk']:.6f} "
-                f"L_ind={row['L_induce']:.6f} Sat_Ratio={row['saturation_ratio']:.2%} "
-                f"Max_D={row['max_abs_delta']:.4f}"
+                f"[TSVC-DA][epoch {epoch + 1}/{self.universal_epochs}] "
+                f"L_tsvc={row['L_tsvc']:.4f} L_sem={row['L_sem']:.4f} SLD_score={row['sld_score']:.2f} "
+                f"Sat_Ratio={row['saturation_ratio']:.2%} Max_D={row['max_abs_delta']:.4f}"
             )
 
             scheduler.step()
