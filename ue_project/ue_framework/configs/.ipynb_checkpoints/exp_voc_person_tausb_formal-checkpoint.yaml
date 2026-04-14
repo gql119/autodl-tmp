@@ -125,7 +125,7 @@ methods:
     
     # 【防 OOM 设定】16 组基底 + 多层 Hook 极其吃显存。
     # 如果你的显卡 (如 4090/A100) 报 OOM，请降至 12 或 8。
-    universal_batch_size: 16
+    universal_batch_size: 32
     
     eot_samples: 2               # 配合代码中的 EG-style Dropout
     
