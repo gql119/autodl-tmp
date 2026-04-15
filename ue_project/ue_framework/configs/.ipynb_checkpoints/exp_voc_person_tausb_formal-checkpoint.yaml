@@ -104,7 +104,7 @@ methods:
     
     # 【核心 A】空间方差坍缩权重 (Collapse)
     # 负责压平目标区域的空间起伏，致盲定位。建议在 10.0 - 20.0 之间调整。
-    lambda_tsvc: 15.0       
+    lambda_tsvc: 20.0       
     
     # 【核心 B】双重语义锚定权重 (Semantic Anchor)
     # 负责死死拉住均值向量的余弦方向和 L2 范数，存活分类。
@@ -112,7 +112,7 @@ methods:
     
     # 【防线基石】非目标区域保护权重
     # 由于现在的 TSVC 专注于深层特征空间，10.0 可能会产生过强的拉扯，建议先降至 5.0 观察。
-    lambda_preserve: 5.0    
+    lambda_preserve: 4.0    
     
     # 【核心防御】极低的 TV 损失！
     lambda_tv: 0.0001            
@@ -125,14 +125,14 @@ methods:
     
     # 【防 OOM 设定】16 组基底 + 多层 Hook 极其吃显存。
     # 如果你的显卡 (如 4090/A100) 报 OOM，请降至 12 或 8。
-    universal_batch_size: 32
+    universal_batch_size: 16
     
     eot_samples: 2               # 配合代码中的 EG-style Dropout
     
     # 【能量地板】
     # 初始为 0.3，配合代码中的动态拉升（后期会到 0.5）。
     # 允许在平滑区域（如人脸、衣服）注入足够的对抗能量。
-    jnd_floor: 0.3               
+    jnd_floor: 0.4               
     jnd_ceiling: 1.0
     
     # 配合 16 组基底的最佳探索步长，防止优化器跑飞

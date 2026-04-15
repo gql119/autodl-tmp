@@ -291,12 +291,13 @@ class _TAUSBCommon(BasePoisonGenerator):
         support_supp3 = support_supp.repeat(1, 3, 1, 1)
 
         # 🌟 动态 Tanh 与 动态 JND
+        # 修改jnd_floor值
         if getattr(self, 'is_universal_training', False):
             tanh_coeff = 1.5 + min(2.5, (current_epoch / 20.0) * 2.5)
             if current_epoch < 15:
-                cur_jnd_floor = 0.3
+                cur_jnd_floor = 0.4
             else:
-                cur_jnd_floor = 0.3 + min(0.2, ((current_epoch - 15) / 15.0) * 0.2)
+                cur_jnd_floor = 0.4 + min(0.1, ((current_epoch - 15) / 15.0) * 0.2)
         else:
             tanh_coeff = 4.0
             cur_jnd_floor = 0.5
@@ -356,7 +357,10 @@ class TAUSBMaskGenerator(_TAUSBCommon):
                 ring_mask=ring_np,
                 losses={"L_total": 0.0},
                 extras={
-                    "note": "empty_support", # 🚀 修正 3：如实上报！没加毒就是没加毒，绝不造假
+                    "note": "empty_support", # 修正 3：如实上报！没加毒就是没加毒
+                    "is_poisoned": False,
+                    "poisoned": 0,
+                    
                     "support_source": support_source,
                     "mask_path": self._resolve_instance_mask_path(image_path) or "",
                 },
@@ -393,7 +397,11 @@ class TAUSBMaskGenerator(_TAUSBCommon):
                 "L_total": float(budget_violation.item()),
             },
             extras={
-                "note": "poisoned", # 🚀 已修复：加入日志标志，防止脚本以为没加毒
+                # 真实加毒：全字段覆盖，确保评测脚本一定能抓取到
+                "note": "poisoned",
+                "is_poisoned": True,
+                "poisoned": 1,
+                
                 "coords": self.coords,
                 "jnd_gain": jnd.squeeze(0).squeeze(0).detach().cpu().numpy(),
                 "spectrum": spectrum,
@@ -609,7 +617,15 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         c = int(ann.get("cls", -1))
                         bb = ann.get("bbox", None)
                         if bb is not None and len(bb) == 4:
-                            bboxes.append([float(x) for x in bb])
+                            # 核心修复：Padding-aware BBox Re-normalization
+                            # 消除 Padding 引起的 GT 框物理坐标漂移
+                            cx, cy, bw, bh = bb
+                            new_cx = cx * cw / pad_w_target
+                            new_cy = cy * ch / pad_h_target
+                            new_bw = bw * cw / pad_w_target
+                            new_bh = bh * ch / pad_h_target
+                            
+                            bboxes.append([new_cx, new_cy, new_bw, new_bh])
                             clss.append([float(c)])
                             batch_idx.append(i)
 
@@ -739,26 +755,30 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         }
 
                     # ----------------------------------------------------
+                    # ----------------------------------------------------
                     # 2. 📖 构造 1D 严格门控
                     # ----------------------------------------------------
                     if real_assign_clean:
-                        real_fg = real_assign_clean["fg_mask"].bool()            # [B, 8400]
-                        real_labels = real_assign_clean["target_labels"].long()  # [B, 8400]
+                        real_fg = real_assign_clean["fg_mask"].bool()            # [B, 8400]，real_fg 先保留所有 foreground positive
+                        real_labels = real_assign_clean["target_labels"].long()  # [B, 8400]，real_labels == target_class_id 再把其中真正属于 person 的保留下来
                         
                         # 严格门控：必须是前景，且真实分配给 Target 类别
-                        strict_gate_1d = real_fg & (real_labels == self.target_class_id)
+                        strict_gate_1d = real_fg & (real_labels == self.target_class_id) #在 detector 的 8400 个候选单元里，真正负责预测 person 的那一小部分单元
+                        #M_assign 从 detector 内部筛掉那些虽然在物理邻域里、但其实不是拿来预测 person 的单元
                         
-                        # [Sanity Check 1] 仅在首个 Batch 打印门控统计
-                        if batch_count == 0 and eot_idx == 0 and epoch == 0:
+                        # 🚀 One-shot 锁：门控正样本统计 (全局绝对只打印一次)
+                        if not getattr(self, '_sanity_gate_printed', False):
                             print(f"\n🔬 [Sanity Check 1] fg positives: {real_fg.sum().item()}")
                             print(f"🔬 [Sanity Check 1] strict target positives: {strict_gate_1d.sum().item()}")
+                            self._sanity_gate_printed = True
                     else:
                         strict_gate_1d = None
 
-                    # 🚨 论文级严谨：如果拿不到严格分配信息，直接跳过当前 Batch 的诱导，绝不退化！
+                    # 🚨 论文级严谨：如果拿不到严格分配信息，直接跳过当前 Batch
                     if strict_gate_1d is None:
-                        if batch_count == 0 and eot_idx == 0 and epoch == 0:
+                        if not getattr(self, '_sanity_miss_printed', False):
                             print("\n⚠️ [Warning] 严格分配信息缺失，AL-SVC 跳过当前 Batch (无静默退化)。")
+                            self._sanity_miss_printed = True
                     else:
                         anchor_offset = 0  # RTP 滑动切片游标
 
@@ -790,12 +810,15 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                                 M_AL = M_topology * M_assign_2d
                                 anchor_offset += num_anchors_layer
                                 
-                                # [Sanity Check 2 & 3] 验证稀疏性 M_AL <= M_topology
-                                if batch_count == 0 and eot_idx == 0 and epoch == 0:
+                                # 🚀 One-shot 锁：逐层 Overlap Ratio 监控 (包含核心 Ratio 计算)
+                                if not getattr(self, f'_sanity_layer_{layer_name}_printed', False):
+                                    overlap_ratio = M_AL.sum().item() / (M_assign_2d.sum().item() + 1e-6)
                                     print(f"🔬 [Sanity Check 2&3 - {layer_name}]")
                                     print(f"   M_topology sum: {M_topology.sum().item():.1f}")
                                     print(f"   M_assign_2d sum: {M_assign_2d.sum().item():.1f}")
                                     print(f"   M_AL sum: {M_AL.sum().item():.1f}")
+                                    print(f"   🔥 Overlap Ratio: {overlap_ratio:.2%}")
+                                    setattr(self, f'_sanity_layer_{layer_name}_printed', True)
 
                                 # ----------------------------------------------------
                                 # 5. 后续所有 Collapse 与 Anchor 全部基于绝对精准的 M_AL

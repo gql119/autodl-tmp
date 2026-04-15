@@ -2,14 +2,14 @@
   "method": "tausb_mask",
   "steps": 40,
   "seed": 0,
-  "mAP50_target": 0.34349694815023424,
-  "mAP50_non_target": 0.713452313759121,
-  "mAP50_all": 0.6949545454786766,
-  "AP_person_free_non_target": 0.5849860613256975,
-  "AP_person_cooccur_non_target": 0.5507314301933004,
+  "mAP50_target": 0.27828711508194887,
+  "mAP50_non_target": 0.7115113548131682,
+  "mAP50_all": 0.6898501428266073,
+  "AP_person_free_non_target": 0.5838683446022033,
+  "AP_person_cooccur_non_target": 0.5563677133488075,
   "PSNR": NaN,
   "LPIPS": NaN,
   "average_perturbed_area_ratio": 0.0,
-  "target_collapse_score": 0.5759296936416862,
-  "non_target_retention_score": 0.9146824535373346
+  "target_collapse_score": 0.6564356603926558,
+  "non_target_retention_score": 0.9121940446322668
 }
