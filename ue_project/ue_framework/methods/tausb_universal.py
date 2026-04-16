@@ -187,7 +187,9 @@ class _TAUSBCommon(BasePoisonGenerator):
             return mask_path
         return None
 
-    def _build_support(self, image_shape, annotations, support_type="mask", ring_width=4, image_path=None):
+    def _build_support(self, image_shape, annotations, support_type="mask", ring_width=4, image_path=None): #构造目标实例的物理拓扑区域，
+        #对每张目标图像，构造两个 mask：inner_t：目标核心区域，ring_t：目标边界环区域，这两个区域共同定义 target 的物理 support。
+        
         h, w = image_shape[:2]
         zero = np.zeros((h, w), dtype=np.float32)
 
@@ -256,7 +258,7 @@ class _TAUSBCommon(BasePoisonGenerator):
         adv_aug = torch.clamp(adv_aug * gain + noise, 0.0, 1.0)
         return clean_aug, adv_aug
 
-    def _jnd_gain(self, img: torch.Tensor, current_floor: float) -> torch.Tensor:
+    def _jnd_gain(self, img: torch.Tensor, current_floor: float) -> torch.Tensor: #根据图像灰度梯度生成 JND 增益图。
         r = img[:, 0:1]
         g = img[:, 1:2]
         b = img[:, 2:3]
@@ -280,7 +282,7 @@ class _TAUSBCommon(BasePoisonGenerator):
         dy = torch.abs(x[:, :, :, 1:] - x[:, :, :, :-1]).mean()
         return dx + dy
 
-    def _build_global_freq_pattern(self, h: int, w: int, coords: List[Tuple[int, int]], coeff: torch.Tensor) -> torch.Tensor:
+    def _build_global_freq_pattern(self, h: int, w: int, coords: List[Tuple[int, int]], coeff: torch.Tensor) -> torch.Tensor: #这个函数把 Fourier 系数变成空间域模式。
         ch_patterns = []
         for c in range(3):
             amps = torch.tanh(coeff[:, c] / self.tanh_temp) * (self.eps * self.freq_amp_buffer)
@@ -294,7 +296,7 @@ class _TAUSBCommon(BasePoisonGenerator):
         ring = torch.from_numpy(ring_np).float().unsqueeze(0).unsqueeze(0).to(self.device)
         return self._compose_delta_batched(img_t, inner, ring, coords, fourier_coeff, suppress_small, current_epoch=0)
 
-    def _compose_delta_batched(self, img_t: torch.Tensor, inner_t: torch.Tensor, ring_t: torch.Tensor, coords: List[Tuple[int, int]], fourier_coeff: torch.Tensor, suppress_small: torch.Tensor, current_epoch: int = 0) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def _compose_delta_batched(self, img_t: torch.Tensor, inner_t: torch.Tensor, ring_t: torch.Tensor, coords: List[Tuple[int, int]], fourier_coeff: torch.Tensor, suppress_small: torch.Tensor, current_epoch: int = 0) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:  #最终扰动合成：构造 support_freq、构造 jnd、生成 freq_pattern、合成扰动
         h, w = img_t.shape[-2:]
         
         support_freq = torch.clamp(inner_t + 0.01 * ring_t, 0.0, 1.0)
@@ -425,10 +427,10 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
         self.universal_epochs = int(method_cfg.get("universal_epochs", 40))
         self.universal_batch_size = int(method_cfg.get("universal_batch_size", 16))
-        self.universal_lr_fourier = float(method_cfg.get("universal_lr_fourier", 0.05))
+        self.universal_lr_fourier = float(method_cfg.get("universal_lr_fourier", 0.05)) 
         self.universal_lr_suppress = float(method_cfg.get("universal_lr_suppress", 0.002))
 
-        self.coords = sample_midfreq_coords(
+        self.coords = sample_midfreq_coords( #定义了中频基底位置
             h=self.imgsz,
             w=self.imgsz,
             num_bases=self.shortcut_num_bases,
@@ -436,7 +438,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
             enable_search=True,
         )
 
-        self.fourier_coeff = torch.nn.Parameter(torch.zeros((self.shortcut_num_bases, 3), device=self.device))
+        self.fourier_coeff = torch.nn.Parameter(torch.zeros((self.shortcut_num_bases, 3), device=self.device)) #定义了中频可学习系数
         self.suppress_small = torch.nn.Parameter(
             torch.zeros((1, 3, self.suppress_small_size, self.suppress_small_size), device=self.device)
         )
@@ -453,7 +455,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
             target_class_id=self.target_class_id,
         )
 
-    def _collect_target_images(self, train_img_dir: str, train_label_dir: str) -> List[str]:
+    def _collect_target_images(self, train_img_dir: str, train_label_dir: str) -> List[str]: #筛选 目标 图像，遍历训练图像，读取 YOLO 标注，只保留含有 target_class_id 的图片
         all_images = list_images(train_img_dir)
         out = []
         for p in all_images:
@@ -602,15 +604,15 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
                 max_h = max(item[0]["clean_np"].shape[0] for item in valid_items)
                 max_w = max(item[0]["clean_np"].shape[1] for item in valid_items)
-                pad_h_target = ((max_h + 31) // 32) * 32
+                pad_h_target = ((max_h + 31) // 32) * 32 
                 pad_w_target = ((max_w + 31) // 32) * 32
 
                 img_t_list, inner_t_list, ring_t_list = [], [], []
                 bboxes, clss, batch_idx = [], [], []
 
                 for i, (data, inner, ring, support_source) in enumerate(valid_items):
-                    img_tsr = torch.from_numpy(data["clean_np"]).float().permute(2, 0, 1)
-                    inner_tsr = torch.from_numpy(inner).float().unsqueeze(0)
+                    img_tsr = torch.from_numpy(data["clean_np"]).float().permute(2, 0, 1) #将把所有图扩大到共同大小
+                    inner_tsr = torch.from_numpy(inner).float().unsqueeze(0) #同步扩大inner_t / ring_t
                     ring_tsr = torch.from_numpy(ring).float().unsqueeze(0)
 
                     ch, cw = img_tsr.shape[1], img_tsr.shape[2]
@@ -626,7 +628,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     inner_t_list.append(inner_tsr)
                     ring_t_list.append(ring_tsr)
 
-                    for ann in data["anns"]:
+                    for ann in data["anns"]:  #把每个 bbox 重算为 扩大 后的归一化坐标。 保证图像、mask、bbox 在同一几何坐标系下对齐。
                         c = int(ann.get("cls", -1))
                         bb = ann.get("bbox", None)
                         if bb is not None and len(bb) == 4:
@@ -656,7 +658,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 }
 
                 # ====================================================
-                # 🚀 ACGT 算子：采用中距离外层环带与精准排除
+                #  ACGT 算子：采用中距离外层环带与精准排除
                 # ====================================================
                 M_non_target_obj = build_non_target_objects_mask(
                     batch=single_batch,
@@ -684,7 +686,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     conf_t = conf_t * conf_keep
 
                 # ====================================================
-                # 🔬 更新：原图空间掩码探针 (Mask Survival Diagnostics)
+                #  更新：原图空间掩码探针 (Mask Survival Diagnostics)
                 # ====================================================
                 if not getattr(self, "_sanity_mask_space_printed", False):
                     inner_sum = inner_t.sum().item()
@@ -740,7 +742,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
                     with torch.no_grad():
                         self._clear_multi_features()
-                        preds_clean = self._forward_raw(clean_aug)
+                        preds_clean = self._forward_raw(clean_aug) #对 clean 图做一次前向，然后利用 hijacked loss 路径直接拿到真实 assignment 结果
                         features_clean_cache = {k: v.detach() for k, v in self.multi_features.items()}
 
                         single_batch_probe = dict(single_batch)
@@ -753,8 +755,9 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                             single_batch_probe,
                         )
                         
-                        fg_cached = self.hijacked.last_real_assign.get("fg_mask", None)
-                        lbl_cached = self.hijacked.last_real_assign.get("target_labels", None)
+                        fg_cached = self.hijacked.last_real_assign.get("fg_mask", None) #读取fg_mask，哪些 anchor / grid 被 assigner 认为是前景正样本
+                        lbl_cached = self.hijacked.last_real_assign.get("target_labels", None) #读取target_labels 每个 assigned anchor / grid 对应的目标类别标签，
+                        #判断哪些 foreground 单元是真正属于目标类的
                         assert torch.is_tensor(fg_cached), "Fatal: Assigner failed to return tensor fg_mask"
                         assert torch.is_tensor(lbl_cached), "Fatal: Assigner failed to return tensor target_labels"
                         assert fg_cached.shape[0] == img_t.shape[0], "Fatal: Batch dimension mismatch in last_real_assign"
@@ -824,9 +827,9 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         }
 
                     if real_assign_clean:
-                        real_fg = real_assign_clean["fg_mask"].bool()
+                        real_fg = real_assign_clean["fg_mask"].bool() 
                         real_labels = real_assign_clean["target_labels"].long()
-                        strict_gate_1d = real_fg & (real_labels == self.target_class_id)
+                        strict_gate_1d = real_fg & (real_labels == self.target_class_id) #用目标掩码区域和负责处理目标标签的点取交集
                         if not getattr(self, "_sanity_gate_printed", False):
                             print(f"\n🔬 [Sanity Check 1] fg positives: {real_fg.sum().item()}")
                             print(f"🔬 [Sanity Check 1] strict target positives: {strict_gate_1d.sum().item()}")
@@ -839,7 +842,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                             print("\n⚠️ [Warning] strict assign info missing, ALSD branch skipped for this batch.")
                             self._sanity_miss_printed = True
                     else:
-                        layer_pairs = []
+                        layer_pairs = [] #收集每层 shape，把上面这个一维向量按三层 FPN 重新切分并 reshape 成二维网格
                         for layer_name in self.shape_layers:
                             if layer_name in features_adv_cache and layer_name in features_clean_cache:
                                 z_adv_l = features_adv_cache[layer_name]
@@ -847,7 +850,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                                 layer_pairs.append((layer_name, z_adv_l, z_clean_l))
 
                         if layer_pairs:
-                            assign_maps = project_strict_gate_to_fpn(
+                            assign_maps = project_strict_gate_to_fpn(  #得到每层 M_assign_2d 把 strict_gate_1d 投影回 FPN 后得到的二维 assignment mask
                                 strict_gate_1d=strict_gate_1d,
                                 shape_layers=self.shape_layers,
                                 features_cache=features_adv_cache,
@@ -864,7 +867,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                                 continue
 
                             M_topology = F.adaptive_avg_pool2d(inner_t, output_size=(H, W)).clamp(0.0, 1.0)
-                            M_local_ctx = F.adaptive_avg_pool2d(local_ctx_t, output_size=(H, W)).clamp(0.0, 1.0)
+                            M_local_ctx = F.adaptive_avg_pool2d(local_ctx_t, output_size=(H, W)).clamp(0.0, 1.0) #FPN 空间下采样，获取除排除所有目标区域的上下文背景信息
                             M_conf = F.adaptive_avg_pool2d(conf_t, output_size=(H, W)).clamp(0.0, 1.0)
 
                             M_assign_2d = assign_maps[layer_name]
@@ -896,14 +899,14 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
                             valid_layers += 1
 
-                            layer_ent, ent_stats = compute_entangle_loss(
+                            layer_ent, ent_stats = compute_entangle_loss( #损失函数，使目标prototype靠近 confounder prototype远离 clean target prototype
                                 z_adv=z_t_adv,
                                 z_clean=mu_t_clean,
                                 z_conf=c_conf,
                                 tau=self.entangle_tau,
                                 valid_mask=valid_joint,
                             )
-                            L_cos, L_energy = compute_anchor_losses(z_t_adv[valid_joint], mu_t_clean[valid_joint])
+                            L_cos, L_energy = compute_anchor_losses(z_t_adv[valid_joint], mu_t_clean[valid_joint]) #L_cos方向锚定、L_energy能量锚定，保证目标类能被模型认为是存在的，但几何结构无法泛化
                             layer_anchor = L_cos + L_energy
                             layer_flat, spatial_var = compute_collapse_loss(Z_adv, M_AL)
 
@@ -922,11 +925,11 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                             batch_alsi_score_acc = batch_alsi_score_acc / valid_layers
 
                     # ====================================================
-                    # 🛡️ Track A: Non-Target Preserve (原汁原味)
+                    #  Track A: Non-Target Preserve 
                     # ====================================================
                     M_supp_spatial = inner_t 
                     M_non_supp_spatial = 1.0 - M_supp_spatial
-                    L_preserve = torch.zeros((), device=self.device)
+                    L_preserve = torch.zeros((), device=self.device) #在 target 强干预的同时，尽量让 non-target 不受伤
                     
                     if cur_lambda_preserve > 0:
                         L_preserve_feat = torch.zeros((), device=self.device)
@@ -964,9 +967,9 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 L_budget = F.relu(torch.max(torch.abs(raw_perturb)) - self.eps)
 
                 # ====================================================
-                # 🎯 ALCE total loss
+                # 🎯 ALCE total loss 总损失函数 驱动 Fourier 系数优化，训练出通用 poison
                 # ====================================================
-                total_loss = (
+                total_loss = ( 
                     self.lambda_ent * L_ent_final
                     + self.lambda_anchor * L_anchor_final
                     + self.lambda_flat * L_flat_final
