@@ -152,6 +152,13 @@ class HijackedV8Loss(_V8Base):
         return self.last_assign_inputs
 
     def get_assigned_targets_and_loss(self, preds, batch):
+        # Stable output schema for strict assignment cache.
+        self.last_real_assign = {
+            "target_labels": None,
+            "target_scores": None,
+            "fg_mask": None,
+            "target_gt_idx": None,
+        }
         if not self._super_ready or not hasattr(self, 'assigner') or self.assigner is None:
             return None
             
@@ -195,13 +202,13 @@ class HijackedV8Loss(_V8Base):
                 gt_bboxes,
                 mask_gt
             )
-            self.last_real_assign = {
-                "target_labels": out[0],
-                "target_bboxes": out[1],
-                "target_scores": out[2],
-                "fg_mask": out[3],
-                "target_gt_idx": out[4]
-            }
+            if isinstance(out, (tuple, list)):
+                self.last_real_assign = {
+                    "target_labels": out[0] if len(out) > 0 else None,
+                    "target_scores": out[2] if len(out) > 2 else None,
+                    "fg_mask": out[3] if len(out) > 3 else None,
+                    "target_gt_idx": out[4] if len(out) > 4 else None,
+                }
             self._run_strict_probe_once()
         except Exception as e:
             import traceback

@@ -118,6 +118,19 @@ methods:
     lambda_tv: 0.0001            
     lambda_budget: 0.0 
 
+    # ALSD / ACGT / ALCE (default main path)
+    alce:
+      enabled: true
+      lambda_ent: 10.0
+      lambda_anchor: 5.0
+      lambda_flat: 2.0
+      lambda_preserve: 4.0
+      entangle_tau: 0.1
+      context_expand_ratio: 1.15
+      exclude_ring: true
+      exclude_all_objects: true
+      min_conf_pixels: 10
+
     # ====================================================
     # ⚙️ 3. 运行环境与能量释放
     # ====================================================

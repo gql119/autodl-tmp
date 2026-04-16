@@ -36,6 +36,7 @@ from ..status import (
 MANIFEST_FIELDS = [
     "stem",
     "image_path",
+    "is_poisoned",
     "poisoned",  # 🚑 修复：去掉了错误的 out_img_path
     "has_target",
     "support_ratio",
@@ -250,6 +251,9 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             psnr = _calc_psnr(clean, poisoned)
             support_ratio = float(np.mean(support > 0.5))
             perturbed_area_ratio = _calc_area_ratio(clean, poisoned)
+            actual_poisoned = bool(
+                result.extras.get("is_poisoned", result.extras.get("poisoned", linf > (1.0 / 255.0)))
+            )
 
             # 🚑 修复：加回可视化存储代码，方便我们在 viz_dir 中查看效果
             if viz_saved < 16:
@@ -268,6 +272,7 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
                 "stem": stem,
                 "losses": result.losses,
                 "linf": linf,
+                "is_poisoned": int(actual_poisoned),
             }
             noise_meta_rows.append(noise_meta)
 
@@ -281,11 +286,13 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             linf = 0.0
             psnr = 99.0
             support_source = "none"
+            actual_poisoned = False
 
         row = {
             "stem": stem,
             "image_path": out_img_path,
-            "poisoned": "1" if should_poison else "0",
+            "is_poisoned": "1" if actual_poisoned else "0",
+            "poisoned": "1" if actual_poisoned else "0",
             "has_target": "1" if has_target else "0",
             "support_ratio": f"{support_ratio:.8f}",
             "perturbed_area_ratio": f"{perturbed_area_ratio:.8f}",
