@@ -123,9 +123,9 @@ methods:
       enabled: true
       
       # 【主引擎】特征纠缠与空间坍缩权重
-      lambda_ent: 10.0
+      lambda_ent: 15.0
       lambda_anchor: 5.0
-      lambda_flat: 2.0
+      lambda_flat: 2.2
       entangle_tau: 0.1
       
       # 🚑 降低纯净背景面积门槛，防止拥挤场景全军覆没
@@ -133,7 +133,7 @@ methods:
       # --------------------------------------------------
       # [新机制 1] PAG (Percentile Assignment Gate)
       # --------------------------------------------------
-      pag_top_ratio: 0.30     # 核心：精准狙击得分前 30% 的高能神经元
+      pag_top_ratio: 0.50     # 核心：精准狙击得分前 30% 的高能神经元
       pag_min_pos: 8          # 兜底：如果 Anchor 数量少于 8，退回全量攻击防漏掉小目标
 
       # --------------------------------------------------
@@ -148,7 +148,7 @@ methods:
       lambda_preserve: 4.0          # 总保护权重外部缩放系数
       lambda_preserve_feat: 0.5     # [防线A] 特征空间 MSE 保护
       lambda_preserve_logits: 1.0   # [防线B] 分类 Logits MSE 保护
-      lambda_margin: 2.0            # 核心：[防线C] Top1-Top2 决策边界 Margin 强力锁定
+      lambda_margin: 1.0            # 核心：[防线C] Top1-Top2 决策边界 Margin 强力锁定
     # ====================================================
     # ⚙️ 3. 运行环境与能量释放
     # ====================================================
