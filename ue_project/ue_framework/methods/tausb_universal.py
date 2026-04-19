@@ -17,8 +17,9 @@ from .base import BasePoisonGenerator, PoisonResult
 from .fourier import build_fourier_pattern, sample_midfreq_coords, spectrum_to_numpy
 from .shadow_tal import DifferentiableShadowTAL
 from .alce_acgt import (
-    build_non_target_objects_mask,  # 🚀 修正：只导入最新的非目标掩码提取器
+    build_non_target_core_mask,
     build_confounder_mask,
+    build_pag_gate,
     build_local_context_mask,
     project_strict_gate_to_fpn,
     renorm_yolo_bbox_after_padding,
@@ -28,7 +29,9 @@ from .alce_losses import (
     compute_alsi_score,
     compute_collapse_loss,
     compute_entangle_loss,
+    compute_non_target_margin_preserve,
     masked_prototype,
+    robust_masked_prototype,
 )
 from .alce_metrics import compute_confounder_purity, compute_overlap_ratio, safe_mean
 from ..support import build_support_mask
@@ -110,10 +113,21 @@ class _TAUSBCommon(BasePoisonGenerator):
             alce_cfg.get("exclude_all_objects", method_cfg.get("exclude_all_objects", True))
         )
         self.min_conf_pixels = float(alce_cfg.get("min_conf_pixels", method_cfg.get("min_conf_pixels", 20.0)))
+        self.rlcp_core_scale = float(alce_cfg.get("rlcp_core_scale", method_cfg.get("rlcp_core_scale", 0.8)))
+        self.rlcp_trim_ratio = float(alce_cfg.get("rlcp_trim_ratio", method_cfg.get("rlcp_trim_ratio", 0.1)))
+        self.pag_top_ratio = float(alce_cfg.get("pag_top_ratio", method_cfg.get("pag_top_ratio", 0.3)))
+        self.pag_min_pos = int(alce_cfg.get("pag_min_pos", method_cfg.get("pag_min_pos", 8)))
 
         self.lambda_tsvc = float(method_cfg.get("lambda_tsvc", self.lambda_flat))
         self.lambda_sem = float(method_cfg.get("lambda_sem", self.lambda_anchor))
         self.lambda_preserve = float(alce_cfg.get("lambda_preserve", method_cfg.get("lambda_preserve", 5.0)))
+        self.lambda_preserve_feat = float(
+            alce_cfg.get("lambda_preserve_feat", method_cfg.get("lambda_preserve_feat", 0.5))
+        )
+        self.lambda_preserve_logits = float(
+            alce_cfg.get("lambda_preserve_logits", method_cfg.get("lambda_preserve_logits", 1.0))
+        )
+        self.lambda_margin = float(alce_cfg.get("lambda_margin", method_cfg.get("lambda_margin", 1.0)))
         if not self.alce_enabled:
             self.lambda_ent = 0.0
             self.lambda_anchor = self.lambda_sem
@@ -425,7 +439,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
         self.universal_epochs = int(method_cfg.get("universal_epochs", 40))
         self.universal_batch_size = int(method_cfg.get("universal_batch_size", 16))
-        self.universal_lr_fourier = float(method_cfg.get("universal_lr_fourier", 0.05))
+        self.universal_lr_fourier = float(method_cfg.get("universal_lr_fourier", 0.05)) 
         self.universal_lr_suppress = float(method_cfg.get("universal_lr_suppress", 0.002))
 
         self.coords = sample_midfreq_coords(
@@ -542,10 +556,20 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 "cos_t_conf": 0.0,
                 "cos_t_clean": 0.0,
                 "M_conf_sum": 0.0,
+                "rlcp_conf_mass": 0.0,
+                "rlcp_trim_keep_ratio": 0.0,
+                "rlcp_core_exclusion_ratio": 0.0,
                 "confounder_purity_ratio": 0.0,
                 "overlap_ratio": 0.0,
                 "preserve_loss": 0.0,
+                "L_margin": 0.0,
+                "margin_clean_mean": 0.0,
+                "margin_adv_mean": 0.0,
                 "gate_positive_ratio": 0.0,
+                "pag_positive_ratio": 0.0,
+                "pag_threshold": 0.0,
+                "pag_mean_target_score": 0.0,
+                "pag_fallback_count": 0.0, # 🚀 增加 fallback 统计
                 "perturbed_area_ratio_mean": 0.0,
                 "L_tv": 0.0,
                 "L_budget": 0.0,
@@ -602,7 +626,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
                 max_h = max(item[0]["clean_np"].shape[0] for item in valid_items)
                 max_w = max(item[0]["clean_np"].shape[1] for item in valid_items)
-                pad_h_target = ((max_h + 31) // 32) * 32
+                pad_h_target = ((max_h + 31) // 32) * 32 
                 pad_w_target = ((max_w + 31) // 32) * 32
 
                 img_t_list, inner_t_list, ring_t_list = [], [], []
@@ -656,14 +680,15 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 }
 
                 # ====================================================
-                # 🚀 ACGT 算子：采用中距离外层环带与精准排除
+                #  ACGT 算子：采用中距离外层环带与精准排除
                 # ====================================================
-                M_non_target_obj = build_non_target_objects_mask(
+                M_non_target_core = build_non_target_core_mask(
                     batch=single_batch,
                     pad_h=pad_h_target,
                     pad_w=pad_w_target,
                     target_class_id=self.target_class_id,
                     device=self.device,
+                    core_scale=self.rlcp_core_scale,
                 ).to(dtype=inner_t.dtype)
                 
                 local_ctx_t = build_local_context_mask(
@@ -674,38 +699,38 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 
                 conf_t = build_confounder_mask(
                     local_ctx_mask=local_ctx_t,
-                    all_objects_mask=M_non_target_obj,
+                    all_objects_mask=M_non_target_core,
                     ring_mask=ring_t,
                 )
 
-                if self.min_conf_pixels > 0:
-                    conf_pixels = conf_t.sum(dim=(2, 3), keepdim=True)
-                    conf_keep = (conf_pixels >= float(self.min_conf_pixels)).to(conf_t.dtype)
-                    conf_t = conf_t * conf_keep
+                # 🚀 修复 3：记录 Image-space 的 conf 质量，解决日志重复问题
+                epoch_diag["rlcp_conf_mass"] += float(conf_t.sum().item()) 
 
                 # ====================================================
-                # 🔬 更新：原图空间掩码探针 (Mask Survival Diagnostics)
+                #  原图空间掩码探针 (Mask Survival Diagnostics)
                 # ====================================================
                 if not getattr(self, "_sanity_mask_space_printed", False):
                     inner_sum = inner_t.sum().item()
                     ring_sum = ring_t.sum().item()
-                    non_obj_sum = M_non_target_obj.sum().item()
+                    non_obj_sum = M_non_target_core.sum().item()
                     local_ctx_sum = local_ctx_t.sum().item()
                     conf_raw_sum = conf_t.sum().item()
                     
-                    removed_by_objects = (local_ctx_t * M_non_target_obj).sum().item()
+                    removed_by_objects = (local_ctx_t * M_non_target_core).sum().item()
                     removed_by_ring = (local_ctx_t * ring_t).sum().item()
+                    core_exclusion_ratio = removed_by_objects / (local_ctx_sum + 1e-6)
                     
                     print(f"\n🔬 [Mask Space Diagnostics] (Mid-range Annulus)")
                     print(f"   Target Inner Sum: {inner_sum:.1f}")
                     print(f"   Target Ring Sum: {ring_sum:.1f}")
-                    print(f"   Non-Target Objects Sum: {non_obj_sum:.1f}")
+                    print(f"   Non-Target Core Sum: {non_obj_sum:.1f}")
                     print(f"   Local Ctx Annulus Sum: {local_ctx_sum:.1f}")
                     print(f"   Final M_conf Sum: {conf_raw_sum:.1f}")
                     print(f"   ----------------------------------")
                     print(f"   ⚠️ Removed by Non-Target Objects: {removed_by_objects:.1f}")
                     print(f"   ⚠️ Removed by Ring (Should be 0 now): {removed_by_ring:.1f}")
                     print(f"   🔥 Raw Purity Ratio: {(conf_raw_sum / (local_ctx_sum + 1e-6)):.2%}")
+                    print(f"   rlcp_core_exclusion_ratio: {core_exclusion_ratio:.2%}")
                     self._sanity_mask_space_printed = True
 
                 raw_perturb, perturb, adv, _support, _jnd = self._compose_delta_batched(
@@ -734,6 +759,15 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 layer_conf_purity_vals = []
                 layer_cos_conf_vals = []
                 layer_cos_clean_vals = []
+                layer_trim_keep_vals = []
+                layer_core_exclusion_vals = []
+                pag_ratio_vals = []
+                pag_threshold_vals = []
+                pag_mean_score_vals = []
+                margin_loss_vals = []
+                margin_clean_vals = []
+                margin_adv_vals = []
+                pag_fallback_vals = []  # 🚀 修复 1/3：新增 EOT 本地缓存列表
 
                 for eot_idx in range(eot_count):
                     clean_aug, adv_aug = self._apply_shared_eot_pair_batched(img_t, adv)
@@ -824,17 +858,44 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         }
 
                     if real_assign_clean:
-                        real_fg = real_assign_clean["fg_mask"].bool()
+                        real_fg = real_assign_clean["fg_mask"].bool() 
                         real_labels = real_assign_clean["target_labels"].long()
-                        strict_gate_1d = real_fg & (real_labels == self.target_class_id)
+                        
+                        # 🚀 修复 1 铺垫：构建非目标前景门控，给 DSNP-lite 使用
+                        nt_fg_mask = real_fg & (real_labels != self.target_class_id)
+                        strict_gate_1d = real_fg & (real_labels == self.target_class_id) 
+                        
+                        pag_gate_1d, pag_stats = build_pag_gate(
+                            strict_gate_1d=strict_gate_1d,
+                            target_scores=real_assign_clean.get("target_scores", None),
+                            target_class_id=self.target_class_id,
+                            top_ratio=self.pag_top_ratio,
+                            min_keep=self.pag_min_pos,
+                        )
+                        if pag_stats:
+                            pag_ratio_vals.append(float(pag_stats.get("pag_positive_ratio", 0.0)))
+                            pag_threshold_vals.append(float(pag_stats.get("pag_threshold", 0.0)))
+                            pag_mean_score_vals.append(float(pag_stats.get("pag_mean_target_score", 0.0)))
+                            # 🚀 修复 2/3：将 fallback 次数存入列表，不再直接累加到 epoch_diag
+                            pag_fallback_vals.append(float(pag_stats.get("pag_fallback_count", 0.0))) 
+                        
                         if not getattr(self, "_sanity_gate_printed", False):
                             print(f"\n🔬 [Sanity Check 1] fg positives: {real_fg.sum().item()}")
                             print(f"🔬 [Sanity Check 1] strict target positives: {strict_gate_1d.sum().item()}")
+                            print(
+                                "🔬 [Sanity Check 1] "
+                                f"pag positives: {int(pag_stats.get('pag_positive', 0.0))} "
+                                f"(ratio={pag_stats.get('pag_positive_ratio', 0.0):.2%}, "
+                                f"threshold={pag_stats.get('pag_threshold', 0.0):.4f}, "
+                                f"mean_target_score={pag_stats.get('pag_mean_target_score', 0.0):.4f})"
+                            )
                             self._sanity_gate_printed = True
                     else:
                         strict_gate_1d = None
+                        pag_gate_1d = None
+                        nt_fg_mask = None # 🚀 无效时置空
 
-                    if strict_gate_1d is None:
+                    if strict_gate_1d is None or pag_gate_1d is None:
                         if not getattr(self, "_sanity_miss_printed", False):
                             print("\n⚠️ [Warning] strict assign info missing, ALSD branch skipped for this batch.")
                             self._sanity_miss_printed = True
@@ -848,7 +909,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
                         if layer_pairs:
                             assign_maps = project_strict_gate_to_fpn(
-                                strict_gate_1d=strict_gate_1d,
+                                strict_gate_1d=pag_gate_1d,
                                 shape_layers=self.shape_layers,
                                 features_cache=features_adv_cache,
                             )
@@ -866,35 +927,53 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                             M_topology = F.adaptive_avg_pool2d(inner_t, output_size=(H, W)).clamp(0.0, 1.0)
                             M_local_ctx = F.adaptive_avg_pool2d(local_ctx_t, output_size=(H, W)).clamp(0.0, 1.0)
                             M_conf = F.adaptive_avg_pool2d(conf_t, output_size=(H, W)).clamp(0.0, 1.0)
+                            M_non_target_core_l = F.adaptive_avg_pool2d(M_non_target_core, output_size=(H, W)).clamp(0.0, 1.0)
 
                             M_assign_2d = assign_maps[layer_name]
                             M_AL = M_topology * M_assign_2d
 
                             overlap_ratio = compute_overlap_ratio(M_AL, M_assign_2d)
                             conf_purity = compute_confounder_purity(M_conf, M_local_ctx)
+                            core_exclusion_ratio = float(
+                                (M_local_ctx * M_non_target_core_l).sum().item() / (M_local_ctx.sum().item() + 1e-6)
+                            )
                             layer_overlap_vals.append(overlap_ratio)
                             layer_conf_sum_vals.append(float(M_conf.sum().item()))
                             layer_conf_purity_vals.append(conf_purity)
-
-                            if not getattr(self, f"_sanity_layer_{layer_name}_printed", False):
-                                print(f"🔬 [Sanity Check 2&3 - {layer_name}]")
-                                print(f"   M_topology sum: {M_topology.sum().item():.1f}")
-                                print(f"   M_assign_2d sum: {M_assign_2d.sum().item():.1f}")
-                                print(f"   M_AL sum: {M_AL.sum().item():.1f}")
-                                print(f"   M_conf sum: {M_conf.sum().item():.1f}")
-                                print(f"   confounder purity ratio: {conf_purity:.2%}")
-                                print(f"   overlap ratio: {overlap_ratio:.2%}")
-                                setattr(self, f"_sanity_layer_{layer_name}_printed", True)
+                            layer_core_exclusion_vals.append(core_exclusion_ratio)
 
                             z_t_adv, valid_t = masked_prototype(Z_adv, M_AL, min_pixels=1.0)
                             mu_t_clean, valid_clean = masked_prototype(Z_clean, M_AL, min_pixels=1.0)
                             min_conf_l = max(1.0, self.min_conf_pixels * (H * W) / float(batch_h * batch_w))
-                            c_conf, valid_conf = masked_prototype(Z_clean, M_conf, min_pixels=min_conf_l)
+                            c_conf, valid_conf, trim_keep_ratio = robust_masked_prototype(
+                                Z_clean,
+                                M_conf,
+                                trim_ratio=self.rlcp_trim_ratio,
+                                min_pixels=min_conf_l,
+                            )
                             valid_joint = valid_t & valid_clean & valid_conf
                             if torch.count_nonzero(valid_joint) == 0:
                                 continue
 
                             valid_layers += 1
+                            layer_trim_keep_vals.append(float(trim_keep_ratio[valid_joint].mean().item()))
+
+                            if (
+                                epoch == 0
+                                and batch_count == 0
+                                and eot_idx == 0
+                                and not getattr(self, f"_sanity_layer_{layer_name}_printed", False)
+                            ):
+                                print(f"🔬 [Sanity Check 2&3 - {layer_name}]")
+                                print(f"   M_topology sum: {M_topology.sum().item():.1f}")
+                                print(f"   M_assign_2d sum: {M_assign_2d.sum().item():.1f}")
+                                print(f"   M_AL sum: {M_AL.sum().item():.1f}")
+                                print(f"   rlcp_conf_mass: {M_conf.sum().item():.1f}")
+                                print(f"   rlcp_trim_keep_ratio: {float(trim_keep_ratio[valid_joint].mean().item()):.2%}")
+                                print(f"   rlcp_core_exclusion_ratio: {core_exclusion_ratio:.2%}")
+                                print(f"   confounder_purity_ratio: {conf_purity:.2%}")
+                                print(f"   overlap ratio: {overlap_ratio:.2%}")
+                                setattr(self, f"_sanity_layer_{layer_name}_printed", True)
 
                             layer_ent, ent_stats = compute_entangle_loss(
                                 z_adv=z_t_adv,
@@ -922,11 +1001,11 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                             batch_alsi_score_acc = batch_alsi_score_acc / valid_layers
 
                     # ====================================================
-                    # 🛡️ Track A: Non-Target Preserve (原汁原味)
+                    #  Track A: Non-Target Preserve 
                     # ====================================================
                     M_supp_spatial = inner_t 
                     M_non_supp_spatial = 1.0 - M_supp_spatial
-                    L_preserve = torch.zeros((), device=self.device)
+                    L_preserve = torch.zeros((), device=self.device) 
                     
                     if cur_lambda_preserve > 0:
                         L_preserve_feat = torch.zeros((), device=self.device)
@@ -942,11 +1021,45 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         clean_non_target_logits = cache_clean["pred_scores_logits"][:, :, non_target_indices]
                         adv_non_target_logits = cache_adv["pred_scores_logits"][:, :, non_target_indices]
                         
-                        L_preserve_logits = F.mse_loss(
-                            torch.sigmoid(adv_non_target_logits),
-                            torch.sigmoid(clean_non_target_logits.detach())
+                        # 🚀 修复 1 落地：Logits MSE 也要加上 nt_fg_mask 过滤，避免海量背景杂音！
+                        if nt_fg_mask is not None and nt_fg_mask.any():
+                            clean_nt_fg_logits = clean_non_target_logits[nt_fg_mask]
+                            adv_nt_fg_logits = adv_non_target_logits[nt_fg_mask]
+                            L_preserve_logits = F.mse_loss(
+                                torch.sigmoid(adv_nt_fg_logits),
+                                torch.sigmoid(clean_nt_fg_logits.detach())
+                            )
+                        else:
+                            L_preserve_logits = torch.zeros((), device=self.device)
+
+                        # 🚀 修复 1 落地：传入 nt_fg_mask，将 Margin 保护死死锁定在 Non-target 前景 Anchor 上！
+                        L_margin, margin_stats = compute_non_target_margin_preserve(
+                            clean_non_target_logits=clean_non_target_logits,
+                            adv_non_target_logits=adv_non_target_logits,
+                            use_smooth_l1=True,
+                            valid_mask=nt_fg_mask 
                         )
-                        L_preserve = L_preserve_logits + 0.5 * L_preserve_feat
+                        margin_loss_vals.append(float(L_margin.item()))
+                        margin_clean_vals.append(float(margin_stats["margin_clean_mean"]))
+                        margin_adv_vals.append(float(margin_stats["margin_adv_mean"]))
+
+                        L_preserve = (
+                            self.lambda_preserve_feat * L_preserve_feat
+                            + self.lambda_preserve_logits * L_preserve_logits
+                            + self.lambda_margin * L_margin
+                        )
+
+                        if (
+                            epoch == 0
+                            and batch_count == 0
+                            and eot_idx == 0
+                            and not getattr(self, "_sanity_dsnp_printed", False)
+                        ):
+                            print("\n🔬 [DSNP-lite Diagnostics]")
+                            print(f"   L_margin: {float(L_margin.item()):.6f}")
+                            print(f"   margin_clean_mean: {float(margin_stats['margin_clean_mean']):.6f}")
+                            print(f"   margin_adv_mean: {float(margin_stats['margin_adv_mean']):.6f}")
+                            self._sanity_dsnp_printed = True
 
                     # 累加 EOT 的 ALCE losses
                     L_ent_total += L_entangle_bg
@@ -964,9 +1077,9 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 L_budget = F.relu(torch.max(torch.abs(raw_perturb)) - self.eps)
 
                 # ====================================================
-                # 🎯 ALCE total loss
+                # 🎯 ALCE total loss 总损失函数 驱动 Fourier 系数优化，训练出通用 poison
                 # ====================================================
-                total_loss = (
+                total_loss = ( 
                     self.lambda_ent * L_ent_final
                     + self.lambda_anchor * L_anchor_final
                     + self.lambda_flat * L_flat_final
@@ -1014,6 +1127,35 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     cv2.imwrite(save_path, panel)
                     print(f"  -> [Visualizer] 调试图像已保存至: {save_path}")
 
+                epoch_diag["align_clean_topk"] += align_clean_topk_acc / eot_count
+                epoch_diag["align_adv_topk"] += align_adv_topk_acc / eot_count
+                epoch_diag["L_entangle_bg"] += float(L_ent_final.item())
+                epoch_diag["L_anchor"] += float(L_anchor_final.item())
+                epoch_diag["L_collapse_aux"] += float(L_flat_final.item())
+                epoch_diag["alsi_score"] += batch_alsi_score_acc / max(1, eot_count)
+                epoch_diag["cos_t_conf"] += safe_mean(layer_cos_conf_vals)
+                epoch_diag["cos_t_clean"] += safe_mean(layer_cos_clean_vals)
+                epoch_diag["M_conf_sum"] += safe_mean(layer_conf_sum_vals)
+                epoch_diag["rlcp_trim_keep_ratio"] += safe_mean(layer_trim_keep_vals)
+                epoch_diag["rlcp_core_exclusion_ratio"] += safe_mean(layer_core_exclusion_vals)
+                epoch_diag["confounder_purity_ratio"] += safe_mean(layer_conf_purity_vals)
+                epoch_diag["overlap_ratio"] += safe_mean(layer_overlap_vals)
+                epoch_diag["preserve_loss"] += float(L_preserve_final.item())
+                epoch_diag["L_margin"] += safe_mean(margin_loss_vals)
+                epoch_diag["margin_clean_mean"] += safe_mean(margin_clean_vals)
+                epoch_diag["margin_adv_mean"] += safe_mean(margin_adv_vals)
+                epoch_diag["gate_positive_ratio"] += gate_ratio_acc / eot_count
+                epoch_diag["pag_positive_ratio"] += safe_mean(pag_ratio_vals)
+                epoch_diag["pag_threshold"] += safe_mean(pag_threshold_vals)
+                epoch_diag["pag_mean_target_score"] += safe_mean(pag_mean_score_vals)
+                epoch_diag["pag_fallback_count"] += safe_mean(pag_fallback_vals)  # 👈 精确累加 EOT 期望值
+                epoch_diag["L_tv"] += float(L_tv.item())
+                epoch_diag["L_budget"] += float(L_budget.item())
+                epoch_diag["L_total"] += float(total_loss.item())
+                epoch_diag["L_tsvc"] += float(L_flat_final.item())
+                epoch_diag["L_sem"] += float(L_anchor_final.item())
+                epoch_diag["sld_score"] += batch_alsi_score_acc / max(1, eot_count)
+
                 batch_max_d = float(torch.max(torch.abs(perturb)).item())
                 batch_mean_d = float(torch.mean(torch.abs(perturb)).item())
                 
@@ -1030,7 +1172,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 global_step += 1
 
             # ====================================================
-            # 🚀 修复：在整个 Epoch 结束后，再统一计算均值
+            # 🚀 修复 3/3：退出 EOT 循环后，取 safe_mean，再更新到 epoch_diag
             # ====================================================
             if batch_count > 0:
                 for k in list(epoch_diag.keys()):
@@ -1049,8 +1191,10 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
             print(
                 f"[ALSD-ALCE][epoch {epoch + 1}/{self.universal_epochs}] "
                 f"L_ent={row['L_entangle_bg']:.4f} L_anchor={row['L_anchor']:.4f} "
-                f"L_flat={row['L_collapse_aux']:.4f} ALSI={row['alsi_score']:.2f} "
-                f"Purity={row['confounder_purity_ratio']:.2%} Sat={row['saturation_ratio']:.2%} "
+                f"L_flat={row['L_collapse_aux']:.4f} L_margin={row['L_margin']:.4f} "
+                f"ALSI={row['alsi_score']:.2f} "
+                f"Purity={row['confounder_purity_ratio']:.2%} PAG={row['pag_positive_ratio']:.2%} "
+                f"Sat={row['saturation_ratio']:.2%} "
                 f"Max_D={row['max_abs_delta']:.4f}"
             )
 

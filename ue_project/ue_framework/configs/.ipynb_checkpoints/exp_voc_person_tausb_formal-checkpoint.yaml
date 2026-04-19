@@ -121,16 +121,34 @@ methods:
     # ALSD / ACGT / ALCE (default main path)
     alce:
       enabled: true
+      
+      # 【主引擎】特征纠缠与空间坍缩权重
       lambda_ent: 10.0
       lambda_anchor: 5.0
       lambda_flat: 2.0
-      lambda_preserve: 4.0
       entangle_tau: 0.1
-      context_expand_ratio: 1.15
-      exclude_ring: true
-      exclude_all_objects: true
-      min_conf_pixels: 10
+      
+      # 🚑 降低纯净背景面积门槛，防止拥挤场景全军覆没
+      min_conf_pixels: 5.0
+      # --------------------------------------------------
+      # [新机制 1] PAG (Percentile Assignment Gate)
+      # --------------------------------------------------
+      pag_top_ratio: 0.30     # 核心：精准狙击得分前 30% 的高能神经元
+      pag_min_pos: 8          # 兜底：如果 Anchor 数量少于 8，退回全量攻击防漏掉小目标
 
+      # --------------------------------------------------
+      # [新机制 2] RLCP (Robust Local Context Prototype)
+      # --------------------------------------------------
+      rlcp_core_scale: 0.8    # 核心：屏蔽非目标物体时，收缩 20% 边缘，释放上下文空间
+      rlcp_trim_ratio: 0.1    # 核心：提取背景原型时，掐头去尾剔除 10% 的极值防污染
+
+      # --------------------------------------------------
+      # [新机制 3] DSNP-lite (Dual-Structure Non-target Preserve)
+      # --------------------------------------------------
+      lambda_preserve: 4.0          # 总保护权重外部缩放系数
+      lambda_preserve_feat: 0.5     # [防线A] 特征空间 MSE 保护
+      lambda_preserve_logits: 1.0   # [防线B] 分类 Logits MSE 保护
+      lambda_margin: 2.0            # 核心：[防线C] Top1-Top2 决策边界 Margin 强力锁定
     # ====================================================
     # ⚙️ 3. 运行环境与能量释放
     # ====================================================
