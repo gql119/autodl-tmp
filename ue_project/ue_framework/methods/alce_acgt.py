@@ -1,5 +1,6 @@
 import math
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
+from collections.abc import Sequence
 
 import torch
 import torch.nn.functional as F
@@ -98,9 +99,7 @@ def build_non_target_objects_mask(
     target_class_id: int,
     device: torch.device,
 ) -> torch.Tensor:
-    """
-    Backward-compatible alias.
-    """
+    """Backward-compatible alias."""
     return build_non_target_core_mask(
         batch=batch,
         pad_h=pad_h,
@@ -115,13 +114,10 @@ def build_local_context_mask(
     inner_mask: torch.Tensor, 
     r_inner: int = 12, 
     r_outer: int = 28,
-    expand_ratio: float = None, # 🚀 增加向下兼容参数
-    ring_width: int = None      # 🚀 增加向下兼容参数
+    expand_ratio: float = None,
+    ring_width: int = None
 ) -> torch.Tensor:
-    """
-    RLCP context ring: mid-range annulus around target support.
-    """
-    # 向下兼容旧脚本调用
+    """RLCP context ring: mid-range annulus around target support."""
     if expand_ratio is not None and ring_width is not None:
         r_inner = int(max(1, ring_width))
         r_outer = int(max(r_inner + 1, round(ring_width * expand_ratio)))
@@ -135,34 +131,45 @@ def build_local_context_mask(
     dilated_outer = F.max_pool2d(inner_mask, kernel_size=k_outer, stride=1, padding=r_outer)
     return torch.clamp(dilated_outer - dilated_inner, 0.0, 1.0)
 
+
 def build_confounder_mask(
     local_ctx_mask: torch.Tensor,
     all_objects_mask: torch.Tensor,
     ring_mask: torch.Tensor,
 ) -> torch.Tensor:
+    """M_conf = M_local_ctx * (1 - M_non_target_core) * (1 - M_ring)"""
     m = local_ctx_mask * (1.0 - all_objects_mask) * (1.0 - ring_mask)
     return torch.clamp(m, 0.0, 1.0)
+
 
 def build_pag_gate(
     strict_gate_1d: torch.Tensor,
     target_scores: torch.Tensor,
     target_class_id: int,
-    top_ratio: float = 0.3,
-    min_keep: int = 8,
-) -> Tuple[torch.Tensor, Dict[str, float]]:
+    top_ratio: Union[float, Sequence] = 0.3,
+    min_keep: Union[int, Sequence] = 8,
+    layer_sizes: List[int] = None,
+) -> Tuple[torch.Tensor, Dict]:
     """
-    PAG: keep only top-ratio units inside strict target-assigned set.
+    FPN-Aware PAG: 根据层级 (P3, P4, P5) 分别应用不同的比例与最小保留数。
     """
+    empty_stats = {
+        "pag_positive_ratio": 0.0, "pag_threshold": 0.0, "pag_mean_target_score": 0.0,
+        "strict_positive": 0.0, "pag_positive": 0.0, "pag_fallback_count": 0.0, "layer_stats": []
+    }
+    
     if strict_gate_1d is None or strict_gate_1d.numel() == 0:
-        return strict_gate_1d, {"pag_positive_ratio": 0.0, "pag_threshold": 0.0, "pag_mean_target_score": 0.0, "strict_positive": 0.0, "pag_positive": 0.0, "pag_fallback_count": 0.0}
+        return strict_gate_1d, empty_stats
 
     strict_gate = strict_gate_1d.bool()
     strict_total = int(strict_gate.sum().item())
     if strict_total <= 0:
-        return strict_gate, {"pag_positive_ratio": 0.0, "pag_threshold": 0.0, "pag_mean_target_score": 0.0, "strict_positive": 0.0, "pag_positive": 0.0, "pag_fallback_count": 0.0}
+        return strict_gate, empty_stats
 
     if not torch.is_tensor(target_scores) or target_scores.numel() == 0:
-        return strict_gate, {"pag_positive_ratio": 1.0, "pag_threshold": 0.0, "pag_mean_target_score": 0.0, "strict_positive": float(strict_total), "pag_positive": float(strict_total), "pag_fallback_count": float(strict_gate.shape[0])}
+        empty_stats.update({"pag_positive_ratio": 1.0, "strict_positive": float(strict_total), 
+                            "pag_positive": float(strict_total), "pag_fallback_count": float(strict_gate.shape[0])})
+        return strict_gate, empty_stats
 
     if target_scores.ndim == 3:
         if target_scores.shape[-1] > int(target_class_id):
@@ -174,36 +181,99 @@ def build_pag_gate(
     else:
         score_t = torch.zeros_like(strict_gate, dtype=torch.float32)
 
-    top_ratio = float(max(0.01, min(top_ratio, 1.0)))
-    min_keep = int(max(1, min_keep))
     pag_gate = torch.zeros_like(strict_gate)
-
     thresholds = []
     mean_scores = []
     pag_total = 0
-    fallback_count = 0  # 🚀 记录因为数量太少而退回 strict gate 的 batch 数量
+    fallback_count = 0
+    layer_stats = []
 
-    for b in range(strict_gate.shape[0]):
-        idx = torch.nonzero(strict_gate[b], as_tuple=False).view(-1)
-        n = int(idx.numel())
-        if n <= 0:
-            continue
-        vals = score_t[b, idx]
-        if vals.numel() > 0:
+    # 🚀 安全判断：是否使用分层 FPN-Aware PAG
+    is_layer_wise = isinstance(top_ratio, Sequence) and not isinstance(top_ratio, (str, bytes))
+
+    if is_layer_wise:
+        assert layer_sizes is not None, "layer_sizes must be provided for layer-wise PAG."
+        assert len(top_ratio) == len(layer_sizes), f"Mismatch: len(top_ratio)={len(top_ratio)} vs len(layer_sizes)={len(layer_sizes)}"
+        assert sum(layer_sizes) == strict_gate.shape[1], f"Mismatch: sum(layer_sizes)={sum(layer_sizes)} vs num_anchors={strict_gate.shape[1]}"
+
+        if isinstance(min_keep, Sequence) and not isinstance(min_keep, (str, bytes)):
+            assert len(min_keep) == len(layer_sizes), "Mismatch in min_keep lengths"
+            mk_list = [int(max(1, x)) for x in min_keep]
+        else:
+            mk_list = [int(max(1, min_keep))] * len(layer_sizes)
+
+        tr_list = [float(max(0.01, min(x, 1.0))) for x in top_ratio]
+        offset = 0
+
+        for i, (l_size, l_ratio, l_mk) in enumerate(zip(layer_sizes, tr_list, mk_list)):
+            slice_gate = strict_gate[:, offset : offset + l_size]
+            slice_score = score_t[:, offset : offset + l_size]
+            
+            l_strict_total = 0
+            l_pag_total = 0
+
+            for b in range(strict_gate.shape[0]):
+                idx = torch.nonzero(slice_gate[b], as_tuple=False).view(-1)
+                n = int(idx.numel())
+                l_strict_total += n
+                
+                if n <= 0:
+                    continue
+                    
+                vals = slice_score[b, idx]
+                mean_scores.append(float(vals.mean().item()))
+
+                if n < l_mk:
+                    pag_gate[b, offset + idx] = True
+                    pag_total += n
+                    l_pag_total += n
+                    fallback_count += 1
+                    continue
+
+                k = int(max(1, math.ceil(n * l_ratio)))
+                topv, topi = torch.topk(vals, k=k, largest=True)
+                keep_idx = idx[topi]
+                
+                pag_gate[b, offset + keep_idx] = True
+                pag_total += k
+                l_pag_total += k
+                thresholds.append(float(topv.min().item()))
+                
+            layer_stats.append({
+                "layer_idx": i,
+                "strict": l_strict_total,
+                "pag": l_pag_total,
+                "ratio": float(l_pag_total) / float(max(1, l_strict_total))
+            })
+            offset += l_size
+
+    else:
+        # 兼容单层全局比例
+        global_ratio = float(max(0.01, min(top_ratio, 1.0)))
+        global_mk = int(max(1, min_keep))
+
+        for b in range(strict_gate.shape[0]):
+            idx = torch.nonzero(strict_gate[b], as_tuple=False).view(-1)
+            n = int(idx.numel())
+            if n <= 0:
+                continue
+                
+            vals = score_t[b, idx]
             mean_scores.append(float(vals.mean().item()))
 
-        if n < min_keep:
-            pag_gate[b, idx] = True
-            pag_total += n
-            fallback_count += 1 # 🚀 Fallback 触发
-            continue
+            if n < global_mk:
+                pag_gate[b, idx] = True
+                pag_total += n
+                fallback_count += 1
+                continue
 
-        k = int(max(1, math.ceil(n * top_ratio)))
-        topv, topi = torch.topk(vals, k=k, largest=True)
-        keep_idx = idx[topi]
-        pag_gate[b, keep_idx] = True
-        pag_total += k
-        thresholds.append(float(topv.min().item()))
+            k = int(max(1, math.ceil(n * global_ratio)))
+            topv, topi = torch.topk(vals, k=k, largest=True)
+            keep_idx = idx[topi]
+            
+            pag_gate[b, keep_idx] = True
+            pag_total += k
+            thresholds.append(float(topv.min().item()))
 
     if pag_total <= 0:
         pag_gate = strict_gate.clone()
@@ -216,5 +286,6 @@ def build_pag_gate(
         "pag_mean_target_score": float(sum(mean_scores) / max(1, len(mean_scores))) if mean_scores else 0.0,
         "strict_positive": float(strict_total),
         "pag_positive": float(pag_total),
-        "pag_fallback_count": float(fallback_count), # 🚀 返回 fallback 统计
+        "pag_fallback_count": float(fallback_count),
+        "layer_stats": layer_stats,
     }

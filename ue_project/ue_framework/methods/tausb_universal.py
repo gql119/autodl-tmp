@@ -115,8 +115,10 @@ class _TAUSBCommon(BasePoisonGenerator):
         self.min_conf_pixels = float(alce_cfg.get("min_conf_pixels", method_cfg.get("min_conf_pixels", 20.0)))
         self.rlcp_core_scale = float(alce_cfg.get("rlcp_core_scale", method_cfg.get("rlcp_core_scale", 0.8)))
         self.rlcp_trim_ratio = float(alce_cfg.get("rlcp_trim_ratio", method_cfg.get("rlcp_trim_ratio", 0.1)))
-        self.pag_top_ratio = float(alce_cfg.get("pag_top_ratio", method_cfg.get("pag_top_ratio", 0.3)))
-        self.pag_min_pos = int(alce_cfg.get("pag_min_pos", method_cfg.get("pag_min_pos", 8)))
+        
+        # 🚀 升级：读取 FPN 分层 PAG 比例 [P3, P4, P5] 和 最小存活数
+        self.pag_layer_ratios = alce_cfg.get("pag_layer_ratios", method_cfg.get("pag_layer_ratios", [0.7, 0.6, 0.4]))
+        self.pag_min_pos = alce_cfg.get("pag_min_pos", method_cfg.get("pag_min_pos", [8, 6, 4]))
 
         self.lambda_tsvc = float(method_cfg.get("lambda_tsvc", self.lambda_flat))
         self.lambda_sem = float(method_cfg.get("lambda_sem", self.lambda_anchor))
@@ -569,7 +571,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 "pag_positive_ratio": 0.0,
                 "pag_threshold": 0.0,
                 "pag_mean_target_score": 0.0,
-                "pag_fallback_count": 0.0, # 🚀 增加 fallback 统计
+                "pag_fallback_count": 0.0,
                 "perturbed_area_ratio_mean": 0.0,
                 "L_tv": 0.0,
                 "L_budget": 0.0,
@@ -679,9 +681,6 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     "img": img_t
                 }
 
-                # ====================================================
-                #  ACGT 算子：采用中距离外层环带与精准排除
-                # ====================================================
                 M_non_target_core = build_non_target_core_mask(
                     batch=single_batch,
                     pad_h=pad_h_target,
@@ -703,12 +702,10 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     ring_mask=ring_t,
                 )
 
-                # 🚀 修复 3：记录 Image-space 的 conf 质量，解决日志重复问题
+                
+
                 epoch_diag["rlcp_conf_mass"] += float(conf_t.sum().item()) 
 
-                # ====================================================
-                #  原图空间掩码探针 (Mask Survival Diagnostics)
-                # ====================================================
                 if not getattr(self, "_sanity_mask_space_printed", False):
                     inner_sum = inner_t.sum().item()
                     ring_sum = ring_t.sum().item()
@@ -767,7 +764,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 margin_loss_vals = []
                 margin_clean_vals = []
                 margin_adv_vals = []
-                pag_fallback_vals = []  # 🚀 修复 1/3：新增 EOT 本地缓存列表
+                pag_fallback_vals = []
 
                 for eot_idx in range(eot_count):
                     clean_aug, adv_aug = self._apply_shared_eot_pair_batched(img_t, adv)
@@ -861,22 +858,28 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         real_fg = real_assign_clean["fg_mask"].bool() 
                         real_labels = real_assign_clean["target_labels"].long()
                         
-                        # 🚀 修复 1 铺垫：构建非目标前景门控，给 DSNP-lite 使用
                         nt_fg_mask = real_fg & (real_labels != self.target_class_id)
                         strict_gate_1d = real_fg & (real_labels == self.target_class_id) 
-                        
+
+                        # 🚀 动态计算当前 Batch 下 FPN 各层的 1D 展平尺寸
+                        layer_sizes = []
+                        for layer_name in self.shape_layers:
+                            if layer_name in features_clean_cache:
+                                _, _, h, w = features_clean_cache[layer_name].shape
+                                layer_sizes.append(h * w)
+
                         pag_gate_1d, pag_stats = build_pag_gate(
                             strict_gate_1d=strict_gate_1d,
                             target_scores=real_assign_clean.get("target_scores", None),
                             target_class_id=self.target_class_id,
-                            top_ratio=self.pag_top_ratio,
+                            top_ratio=self.pag_layer_ratios,
                             min_keep=self.pag_min_pos,
+                            layer_sizes=layer_sizes,
                         )
                         if pag_stats:
                             pag_ratio_vals.append(float(pag_stats.get("pag_positive_ratio", 0.0)))
                             pag_threshold_vals.append(float(pag_stats.get("pag_threshold", 0.0)))
                             pag_mean_score_vals.append(float(pag_stats.get("pag_mean_target_score", 0.0)))
-                            # 🚀 修复 2/3：将 fallback 次数存入列表，不再直接累加到 epoch_diag
                             pag_fallback_vals.append(float(pag_stats.get("pag_fallback_count", 0.0))) 
                         
                         if not getattr(self, "_sanity_gate_printed", False):
@@ -889,11 +892,17 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                                 f"threshold={pag_stats.get('pag_threshold', 0.0):.4f}, "
                                 f"mean_target_score={pag_stats.get('pag_mean_target_score', 0.0):.4f})"
                             )
+                            if "layer_stats" in pag_stats and pag_stats["layer_stats"]:
+                                print("🔬 [PAG Layer Stats]")
+                                for l_stat in pag_stats["layer_stats"]:
+                                    l_idx = l_stat["layer_idx"]
+                                    l_name = self.shape_layers[l_idx] if l_idx < len(self.shape_layers) else f"Layer {l_idx}"
+                                    print(f"   {l_name}: strict={l_stat['strict']} -> pag={l_stat['pag']} (ratio={l_stat['ratio']:.2%})")
                             self._sanity_gate_printed = True
                     else:
                         strict_gate_1d = None
                         pag_gate_1d = None
-                        nt_fg_mask = None # 🚀 无效时置空
+                        nt_fg_mask = None 
 
                     if strict_gate_1d is None or pag_gate_1d is None:
                         if not getattr(self, "_sanity_miss_printed", False):
@@ -1021,7 +1030,6 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         clean_non_target_logits = cache_clean["pred_scores_logits"][:, :, non_target_indices]
                         adv_non_target_logits = cache_adv["pred_scores_logits"][:, :, non_target_indices]
                         
-                        # 🚀 修复 1 落地：Logits MSE 也要加上 nt_fg_mask 过滤，避免海量背景杂音！
                         if nt_fg_mask is not None and nt_fg_mask.any():
                             clean_nt_fg_logits = clean_non_target_logits[nt_fg_mask]
                             adv_nt_fg_logits = adv_non_target_logits[nt_fg_mask]
@@ -1032,7 +1040,6 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         else:
                             L_preserve_logits = torch.zeros((), device=self.device)
 
-                        # 🚀 修复 1 落地：传入 nt_fg_mask，将 Margin 保护死死锁定在 Non-target 前景 Anchor 上！
                         L_margin, margin_stats = compute_non_target_margin_preserve(
                             clean_non_target_logits=clean_non_target_logits,
                             adv_non_target_logits=adv_non_target_logits,
@@ -1076,9 +1083,6 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 L_tv = self._tv_loss(raw_perturb)
                 L_budget = F.relu(torch.max(torch.abs(raw_perturb)) - self.eps)
 
-                # ====================================================
-                # 🎯 ALCE total loss 总损失函数 驱动 Fourier 系数优化，训练出通用 poison
-                # ====================================================
                 total_loss = ( 
                     self.lambda_ent * L_ent_final
                     + self.lambda_anchor * L_anchor_final
@@ -1102,9 +1106,6 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
                 optimizer.step()
 
-                # ====================================================
-                # 白盒监控 & 天眼可视化
-                # ====================================================
                 if batch_count == 0 and epoch % 5 == 0:
                     vis_dir = os.path.join(os.path.dirname(diagnostics_csv_path), "vis_debug")
                     os.makedirs(vis_dir, exist_ok=True)
@@ -1136,6 +1137,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 epoch_diag["cos_t_conf"] += safe_mean(layer_cos_conf_vals)
                 epoch_diag["cos_t_clean"] += safe_mean(layer_cos_clean_vals)
                 epoch_diag["M_conf_sum"] += safe_mean(layer_conf_sum_vals)
+                
                 epoch_diag["rlcp_trim_keep_ratio"] += safe_mean(layer_trim_keep_vals)
                 epoch_diag["rlcp_core_exclusion_ratio"] += safe_mean(layer_core_exclusion_vals)
                 epoch_diag["confounder_purity_ratio"] += safe_mean(layer_conf_purity_vals)
@@ -1148,7 +1150,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 epoch_diag["pag_positive_ratio"] += safe_mean(pag_ratio_vals)
                 epoch_diag["pag_threshold"] += safe_mean(pag_threshold_vals)
                 epoch_diag["pag_mean_target_score"] += safe_mean(pag_mean_score_vals)
-                epoch_diag["pag_fallback_count"] += safe_mean(pag_fallback_vals)  # 👈 精确累加 EOT 期望值
+                epoch_diag["pag_fallback_count"] += safe_mean(pag_fallback_vals) 
                 epoch_diag["L_tv"] += float(L_tv.item())
                 epoch_diag["L_budget"] += float(L_budget.item())
                 epoch_diag["L_total"] += float(total_loss.item())
@@ -1171,9 +1173,6 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 batch_count += 1
                 global_step += 1
 
-            # ====================================================
-            # 🚀 修复 3/3：退出 EOT 循环后，取 safe_mean，再更新到 epoch_diag
-            # ====================================================
             if batch_count > 0:
                 for k in list(epoch_diag.keys()):
                     if k != "max_abs_delta":  
