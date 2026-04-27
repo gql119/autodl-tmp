@@ -1,0 +1,126 @@
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+[launch_one] method= tausb_mask
+[launch_one] steps= 40
+[launch_one] seed= 1
+[launch_one] stage= all
+[launch_one] run_root= /root/autodl-tmp/ue_project/runs
+[launch_one] artifact_root= /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1
+[launch_one] poisoned_root= /root/autodl-tmp/ue_project/runs/poisoned_datasets/tausb_mask/steps40/seed1
+[launch_one] resume= False
+[TAUSB] training global universal params ...
+[Person-Free Protect] enabled=True count=10456 batch_size=16
+
+🔬 [Mask Space Diagnostics] (Adaptive RLCP Annulus)
+   Target Inner Sum: 719402.0
+   Target Ring Sum: 125406.0
+   Non-Target Core Sum: 397697.0
+   Local Ctx Annulus Sum: 726449.0
+   Final M_conf Sum: 642947.0
+   ----------------------------------
+   ⚠️ Removed by Non-Target Objects: 71106.0
+   ⚠️ Removed by Ring (Should be 0 now): 12426.0
+   🔥 Raw Purity Ratio: 88.51%
+   rlcp_core_exclusion_ratio: 9.79%
+   rlcp_adaptive_inner_mean: 22.055
+   rlcp_adaptive_outer_mean: 51.462
+   rlcp_adaptive_inner_min: 3.269
+   rlcp_adaptive_outer_max: 143.527
+
+======================================================================
+🎯 [STRICT AL-SVC PROBE] Intercepted Real TAL Assigner Outputs
+======================================================================
+  - target_labels  : shape=(16, 8400), dtype=torch.int64, min=0.00, max=19.00
+  - target_scores  : shape=(16, 8400, 20), dtype=torch.float32, min=0.00, max=0.99
+  - fg_mask        : shape=(16, 8400), dtype=torch.bool, min=0.00, max=1.00
+  - target_gt_idx  : shape=(16, 8400), dtype=torch.int64, min=0.00, max=19.00
+======================================================================
+
+
+🔬 [Sanity Check 1] fg positives: 810
+🔬 [Sanity Check 1] strict target positives: 430
+🔬 [Sanity Check 1] pag positives: 234 (ratio=54.42%, threshold=0.7905, mean_target_score=0.7715)
+🔬 [PAG Layer Stats]
+   model.15: strict=37 -> pag=30 (ratio=81.08%)
+   model.18: strict=170 -> pag=109 (ratio=64.12%)
+   model.21: strict=223 -> pag=95 (ratio=42.60%)
+🔬 [Sanity Check 2&3 - model.15]
+   M_topology sum: 17566.3
+   M_assign_2d sum: 30.0
+   M_AL sum: 29.7
+   rlcp_conf_mass: 15700.5
+   rlcp_trim_keep_ratio: 80.40%
+   rlcp_core_exclusion_ratio: 9.81%
+   confounder_purity_ratio: 88.49%
+   overlap ratio: 98.84%
+🔬 [Sanity Check 2&3 - model.18]
+   M_topology sum: 4390.1
+   M_assign_2d sum: 109.0
+   M_AL sum: 104.7
+   rlcp_conf_mass: 3924.1
+   rlcp_trim_keep_ratio: 81.32%
+   rlcp_core_exclusion_ratio: 9.86%
+   confounder_purity_ratio: 88.48%
+   overlap ratio: 96.02%
+🔬 [Sanity Check 2&3 - model.21]
+   M_topology sum: 1097.8
+   M_assign_2d sum: 95.0
+   M_AL sum: 92.2
+   rlcp_conf_mass: 983.3
+   rlcp_trim_keep_ratio: 81.19%
+   rlcp_core_exclusion_ratio: 9.78%
+   confounder_purity_ratio: 88.51%
+   overlap ratio: 97.02%
+
+🔬 [DSNP-lite Diagnostics]
+   enable_preserve_feat: False
+   enable_preserve_logits: True
+   enable_preserve_margin: False
+   enable_preserve_relation_intra: False
+   enable_anchor_cos: True
+   enable_anchor_energy: True
+   enable_preserve_relation_decision: False
+   nt_fg_count: 380.0
+   preserve_conf_weight_mean: 0.707666
+   preserve_conf_weight_max: 0.715421
+   preserve_conf_weight_min: 0.703142
+   preserve_conf_sparse_ratio: 0.121503
+   preserve_conf_selected_count: 53.0
+   L_margin: 0.000000
+   L_rel_intra: 0.000000
+   L_rel_decision: 0.000000
+   wRelDecision: 0.000000
+   rel_decision_valid_batches: 0.0
+   rel_decision_selected_units_mean: 0.0000
+   rel_decision_selected_units_max: 0.0
+   rel_decision_matrix_mean_abs_diff: 0.000000
+   rel_valid_batches: 0.0
+   rel_selected_units_mean: 0.0000
+   rel_selected_units_max: 0.0
+   rel_matrix_mean_abs_diff: 0.000000
+   margin_clean_mean: 0.000000
+   margin_adv_mean: 0.000000
+   margin_weight_mean: 0.000000
+   margin_weight_max: 0.000000
+   margin_weight_min: 0.000000
+   margin_sparse_ratio: 0.000000
+   margin_selected_count: 0.0
+   [Layer-wise Non-Target Key Units]
+   p3: nt=190.0, conf_sel=38.0 (ratio=0.2000), margin_sel=0.0 (ratio=0.0000)
+   p4: nt=83.0, conf_sel=9.0 (ratio=0.1084), margin_sel=0.0 (ratio=0.0000)
+   p5: nt=107.0, conf_sel=6.0 (ratio=0.0561), margin_sel=0.0 (ratio=0.0000)
+
+[Person-Free Protect Diagnostics]
+   enable_person_free_protect: True
+   enable_person_free_relation_decision: True
+   enable_person_free_logits: False
+   person_free_batch_valid: 1.0
+   person_free_nt_fg_count: 280.0
+   person_free_conf_selected_count: 27.0
+   L_person_free_rel_decision: 0.000000
+   w_person_free_rel_decision: 0.000000
+   person_free_rel_decision_valid_batches: 6.0
+   person_free_rel_decision_selected_units_mean: 5.1667
+   person_free_rel_decision_matrix_mean_abs_diff: 0.000000
+   person_free_support_area_ratio: 0.260474
+  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed1/logs/vis_debug/debug_epoch_0_step_0.png

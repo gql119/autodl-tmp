@@ -75,20 +75,13 @@ methods:
   tausb_mask:
     support_type: mask
     ring_width: 4
-    
-    # 新增：优先使用离线实例级 mask
-    use_prebaked_instance_mask: true
 
-    # 新增：第一轮建议 false。等确认没问题后，可以改 true 做严格实验
+    use_prebaked_instance_mask: true
     strict_instance_mask: false
-    
-    # ====================================================
-    # 🚀 1. 武器库容量 (Weaponry Capacity)
-    # ====================================================
-    # 既然有了梯度的绝对阻断和掩码的极致抠图，我们可以放心释放容量
-    shortcut_num_bases: 16       # 满载 16 组基底，编织高频类条件水印
+
+    shortcut_num_bases: 16
     suppress_small_size: 32
-    
+
     align_alpha: 0.5
     align_beta: 6.0
     assignment_topk: 100
@@ -97,86 +90,39 @@ methods:
     supp_amp_buffer: 1.0
     tanh_temp: 1.0
 
-    # ====================================================
-    # 🚨 2. 核心损失权重 (TSVC-DA 新引擎)
-    # ====================================================
-    # 删除废弃的 lambda_induce, lambda_shape, lambda_cls_aux
-    
-    # 【核心 A】空间方差坍缩权重 (Collapse)
-    # 负责压平目标区域的空间起伏，致盲定位。建议在 10.0 - 20.0 之间调整。
-    lambda_tsvc: 20.0       
-    
-    # 【核心 B】双重语义锚定权重 (Semantic Anchor)
-    # 负责死死拉住均值向量的余弦方向和 L2 范数，存活分类。
-    lambda_sem: 5.0         
-    
-    # 【防线基石】非目标区域保护权重
-    # 由于现在的 TSVC 专注于深层特征空间，10.0 可能会产生过强的拉扯，建议先降至 5.0 观察。
-    lambda_preserve: 4.0    
-    
-    # 【核心防御】极低的 TV 损失！
-    lambda_tv: 0.0001            
-    lambda_budget: 0.0 
+    lambda_tsvc: 20.0
+    lambda_sem: 5.0
+    lambda_preserve: 3.5
+    lambda_tv: 0.0001
+    lambda_budget: 0.0
 
-    # ALSD / ACGT / ALCE (default main path)
     alce:
       enabled: true
-      
-      # 【主引擎】特征纠缠与空间坍缩权重
+
       lambda_ent: 16.5
       lambda_anchor: 5.0
       lambda_flat: 2.4
       entangle_tau: 0.1
-      
-      # 🚑 降低纯净背景面积门槛，防止拥挤场景全军覆没
-      min_conf_pixels: 0.0
-      # --------------------------------------------------
-      # [新机制 1] PAG (Percentile Assignment Gate)
-      # --------------------------------------------------
+
       pag_layer_ratios: [0.7, 0.6, 0.4]
       pag_min_pos: [8, 6, 4]
 
-      # --------------------------------------------------
-      # [新机制 2] RLCP (Robust Local Context Prototype)
-      # --------------------------------------------------
-      rlcp_core_scale: 0.8    # 核心：屏蔽非目标物体时，收缩 20% 边缘，释放上下文空间
-      rlcp_trim_ratio: 0.1    # 核心：提取背景原型时，掐头去尾剔除 10% 的极值防污染
-      rlcp_adaptive_alpha: 0.15   # Adaptive RLCP: 内环半径系数
-      rlcp_adaptive_beta: 0.35    # Adaptive RLCP: 外环半径系数
+      use_adaptive_context: true
+      rlcp_core_scale: 0.8
+      rlcp_trim_ratio: 0.1
+      rlcp_adaptive_alpha: 0.15
+      rlcp_adaptive_beta: 0.35
+      min_conf_pixels: 0.0
 
-      # --------------------------------------------------
-      # [新机制 3] DSNP-lite (Dual-Structure Non-target Preserve)
-      # --------------------------------------------------
-      lambda_preserve: 2.0          # 总保护权重外部缩放系数
-      lambda_preserve_feat: 0.0     # [防线A] 特征空间 MSE 保护
-      lambda_preserve_logits: 1.0   # [防线B] 分类 Logits MSE 保护
-      lambda_margin: 0.0            # 核心：[防线C] Top1-Top2 决策边界 Margin 强力锁定
-      enable_preserve_feat: false    # 分支开关：feature preserve
-      enable_preserve_logits: true  # 分支开关：logits preserve
-      enable_preserve_margin: false  # 分支开关：margin preserve
-      preserve_conf_top_ratio: 0.5      # Sparse CA-DSNP: logits 只保留 top-q 关键单元
-      preserve_margin_top_ratio: 0.5    # Sparse CA-DSNP: margin 只保留 top-q 关键单元
-      preserve_sparse_min_keep: 8       # Sparse CA-DSNP: 稀疏筛选的最小保留数量
-      preserve_conf_top_ratio_per_layer: [0.20, 0.10, 0.05]      # LA-KUP v1: P3/P4/P5
-      preserve_margin_top_ratio_per_layer: [0.0, 0.0, 0.0]    # LA-KUP v1: P3/P4/P5
-      preserve_sparse_min_keep_per_layer: [4, 2, 1]          # LA-KUP v1: P3/P4/P5
-    # ====================================================
-    # ⚙️ 3. 运行环境与能量释放
-    # ====================================================
+      lambda_preserve: 3.5
+      lambda_preserve_feat: 0.5
+      lambda_preserve_logits: 0.8
+      lambda_margin: 0.6
+
     universal_epochs: 40
-    
-    # 【防 OOM 设定】16 组基底 + 多层 Hook 极其吃显存。
-    # 如果你的显卡 (如 4090/A100) 报 OOM，请降至 12 或 8。
     universal_batch_size: 16
-    
-    eot_samples: 2               # 配合代码中的 EG-style Dropout
-    
-    # 【能量地板】
-    # 初始为 0.3，配合代码中的动态拉升（后期会到 0.5）。
-    # 允许在平滑区域（如人脸、衣服）注入足够的对抗能量。
-    jnd_floor: 0.4               
+    eot_samples: 2
+    jnd_floor: 0.4
     jnd_ceiling: 1.0
-    
-    # 配合 16 组基底的最佳探索步长，防止优化器跑飞
-    universal_lr_fourier: 0.05   
+    universal_lr_fourier: 0.05
     universal_lr_suppress: 0.002

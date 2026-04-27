@@ -20,8 +20,8 @@ from .alce_acgt import (
     build_non_target_core_mask,
     build_confounder_mask,
     build_pag_gate,
+    build_local_context_mask,
     build_scale_adaptive_context_mask,
-    split_gate_by_fpn_layers,
     project_strict_gate_to_fpn,
     renorm_yolo_bbox_after_padding,
 )
@@ -29,9 +29,8 @@ from .alce_losses import (
     compute_anchor_losses,
     compute_alsi_score,
     compute_collapse_loss,
-    compute_sparse_confidence_weighted_preserve_logits,
     compute_entangle_loss,
-    compute_sparse_margin_weighted_preserve,
+    compute_non_target_margin_preserve,
     masked_prototype,
     robust_masked_prototype,
 )
@@ -123,6 +122,9 @@ class _TAUSBCommon(BasePoisonGenerator):
         self.rlcp_adaptive_beta = float(
             alce_cfg.get("rlcp_adaptive_beta", method_cfg.get("rlcp_adaptive_beta", 0.35))
         )
+        self.use_adaptive_context = bool(
+            alce_cfg.get("use_adaptive_context", method_cfg.get("use_adaptive_context", True))
+        )
         
         # 🚀 升级：读取 FPN 分层 PAG 比例 [P3, P4, P5] 和 最小存活数
         self.pag_layer_ratios = alce_cfg.get("pag_layer_ratios", method_cfg.get("pag_layer_ratios", [0.7, 0.6, 0.4]))
@@ -138,66 +140,6 @@ class _TAUSBCommon(BasePoisonGenerator):
             alce_cfg.get("lambda_preserve_logits", method_cfg.get("lambda_preserve_logits", 1.0))
         )
         self.lambda_margin = float(alce_cfg.get("lambda_margin", method_cfg.get("lambda_margin", 1.0)))
-        self.preserve_conf_top_ratio = float(
-            alce_cfg.get("preserve_conf_top_ratio", method_cfg.get("preserve_conf_top_ratio", 0.5))
-        )
-        self.preserve_margin_top_ratio = float(
-            alce_cfg.get("preserve_margin_top_ratio", method_cfg.get("preserve_margin_top_ratio", 0.5))
-        )
-        self.preserve_sparse_min_keep = int(
-            alce_cfg.get("preserve_sparse_min_keep", method_cfg.get("preserve_sparse_min_keep", 8))
-        )
-
-        num_fpn_layers = 3  # fixed by current shape_layers: P3/P4/P5
-        conf_ratio_pl = alce_cfg.get("preserve_conf_top_ratio_per_layer", None)
-        margin_ratio_pl = alce_cfg.get("preserve_margin_top_ratio_per_layer", None)
-        min_keep_pl = alce_cfg.get("preserve_sparse_min_keep_per_layer", None)
-
-        if conf_ratio_pl is None:
-            self.preserve_conf_top_ratio_per_layer = [float(self.preserve_conf_top_ratio)] * num_fpn_layers
-        elif isinstance(conf_ratio_pl, (int, float)):
-            self.preserve_conf_top_ratio_per_layer = [float(conf_ratio_pl)] * num_fpn_layers
-        else:
-            self.preserve_conf_top_ratio_per_layer = [float(v) for v in conf_ratio_pl]
-            if len(self.preserve_conf_top_ratio_per_layer) != num_fpn_layers:
-                raise ValueError(
-                    "preserve_conf_top_ratio_per_layer length must equal 3 (P3/P4/P5), "
-                    f"got {len(self.preserve_conf_top_ratio_per_layer)}"
-                )
-
-        if margin_ratio_pl is None:
-            self.preserve_margin_top_ratio_per_layer = [float(self.preserve_margin_top_ratio)] * num_fpn_layers
-        elif isinstance(margin_ratio_pl, (int, float)):
-            self.preserve_margin_top_ratio_per_layer = [float(margin_ratio_pl)] * num_fpn_layers
-        else:
-            self.preserve_margin_top_ratio_per_layer = [float(v) for v in margin_ratio_pl]
-            if len(self.preserve_margin_top_ratio_per_layer) != num_fpn_layers:
-                raise ValueError(
-                    "preserve_margin_top_ratio_per_layer length must equal 3 (P3/P4/P5), "
-                    f"got {len(self.preserve_margin_top_ratio_per_layer)}"
-                )
-
-        if min_keep_pl is None:
-            self.preserve_sparse_min_keep_per_layer = [int(self.preserve_sparse_min_keep)] * num_fpn_layers
-        elif isinstance(min_keep_pl, (int, float)):
-            self.preserve_sparse_min_keep_per_layer = [int(min_keep_pl)] * num_fpn_layers
-        else:
-            self.preserve_sparse_min_keep_per_layer = [int(v) for v in min_keep_pl]
-            if len(self.preserve_sparse_min_keep_per_layer) != num_fpn_layers:
-                raise ValueError(
-                    "preserve_sparse_min_keep_per_layer length must equal 3 (P3/P4/P5), "
-                    f"got {len(self.preserve_sparse_min_keep_per_layer)}"
-                )
-
-        self.enable_preserve_logits = bool(
-            alce_cfg.get("enable_preserve_logits", method_cfg.get("enable_preserve_logits", True))
-        )
-        self.enable_preserve_margin = bool(
-            alce_cfg.get("enable_preserve_margin", method_cfg.get("enable_preserve_margin", True))
-        )
-        self.enable_preserve_feat = bool(
-            alce_cfg.get("enable_preserve_feat", method_cfg.get("enable_preserve_feat", True))
-        )
         if not self.alce_enabled:
             self.lambda_ent = 0.0
             self.lambda_anchor = self.lambda_sem
@@ -639,33 +581,6 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 "L_margin": 0.0,
                 "margin_clean_mean": 0.0,
                 "margin_adv_mean": 0.0,
-                "preserve_conf_weight_mean": 0.0,
-                "preserve_conf_weight_max": 0.0,
-                "preserve_conf_weight_min": 0.0,
-                "preserve_conf_sparse_ratio": 0.0,
-                "preserve_conf_selected_count": 0.0,
-                "margin_weight_mean": 0.0,
-                "margin_weight_max": 0.0,
-                "margin_weight_min": 0.0,
-                "margin_sparse_ratio": 0.0,
-                "margin_selected_count": 0.0,
-                "nt_fg_count": 0.0,
-                "nt_p3_count": 0.0,
-                "nt_p4_count": 0.0,
-                "nt_p5_count": 0.0,
-                "preserve_conf_selected_p3": 0.0,
-                "preserve_conf_selected_p4": 0.0,
-                "preserve_conf_selected_p5": 0.0,
-                "preserve_conf_ratio_p3": 0.0,
-                "preserve_conf_ratio_p4": 0.0,
-                "preserve_conf_ratio_p5": 0.0,
-                "margin_selected_p3": 0.0,
-                "margin_selected_p4": 0.0,
-                "margin_selected_p5": 0.0,
-                "margin_ratio_p3": 0.0,
-                "margin_ratio_p4": 0.0,
-                "margin_ratio_p5": 0.0,
-                "enable_preserve_feat_flag": 0.0,
                 "gate_positive_ratio": 0.0,
                 "pag_positive_ratio": 0.0,
                 "pag_threshold": 0.0,
@@ -788,16 +703,30 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     device=self.device,
                     core_scale=self.rlcp_core_scale,
                 ).to(dtype=inner_t.dtype)
-                local_ctx_t, rlcp_adapt_stats = build_scale_adaptive_context_mask(
-                    batch=single_batch,
-                    pad_h=pad_h_target,
-                    pad_w=pad_w_target,
-                    target_class_id=self.target_class_id,
-                    device=self.device,
-                    alpha=self.rlcp_adaptive_alpha,
-                    beta=self.rlcp_adaptive_beta,
-                )
-                local_ctx_t = local_ctx_t.to(dtype=inner_t.dtype)
+                
+                if self.use_adaptive_context:
+                    local_ctx_t, rlcp_adapt_stats = build_scale_adaptive_context_mask(
+                        batch=single_batch,
+                        pad_h=pad_h_target,
+                        pad_w=pad_w_target,
+                        target_class_id=self.target_class_id,
+                        device=self.device,
+                        alpha=self.rlcp_adaptive_alpha,
+                        beta=self.rlcp_adaptive_beta,
+                    )
+                    local_ctx_t = local_ctx_t.to(dtype=inner_t.dtype)
+                else:
+                    local_ctx_t = build_local_context_mask(
+                        inner_mask=inner_t,
+                        r_inner=12,
+                        r_outer=28,
+                    )
+                    rlcp_adapt_stats = {
+                        "rlcp_adaptive_inner_mean": 0.0,
+                        "rlcp_adaptive_outer_mean": 0.0,
+                        "rlcp_adaptive_inner_min": 0.0,
+                        "rlcp_adaptive_outer_max": 0.0,
+                    }
                 
                 conf_t = build_confounder_mask(
                     local_ctx_mask=local_ctx_t,
@@ -808,10 +737,18 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 
 
                 epoch_diag["rlcp_conf_mass"] += float(conf_t.sum().item()) 
-                epoch_diag["rlcp_adaptive_inner_mean"] += float(rlcp_adapt_stats.get("rlcp_adaptive_inner_mean", 0.0))
-                epoch_diag["rlcp_adaptive_outer_mean"] += float(rlcp_adapt_stats.get("rlcp_adaptive_outer_mean", 0.0))
-                epoch_diag["rlcp_adaptive_inner_min"] += float(rlcp_adapt_stats.get("rlcp_adaptive_inner_min", 0.0))
-                epoch_diag["rlcp_adaptive_outer_max"] += float(rlcp_adapt_stats.get("rlcp_adaptive_outer_max", 0.0))
+                epoch_diag["rlcp_adaptive_inner_mean"] += float(
+                    rlcp_adapt_stats.get("rlcp_adaptive_inner_mean", 0.0)
+                )
+                epoch_diag["rlcp_adaptive_outer_mean"] += float(
+                    rlcp_adapt_stats.get("rlcp_adaptive_outer_mean", 0.0)
+                )
+                epoch_diag["rlcp_adaptive_inner_min"] += float(
+                    rlcp_adapt_stats.get("rlcp_adaptive_inner_min", 0.0)
+                )
+                epoch_diag["rlcp_adaptive_outer_max"] += float(
+                    rlcp_adapt_stats.get("rlcp_adaptive_outer_max", 0.0)
+                )
 
                 if not getattr(self, "_sanity_mask_space_printed", False):
                     inner_sum = inner_t.sum().item()
@@ -824,7 +761,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     removed_by_ring = (local_ctx_t * ring_t).sum().item()
                     core_exclusion_ratio = removed_by_objects / (local_ctx_sum + 1e-6)
                     
-                    print(f"\n🔬 [Mask Space Diagnostics] (Adaptive RLCP Annulus)")
+                    print(f"\n🔬 [Mask Space Diagnostics] (Mid-range Annulus)")
                     print(f"   Target Inner Sum: {inner_sum:.1f}")
                     print(f"   Target Ring Sum: {ring_sum:.1f}")
                     print(f"   Non-Target Core Sum: {non_obj_sum:.1f}")
@@ -835,6 +772,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     print(f"   ⚠️ Removed by Ring (Should be 0 now): {removed_by_ring:.1f}")
                     print(f"   🔥 Raw Purity Ratio: {(conf_raw_sum / (local_ctx_sum + 1e-6)):.2%}")
                     print(f"   rlcp_core_exclusion_ratio: {core_exclusion_ratio:.2%}")
+                    print(f"   context_mode: {'adaptive' if self.use_adaptive_context else 'fixed'}")
                     print(f"   rlcp_adaptive_inner_mean: {rlcp_adapt_stats.get('rlcp_adaptive_inner_mean', 0.0):.3f}")
                     print(f"   rlcp_adaptive_outer_mean: {rlcp_adapt_stats.get('rlcp_adaptive_outer_mean', 0.0):.3f}")
                     print(f"   rlcp_adaptive_inner_min: {rlcp_adapt_stats.get('rlcp_adaptive_inner_min', 0.0):.3f}")
@@ -875,26 +813,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 margin_loss_vals = []
                 margin_clean_vals = []
                 margin_adv_vals = []
-                conf_weight_mean_vals = []
-                conf_weight_max_vals = []
-                conf_weight_min_vals = []
-                conf_sparse_ratio_vals = []
-                conf_selected_count_vals = []
-                margin_weight_mean_vals = []
-                margin_weight_max_vals = []
-                margin_weight_min_vals = []
-                margin_sparse_ratio_vals = []
-                margin_selected_count_vals = []
-                nt_fg_count_vals = []
                 pag_fallback_vals = []
-                layer_aliases = [f"p{i + 3}" for i in range(len(self.shape_layers))]
-                layerwise_vals = {}
-                for alias in layer_aliases:
-                    layerwise_vals[f"nt_{alias}_count"] = []
-                    layerwise_vals[f"preserve_conf_selected_{alias}"] = []
-                    layerwise_vals[f"preserve_conf_ratio_{alias}"] = []
-                    layerwise_vals[f"margin_selected_{alias}"] = []
-                    layerwise_vals[f"margin_ratio_{alias}"] = []
 
                 for eot_idx in range(eot_count):
                     clean_aug, adv_aug = self._apply_shared_eot_pair_batched(img_t, adv)
@@ -974,7 +893,6 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
                     raw_assign = getattr(self.hijacked, "last_real_assign", {})
                     real_assign_clean = {}
-                    layer_sizes = []
                     if (
                         raw_assign
                         and torch.is_tensor(raw_assign.get("fg_mask", None))
@@ -1149,243 +1067,37 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     
                     if cur_lambda_preserve > 0:
                         L_preserve_feat = torch.zeros((), device=self.device)
-                        if self.enable_preserve_feat:
-                            for layer_name in self.preserve_layers:
-                                if layer_name in features_clean_cache and layer_name in features_adv_cache:
-                                    z_c = features_clean_cache[layer_name]
-                                    z_a = features_adv_cache[layer_name]
-                                    M_bg = F.adaptive_avg_pool2d(M_non_supp_spatial, output_size=z_a.shape[-2:])
-                                    mse_map = F.mse_loss(z_c, z_a, reduction='none').mean(dim=1, keepdim=True)
-                                    L_preserve_feat = L_preserve_feat + (mse_map * M_bg).sum() / (M_bg.sum() + 1e-6)
+                        for layer_name in self.preserve_layers:
+                            if layer_name in features_clean_cache and layer_name in features_adv_cache:
+                                z_c = features_clean_cache[layer_name]
+                                z_a = features_adv_cache[layer_name]
+                                M_bg = F.adaptive_avg_pool2d(M_non_supp_spatial, output_size=z_a.shape[-2:])
+                                mse_map = F.mse_loss(z_c, z_a, reduction='none').mean(dim=1, keepdim=True)
+                                L_preserve_feat = L_preserve_feat + (mse_map * M_bg).sum() / (M_bg.sum() + 1e-6)
                         
                         non_target_indices = torch.arange(self.num_classes, device=self.device) != self.target_class_id
                         clean_non_target_logits = cache_clean["pred_scores_logits"][:, :, non_target_indices]
                         adv_non_target_logits = cache_adv["pred_scores_logits"][:, :, non_target_indices]
-
-                        bsz_logits, num_anchors, _ = clean_non_target_logits.shape
-                        nt_fg_count_base = float(nt_fg_mask.sum().item()) if (nt_fg_mask is not None) else 0.0
-
-                        preserve_layer_stats = []
-                        margin_layer_stats = []
-                        layer_logits_losses = []
-                        layer_margin_losses = []
-
-                        latest_layer_nt_counts = {alias: 0.0 for alias in layer_aliases}
-                        latest_layer_conf_selected = {alias: 0.0 for alias in layer_aliases}
-                        latest_layer_conf_ratio = {alias: 0.0 for alias in layer_aliases}
-                        latest_layer_margin_selected = {alias: 0.0 for alias in layer_aliases}
-                        latest_layer_margin_ratio = {alias: 0.0 for alias in layer_aliases}
-
-                        preserve_layer_sizes = []
-                        for layer_name in self.shape_layers:
-                            if layer_name not in features_clean_cache:
-                                preserve_layer_sizes = []
-                                break
-                            _, _, lh, lw = features_clean_cache[layer_name].shape
-                            preserve_layer_sizes.append(int(lh * lw))
-
-                        layer_split_ok = (
-                            nt_fg_mask is not None
-                            and len(preserve_layer_sizes) == len(self.shape_layers)
-                            and int(sum(preserve_layer_sizes)) == int(num_anchors)
-                        )
-
-                        if layer_split_ok:
-                            nt_layer_dict = split_gate_by_fpn_layers(
-                                gate_1d=nt_fg_mask.bool(),
-                                shape_layers=self.shape_layers,
-                                layer_sizes=preserve_layer_sizes,
+                        
+                        if nt_fg_mask is not None and nt_fg_mask.any():
+                            clean_nt_fg_logits = clean_non_target_logits[nt_fg_mask]
+                            adv_nt_fg_logits = adv_non_target_logits[nt_fg_mask]
+                            L_preserve_logits = F.mse_loss(
+                                torch.sigmoid(adv_nt_fg_logits),
+                                torch.sigmoid(clean_nt_fg_logits.detach())
                             )
-
-                            for li, layer_name in enumerate(self.shape_layers):
-                                alias = f"p{li + 3}"
-                                gate_info = nt_layer_dict.get(layer_name, None)
-                                if gate_info is None:
-                                    continue
-                                start = int(gate_info["start"])
-                                end = int(gate_info["end"])
-                                nt_mask_l = gate_info["gate_1d"].bool()
-
-                                clean_l = clean_non_target_logits[:, start:end, :]
-                                adv_l = adv_non_target_logits[:, start:end, :]
-
-                                nt_count_l = float(nt_mask_l.sum().item())
-                                latest_layer_nt_counts[alias] = nt_count_l
-                                layerwise_vals[f"nt_{alias}_count"].append(nt_count_l)
-
-                                if self.enable_preserve_logits:
-                                    l_logits, l_pres_stats = compute_sparse_confidence_weighted_preserve_logits(
-                                        clean_non_target_logits=clean_l,
-                                        adv_non_target_logits=adv_l,
-                                        valid_mask=nt_mask_l,
-                                        top_ratio=self.preserve_conf_top_ratio_per_layer[li],
-                                        min_keep=self.preserve_sparse_min_keep_per_layer[li],
-                                    )
-                                    layer_logits_losses.append(l_logits)
-                                else:
-                                    l_pres_stats = {
-                                        "preserve_conf_weight_mean": 0.0,
-                                        "preserve_conf_weight_max": 0.0,
-                                        "preserve_conf_weight_min": 0.0,
-                                        "preserve_conf_sparse_ratio": 0.0,
-                                        "preserve_conf_selected_count": 0.0,
-                                        "nt_fg_count": nt_count_l,
-                                    }
-
-                                latest_layer_conf_selected[alias] = float(l_pres_stats.get("preserve_conf_selected_count", 0.0))
-                                latest_layer_conf_ratio[alias] = float(l_pres_stats.get("preserve_conf_sparse_ratio", 0.0))
-                                layerwise_vals[f"preserve_conf_selected_{alias}"].append(
-                                    latest_layer_conf_selected[alias]
-                                )
-                                layerwise_vals[f"preserve_conf_ratio_{alias}"].append(
-                                    latest_layer_conf_ratio[alias]
-                                )
-                                preserve_layer_stats.append(l_pres_stats)
-
-                                if self.enable_preserve_margin:
-                                    l_margin, l_margin_stats = compute_sparse_margin_weighted_preserve(
-                                        clean_non_target_logits=clean_l,
-                                        adv_non_target_logits=adv_l,
-                                        use_smooth_l1=True,
-                                        valid_mask=nt_mask_l,
-                                        top_ratio=self.preserve_margin_top_ratio_per_layer[li],
-                                        min_keep=self.preserve_sparse_min_keep_per_layer[li],
-                                    )
-                                    layer_margin_losses.append(l_margin)
-                                else:
-                                    l_margin_stats = {
-                                        "margin_clean_mean": 0.0,
-                                        "margin_adv_mean": 0.0,
-                                        "margin_weight_mean": 0.0,
-                                        "margin_weight_max": 0.0,
-                                        "margin_weight_min": 0.0,
-                                        "margin_sparse_ratio": 0.0,
-                                        "margin_selected_count": 0.0,
-                                        "nt_fg_count": nt_count_l,
-                                    }
-
-                                latest_layer_margin_selected[alias] = float(l_margin_stats.get("margin_selected_count", 0.0))
-                                latest_layer_margin_ratio[alias] = float(l_margin_stats.get("margin_sparse_ratio", 0.0))
-                                layerwise_vals[f"margin_selected_{alias}"].append(
-                                    latest_layer_margin_selected[alias]
-                                )
-                                layerwise_vals[f"margin_ratio_{alias}"].append(
-                                    latest_layer_margin_ratio[alias]
-                                )
-                                margin_layer_stats.append(l_margin_stats)
-                        else:
-                            # Fallback to old global behavior when layer slicing is unavailable.
-                            if self.enable_preserve_logits:
-                                l_logits, l_pres_stats = compute_sparse_confidence_weighted_preserve_logits(
-                                    clean_non_target_logits=clean_non_target_logits,
-                                    adv_non_target_logits=adv_non_target_logits,
-                                    valid_mask=nt_fg_mask,
-                                    top_ratio=self.preserve_conf_top_ratio,
-                                    min_keep=self.preserve_sparse_min_keep,
-                                )
-                                layer_logits_losses.append(l_logits)
-                            else:
-                                l_pres_stats = {
-                                    "preserve_conf_weight_mean": 0.0,
-                                    "preserve_conf_weight_max": 0.0,
-                                    "preserve_conf_weight_min": 0.0,
-                                    "preserve_conf_sparse_ratio": 0.0,
-                                    "preserve_conf_selected_count": 0.0,
-                                    "nt_fg_count": nt_fg_count_base,
-                                }
-                            preserve_layer_stats.append(l_pres_stats)
-
-                            if self.enable_preserve_margin:
-                                l_margin, l_margin_stats = compute_sparse_margin_weighted_preserve(
-                                    clean_non_target_logits=clean_non_target_logits,
-                                    adv_non_target_logits=adv_non_target_logits,
-                                    use_smooth_l1=True,
-                                    valid_mask=nt_fg_mask,
-                                    top_ratio=self.preserve_margin_top_ratio,
-                                    min_keep=self.preserve_sparse_min_keep,
-                                )
-                                layer_margin_losses.append(l_margin)
-                            else:
-                                l_margin_stats = {
-                                    "margin_clean_mean": 0.0,
-                                    "margin_adv_mean": 0.0,
-                                    "margin_weight_mean": 0.0,
-                                    "margin_weight_max": 0.0,
-                                    "margin_weight_min": 0.0,
-                                    "margin_sparse_ratio": 0.0,
-                                    "margin_selected_count": 0.0,
-                                    "nt_fg_count": nt_fg_count_base,
-                                }
-                            margin_layer_stats.append(l_margin_stats)
-
-                        if self.enable_preserve_logits and len(layer_logits_losses) > 0:
-                            L_preserve_logits = torch.stack(layer_logits_losses).mean()
                         else:
                             L_preserve_logits = torch.zeros((), device=self.device)
 
-                        if self.enable_preserve_margin and len(layer_margin_losses) > 0:
-                            L_margin = torch.stack(layer_margin_losses).mean()
-                        else:
-                            L_margin = torch.zeros((), device=self.device)
-
-                        preserve_stats = {
-                            "preserve_conf_weight_mean": safe_mean(
-                                [float(s.get("preserve_conf_weight_mean", 0.0)) for s in preserve_layer_stats]
-                            ),
-                            "preserve_conf_weight_max": safe_mean(
-                                [float(s.get("preserve_conf_weight_max", 0.0)) for s in preserve_layer_stats]
-                            ),
-                            "preserve_conf_weight_min": safe_mean(
-                                [float(s.get("preserve_conf_weight_min", 0.0)) for s in preserve_layer_stats]
-                            ),
-                            "preserve_conf_sparse_ratio": safe_mean(
-                                [float(s.get("preserve_conf_sparse_ratio", 0.0)) for s in preserve_layer_stats]
-                            ),
-                            "preserve_conf_selected_count": float(
-                                sum(float(s.get("preserve_conf_selected_count", 0.0)) for s in preserve_layer_stats)
-                            ),
-                            "nt_fg_count": float(sum(latest_layer_nt_counts.values())) if layer_split_ok else nt_fg_count_base,
-                        }
-                        margin_stats = {
-                            "margin_clean_mean": safe_mean(
-                                [float(s.get("margin_clean_mean", 0.0)) for s in margin_layer_stats]
-                            ),
-                            "margin_adv_mean": safe_mean(
-                                [float(s.get("margin_adv_mean", 0.0)) for s in margin_layer_stats]
-                            ),
-                            "margin_weight_mean": safe_mean(
-                                [float(s.get("margin_weight_mean", 0.0)) for s in margin_layer_stats]
-                            ),
-                            "margin_weight_max": safe_mean(
-                                [float(s.get("margin_weight_max", 0.0)) for s in margin_layer_stats]
-                            ),
-                            "margin_weight_min": safe_mean(
-                                [float(s.get("margin_weight_min", 0.0)) for s in margin_layer_stats]
-                            ),
-                            "margin_sparse_ratio": safe_mean(
-                                [float(s.get("margin_sparse_ratio", 0.0)) for s in margin_layer_stats]
-                            ),
-                            "margin_selected_count": float(
-                                sum(float(s.get("margin_selected_count", 0.0)) for s in margin_layer_stats)
-                            ),
-                            "nt_fg_count": float(sum(latest_layer_nt_counts.values())) if layer_split_ok else nt_fg_count_base,
-                        }
-
-                        conf_weight_mean_vals.append(float(preserve_stats.get("preserve_conf_weight_mean", 0.0)))
-                        conf_weight_max_vals.append(float(preserve_stats.get("preserve_conf_weight_max", 0.0)))
-                        conf_weight_min_vals.append(float(preserve_stats.get("preserve_conf_weight_min", 0.0)))
-                        conf_sparse_ratio_vals.append(float(preserve_stats.get("preserve_conf_sparse_ratio", 0.0)))
-                        conf_selected_count_vals.append(float(preserve_stats.get("preserve_conf_selected_count", 0.0)))
-                        nt_fg_count_vals.append(float(preserve_stats.get("nt_fg_count", 0.0)))
-
+                        L_margin, margin_stats = compute_non_target_margin_preserve(
+                            clean_non_target_logits=clean_non_target_logits,
+                            adv_non_target_logits=adv_non_target_logits,
+                            use_smooth_l1=True,
+                            valid_mask=nt_fg_mask 
+                        )
                         margin_loss_vals.append(float(L_margin.item()))
                         margin_clean_vals.append(float(margin_stats["margin_clean_mean"]))
                         margin_adv_vals.append(float(margin_stats["margin_adv_mean"]))
-                        margin_weight_mean_vals.append(float(margin_stats.get("margin_weight_mean", 0.0)))
-                        margin_weight_max_vals.append(float(margin_stats.get("margin_weight_max", 0.0)))
-                        margin_weight_min_vals.append(float(margin_stats.get("margin_weight_min", 0.0)))
-                        margin_sparse_ratio_vals.append(float(margin_stats.get("margin_sparse_ratio", 0.0)))
-                        margin_selected_count_vals.append(float(margin_stats.get("margin_selected_count", 0.0)))
 
                         L_preserve = (
                             self.lambda_preserve_feat * L_preserve_feat
@@ -1400,33 +1112,9 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                             and not getattr(self, "_sanity_dsnp_printed", False)
                         ):
                             print("\n🔬 [DSNP-lite Diagnostics]")
-                            print(f"   enable_preserve_feat: {self.enable_preserve_feat}")
-                            print(f"   enable_preserve_logits: {self.enable_preserve_logits}")
-                            print(f"   enable_preserve_margin: {self.enable_preserve_margin}")
-                            print(f"   nt_fg_count: {float(preserve_stats.get('nt_fg_count', 0.0)):.1f}")
-                            print(f"   preserve_conf_weight_mean: {float(preserve_stats.get('preserve_conf_weight_mean', 0.0)):.6f}")
-                            print(f"   preserve_conf_weight_max: {float(preserve_stats.get('preserve_conf_weight_max', 0.0)):.6f}")
-                            print(f"   preserve_conf_weight_min: {float(preserve_stats.get('preserve_conf_weight_min', 0.0)):.6f}")
-                            print(f"   preserve_conf_sparse_ratio: {float(preserve_stats.get('preserve_conf_sparse_ratio', 0.0)):.6f}")
-                            print(f"   preserve_conf_selected_count: {float(preserve_stats.get('preserve_conf_selected_count', 0.0)):.1f}")
                             print(f"   L_margin: {float(L_margin.item()):.6f}")
                             print(f"   margin_clean_mean: {float(margin_stats['margin_clean_mean']):.6f}")
                             print(f"   margin_adv_mean: {float(margin_stats['margin_adv_mean']):.6f}")
-                            print(f"   margin_weight_mean: {float(margin_stats.get('margin_weight_mean', 0.0)):.6f}")
-                            print(f"   margin_weight_max: {float(margin_stats.get('margin_weight_max', 0.0)):.6f}")
-                            print(f"   margin_weight_min: {float(margin_stats.get('margin_weight_min', 0.0)):.6f}")
-                            print(f"   margin_sparse_ratio: {float(margin_stats.get('margin_sparse_ratio', 0.0)):.6f}")
-                            print(f"   margin_selected_count: {float(margin_stats.get('margin_selected_count', 0.0)):.1f}")
-                            print("   [Layer-wise Non-Target Key Units]")
-                            for alias in layer_aliases:
-                                print(
-                                    f"   {alias}: "
-                                    f"nt={latest_layer_nt_counts.get(alias, 0.0):.1f}, "
-                                    f"conf_sel={latest_layer_conf_selected.get(alias, 0.0):.1f} "
-                                    f"(ratio={latest_layer_conf_ratio.get(alias, 0.0):.4f}), "
-                                    f"margin_sel={latest_layer_margin_selected.get(alias, 0.0):.1f} "
-                                    f"(ratio={latest_layer_margin_ratio.get(alias, 0.0):.4f})"
-                                )
                             self._sanity_dsnp_printed = True
 
                     # 累加 EOT 的 ALCE losses
@@ -1507,21 +1195,6 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 epoch_diag["L_margin"] += safe_mean(margin_loss_vals)
                 epoch_diag["margin_clean_mean"] += safe_mean(margin_clean_vals)
                 epoch_diag["margin_adv_mean"] += safe_mean(margin_adv_vals)
-                epoch_diag["preserve_conf_weight_mean"] += safe_mean(conf_weight_mean_vals)
-                epoch_diag["preserve_conf_weight_max"] += safe_mean(conf_weight_max_vals)
-                epoch_diag["preserve_conf_weight_min"] += safe_mean(conf_weight_min_vals)
-                epoch_diag["preserve_conf_sparse_ratio"] += safe_mean(conf_sparse_ratio_vals)
-                epoch_diag["preserve_conf_selected_count"] += safe_mean(conf_selected_count_vals)
-                epoch_diag["margin_weight_mean"] += safe_mean(margin_weight_mean_vals)
-                epoch_diag["margin_weight_max"] += safe_mean(margin_weight_max_vals)
-                epoch_diag["margin_weight_min"] += safe_mean(margin_weight_min_vals)
-                epoch_diag["margin_sparse_ratio"] += safe_mean(margin_sparse_ratio_vals)
-                epoch_diag["margin_selected_count"] += safe_mean(margin_selected_count_vals)
-                epoch_diag["nt_fg_count"] += safe_mean(nt_fg_count_vals)
-                epoch_diag["enable_preserve_feat_flag"] += 1.0 if self.enable_preserve_feat else 0.0
-                for k, v in layerwise_vals.items():
-                    if k in epoch_diag:
-                        epoch_diag[k] += safe_mean(v)
                 epoch_diag["gate_positive_ratio"] += gate_ratio_acc / eot_count
                 epoch_diag["pag_positive_ratio"] += safe_mean(pag_ratio_vals)
                 epoch_diag["pag_threshold"] += safe_mean(pag_threshold_vals)

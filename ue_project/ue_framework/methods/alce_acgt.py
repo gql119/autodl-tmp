@@ -1,5 +1,5 @@
 import math
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple, Union
 from collections.abc import Sequence
 
 import torch
@@ -50,68 +50,6 @@ def project_strict_gate_to_fpn(
         gate_dict[layer_name] = gate_1d.view(bsz, 1, h, w).float()
         anchor_offset += n
     return gate_dict
-
-
-def split_gate_by_fpn_layers(
-    gate_1d: torch.Tensor,
-    shape_layers: List[str],
-    layer_sizes: Optional[List[int]] = None,
-    features_cache: Optional[Dict[str, torch.Tensor]] = None,
-) -> Dict[str, Dict[str, torch.Tensor]]:
-    """
-    Split a [B, N] gate into per-layer slices based on FPN layer sizes.
-    Returns:
-      {
-        layer_name: {
-          "start": int,
-          "end": int,
-          "gate_1d": [B, n_l],
-          "gate_2d": [B,1,H,W] (optional when features_cache has layer)
-        }
-      }
-    """
-    if gate_1d is None:
-        return {}
-    if gate_1d.ndim != 2:
-        raise ValueError(f"gate_1d must be [B,N], got {tuple(gate_1d.shape)}")
-
-    if layer_sizes is None:
-        if features_cache is None:
-            raise ValueError("Either layer_sizes or features_cache must be provided.")
-        layer_sizes = []
-        for layer_name in shape_layers:
-            if layer_name not in features_cache:
-                raise ValueError(f"Layer {layer_name} missing from features_cache.")
-            _, _, h, w = features_cache[layer_name].shape
-            layer_sizes.append(int(h * w))
-
-    if len(layer_sizes) != len(shape_layers):
-        raise ValueError(
-            f"layer_sizes length mismatch: len(layer_sizes)={len(layer_sizes)} vs len(shape_layers)={len(shape_layers)}"
-        )
-
-    total = int(sum(layer_sizes))
-    if total != int(gate_1d.shape[1]):
-        raise ValueError(
-            f"layer_sizes sum mismatch: sum(layer_sizes)={total} vs gate_1d width={int(gate_1d.shape[1])}"
-        )
-
-    out = {}
-    offset = 0
-    for layer_name, n_l in zip(shape_layers, layer_sizes):
-        end = offset + int(n_l)
-        g_slice = gate_1d[:, offset:end]
-        item = {
-            "start": offset,
-            "end": end,
-            "gate_1d": g_slice,
-        }
-        if features_cache is not None and layer_name in features_cache:
-            _, _, h, w = features_cache[layer_name].shape
-            item["gate_2d"] = g_slice.view(g_slice.shape[0], 1, h, w).float()
-        out[layer_name] = item
-        offset = end
-    return out
 
 
 def build_non_target_core_mask(
@@ -202,87 +140,82 @@ def build_scale_adaptive_context_mask(
     device: torch.device,
     alpha: float = 0.15,
     beta: float = 0.35,
-) -> Tuple[torch.Tensor, Dict[str, float]]:
+):
     """
-    Adaptive RLCP (bbox-aware, coordinate-aware):
-    - only use target-class bboxes
-    - target_scale = sqrt(abs_bw * abs_bh)
-    - r_in = alpha * target_scale
-    - r_out = beta * target_scale
-    - draw outer rect, carve inner rect, and carve target body rect
+    Build adaptive local context annulus around each target object.
     Returns:
-      mask: [B,1,H,W]
-      stats: adaptive radii statistics for logging
+      local_ctx_mask: [B,1,pad_h,pad_w]
+      stats: dict with:
+        rlcp_adaptive_inner_mean
+        rlcp_adaptive_outer_mean
+        rlcp_adaptive_inner_min
+        rlcp_adaptive_outer_max
     """
     bsz = int(batch.get("batch_size", 1))
-    mask = torch.zeros((bsz, 1, pad_h, pad_w), device=device, dtype=torch.float32)
+    local_ctx_mask = torch.zeros((bsz, 1, pad_h, pad_w), device=device)
+    batch_idx = batch.get("batch_idx", torch.zeros((0,), dtype=torch.long, device=device))
+    bboxes = batch.get("bboxes", torch.zeros((0, 4), dtype=torch.float32, device=device))
+    clss = batch.get("cls", torch.zeros((0, 1), dtype=torch.float32, device=device))
 
-    batch_idx = batch.get("batch_idx", torch.zeros(0, device=device))
-    bboxes = batch.get("bboxes", torch.zeros((0, 4), device=device))
-    clss = batch.get("cls", torch.zeros((0, 1), device=device))
+    alpha = float(max(0.0, alpha))
+    beta = float(max(alpha + 1e-6, beta))
 
-    a = float(max(0.0, alpha))
-    b = float(max(a + 1e-6, beta))
+    inner_margins = []
+    outer_margins = []
 
-    inner_vals = []
-    outer_vals = []
-
-    for b_id in range(bsz):
-        valid_idx = batch_idx == b_id
+    for b in range(bsz):
+        valid_idx = batch_idx == b
         if valid_idx.sum() <= 0:
             continue
 
         boxes = bboxes[valid_idx]
-        classes = clss[valid_idx].squeeze(-1)
+        classes = clss[valid_idx]
+        if classes.ndim > 1:
+            classes = classes.squeeze(-1)
+
         for box, cls_id in zip(boxes, classes):
             if int(cls_id.item()) != int(target_class_id):
                 continue
 
-            cx, cy, bw, bh = [float(v) for v in box]
-            abs_bw = max(1.0, bw * float(pad_w))
-            abs_bh = max(1.0, bh * float(pad_h))
-            target_scale = math.sqrt(abs_bw * abs_bh)
+            cx, cy, bw, bh = [float(x) for x in box]
+            box_w = float(bw) * float(pad_w)
+            box_h = float(bh) * float(pad_h)
+            scale = math.sqrt(max(0.0, box_w * box_h))
+            inner_margin = float(alpha * scale)
+            outer_margin = float(beta * scale)
 
-            r_in = max(1.0, a * target_scale)
-            r_out = max(r_in + 1.0, b * target_scale)
-            inner_vals.append(float(r_in))
-            outer_vals.append(float(r_out))
+            inner_margins.append(inner_margin)
+            outer_margins.append(outer_margin)
 
-            x_c = cx * float(pad_w)
-            y_c = cy * float(pad_h)
-            half_w = abs_bw * 0.5
-            half_h = abs_bh * 0.5
+            x1 = (cx - bw * 0.5) * float(pad_w)
+            y1 = (cy - bh * 0.5) * float(pad_h)
+            x2 = (cx + bw * 0.5) * float(pad_w)
+            y2 = (cy + bh * 0.5) * float(pad_h)
 
-            # Outer rectangle
-            xo1 = max(0, int(math.floor(x_c - (half_w + r_out))))
-            yo1 = max(0, int(math.floor(y_c - (half_h + r_out))))
-            xo2 = min(pad_w, int(math.ceil(x_c + (half_w + r_out))))
-            yo2 = min(pad_h, int(math.ceil(y_c + (half_h + r_out))))
-            if xo2 > xo1 and yo2 > yo1:
-                mask[b_id, 0, yo1:yo2, xo1:xo2] = 1.0
+            x1o = max(0, int(math.floor(x1 - outer_margin)))
+            y1o = max(0, int(math.floor(y1 - outer_margin)))
+            x2o = min(pad_w, int(math.ceil(x2 + outer_margin)))
+            y2o = min(pad_h, int(math.ceil(y2 + outer_margin)))
+            if x2o <= x1o or y2o <= y1o:
+                continue
 
-            # Inner rectangle (carve)
-            xi1 = max(0, int(math.floor(x_c - (half_w + r_in))))
-            yi1 = max(0, int(math.floor(y_c - (half_h + r_in))))
-            xi2 = min(pad_w, int(math.ceil(x_c + (half_w + r_in))))
-            yi2 = min(pad_h, int(math.ceil(y_c + (half_h + r_in))))
-            if xi2 > xi1 and yi2 > yi1:
-                mask[b_id, 0, yi1:yi2, xi1:xi2] = 0.0
+            x1i = max(0, int(math.floor(x1 - inner_margin)))
+            y1i = max(0, int(math.floor(y1 - inner_margin)))
+            x2i = min(pad_w, int(math.ceil(x2 + inner_margin)))
+            y2i = min(pad_h, int(math.ceil(y2 + inner_margin)))
 
-            # Target body rectangle (safety carve)
-            xt1 = max(0, int(math.floor(x_c - half_w)))
-            yt1 = max(0, int(math.floor(y_c - half_h)))
-            xt2 = min(pad_w, int(math.ceil(x_c + half_w)))
-            yt2 = min(pad_h, int(math.ceil(y_c + half_h)))
-            if xt2 > xt1 and yt2 > yt1:
-                mask[b_id, 0, yt1:yt2, xt1:xt2] = 0.0
+            annulus = torch.zeros((pad_h, pad_w), device=device)
+            annulus[y1o:y2o, x1o:x2o] = 1.0
+            if x2i > x1i and y2i > y1i:
+                annulus[y1i:y2i, x1i:x2i] = 0.0
+            local_ctx_mask[b, 0] = torch.maximum(local_ctx_mask[b, 0], annulus)
 
-    if inner_vals:
+    if inner_margins:
         stats = {
-            "rlcp_adaptive_inner_mean": float(sum(inner_vals) / len(inner_vals)),
-            "rlcp_adaptive_outer_mean": float(sum(outer_vals) / len(outer_vals)),
-            "rlcp_adaptive_inner_min": float(min(inner_vals)),
-            "rlcp_adaptive_outer_max": float(max(outer_vals)),
+            "rlcp_adaptive_inner_mean": float(sum(inner_margins) / len(inner_margins)),
+            "rlcp_adaptive_outer_mean": float(sum(outer_margins) / len(outer_margins)),
+            "rlcp_adaptive_inner_min": float(min(inner_margins)),
+            "rlcp_adaptive_outer_max": float(max(outer_margins)),
         }
     else:
         stats = {
@@ -292,7 +225,7 @@ def build_scale_adaptive_context_mask(
             "rlcp_adaptive_outer_max": 0.0,
         }
 
-    return torch.clamp(mask, 0.0, 1.0), stats
+    return local_ctx_mask, stats
 
 
 def build_confounder_mask(
