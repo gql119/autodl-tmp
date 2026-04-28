@@ -112,6 +112,14 @@ methods:
       rlcp_trim_ratio: 0.1
       rlcp_adaptive_alpha: 0.15
       rlcp_adaptive_beta: 0.35
+      
+      # bounded adaptive RLCP
+      rlcp_adaptive_inner_min: 8.0
+      rlcp_adaptive_inner_max: 16.0
+      rlcp_adaptive_outer_min: 24.0
+      rlcp_adaptive_outer_max: 36.0
+      rlcp_adaptive_min_gap: 8.0
+      
       min_conf_pixels: 0.0
 
       lambda_preserve: 3.5

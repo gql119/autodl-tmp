@@ -140,89 +140,147 @@ def build_scale_adaptive_context_mask(
     device: torch.device,
     alpha: float = 0.15,
     beta: float = 0.35,
+    inner_min: float = 8.0,
+    inner_max: float = 16.0,
+    outer_min: float = 24.0,
+    outer_max: float = 36.0,
+    min_gap: float = 8.0,
 ):
     """
-    Build adaptive local context annulus around each target object.
+    Build bounded scale-adaptive local context annulus around target objects.
+
+    Compared with pure adaptive RLCP:
+        inner = alpha * scale
+        outer = beta * scale
+
+    this bounded version uses:
+        inner = clamp(alpha * scale, inner_min, inner_max)
+        outer = clamp(beta * scale, outer_min, outer_max)
+        outer = max(outer, inner + min_gap)
+
     Returns:
-      local_ctx_mask: [B,1,pad_h,pad_w]
-      stats: dict with:
-        rlcp_adaptive_inner_mean
-        rlcp_adaptive_outer_mean
-        rlcp_adaptive_inner_min
-        rlcp_adaptive_outer_max
+        local_ctx_mask: [B, 1, pad_h, pad_w]
+        stats: dict
     """
-    bsz = int(batch.get("batch_size", 1))
-    local_ctx_mask = torch.zeros((bsz, 1, pad_h, pad_w), device=device)
-    batch_idx = batch.get("batch_idx", torch.zeros((0,), dtype=torch.long, device=device))
-    bboxes = batch.get("bboxes", torch.zeros((0, 4), dtype=torch.float32, device=device))
-    clss = batch.get("cls", torch.zeros((0, 1), dtype=torch.float32, device=device))
+    import math
+    import torch
 
-    alpha = float(max(0.0, alpha))
-    beta = float(max(alpha + 1e-6, beta))
+    batch_size = int(batch.get("batch_size", 0))
+    local_ctx_mask = torch.zeros(
+        (batch_size, 1, pad_h, pad_w),
+        device=device,
+        dtype=torch.float32,
+    )
 
-    inner_margins = []
-    outer_margins = []
+    batch_idx = batch["batch_idx"]
+    cls = batch["cls"]
+    bboxes = batch["bboxes"]
 
-    for b in range(bsz):
-        valid_idx = batch_idx == b
-        if valid_idx.sum() <= 0:
+    if torch.is_tensor(batch_idx):
+        batch_idx_t = batch_idx.detach().long().view(-1).to(device)
+    else:
+        batch_idx_t = torch.as_tensor(batch_idx, device=device).long().view(-1)
+
+    if torch.is_tensor(cls):
+        cls_t = cls.detach().long().view(-1).to(device)
+    else:
+        cls_t = torch.as_tensor(cls, device=device).long().view(-1)
+
+    if torch.is_tensor(bboxes):
+        boxes_t = bboxes.detach().float().to(device)
+    else:
+        boxes_t = torch.as_tensor(bboxes, device=device).float()
+
+    inner_vals = []
+    outer_vals = []
+
+    if boxes_t.numel() == 0:
+        return local_ctx_mask, {
+            "rlcp_adaptive_inner_mean": 0.0,
+            "rlcp_adaptive_outer_mean": 0.0,
+            "rlcp_adaptive_inner_min": 0.0,
+            "rlcp_adaptive_outer_max": 0.0,
+            "rlcp_adaptive_inner_max": 0.0,
+            "rlcp_adaptive_outer_min": 0.0,
+        }
+
+    for i in range(boxes_t.shape[0]):
+        if int(cls_t[i].item()) != int(target_class_id):
             continue
 
-        boxes = bboxes[valid_idx]
-        classes = clss[valid_idx]
-        if classes.ndim > 1:
-            classes = classes.squeeze(-1)
+        b = int(batch_idx_t[i].item())
+        if b < 0 or b >= batch_size:
+            continue
 
-        for box, cls_id in zip(boxes, classes):
-            if int(cls_id.item()) != int(target_class_id):
-                continue
+        cx, cy, bw, bh = boxes_t[i].tolist()
 
-            cx, cy, bw, bh = [float(x) for x in box]
-            box_w = float(bw) * float(pad_w)
-            box_h = float(bh) * float(pad_h)
-            scale = math.sqrt(max(0.0, box_w * box_h))
-            inner_margin = float(alpha * scale)
-            outer_margin = float(beta * scale)
+        # YOLO normalized bbox -> pixel bbox
+        x1 = (cx - bw / 2.0) * pad_w
+        y1 = (cy - bh / 2.0) * pad_h
+        x2 = (cx + bw / 2.0) * pad_w
+        y2 = (cy + bh / 2.0) * pad_h
 
-            inner_margins.append(inner_margin)
-            outer_margins.append(outer_margin)
+        box_w = max(1.0, x2 - x1)
+        box_h = max(1.0, y2 - y1)
 
-            x1 = (cx - bw * 0.5) * float(pad_w)
-            y1 = (cy - bh * 0.5) * float(pad_h)
-            x2 = (cx + bw * 0.5) * float(pad_w)
-            y2 = (cy + bh * 0.5) * float(pad_h)
+        # scale: geometric mean of bbox size
+        scale = math.sqrt(box_w * box_h)
 
-            x1o = max(0, int(math.floor(x1 - outer_margin)))
-            y1o = max(0, int(math.floor(y1 - outer_margin)))
-            x2o = min(pad_w, int(math.ceil(x2 + outer_margin)))
-            y2o = min(pad_h, int(math.ceil(y2 + outer_margin)))
-            if x2o <= x1o or y2o <= y1o:
-                continue
+        raw_inner = float(alpha) * scale
+        raw_outer = float(beta) * scale
 
-            x1i = max(0, int(math.floor(x1 - inner_margin)))
-            y1i = max(0, int(math.floor(y1 - inner_margin)))
-            x2i = min(pad_w, int(math.ceil(x2 + inner_margin)))
-            y2i = min(pad_h, int(math.ceil(y2 + inner_margin)))
+        # Bounded adaptive radius
+        inner_r = max(float(inner_min), min(float(inner_max), raw_inner))
+        outer_r = max(float(outer_min), min(float(outer_max), raw_outer))
 
-            annulus = torch.zeros((pad_h, pad_w), device=device)
-            annulus[y1o:y2o, x1o:x2o] = 1.0
-            if x2i > x1i and y2i > y1i:
-                annulus[y1i:y2i, x1i:x2i] = 0.0
-            local_ctx_mask[b, 0] = torch.maximum(local_ctx_mask[b, 0], annulus)
+        # Safety: make sure outer ring is outside inner ring
+        outer_r = max(outer_r, inner_r + float(min_gap))
 
-    if inner_margins:
-        stats = {
-            "rlcp_adaptive_inner_mean": float(sum(inner_margins) / len(inner_margins)),
-            "rlcp_adaptive_outer_mean": float(sum(outer_margins) / len(outer_margins)),
-            "rlcp_adaptive_inner_min": float(min(inner_margins)),
-            "rlcp_adaptive_outer_max": float(max(outer_margins)),
-        }
-    else:
+        # Still cap outer to image-reasonable maximum if possible
+        # If outer_r exceeds outer_max due to min_gap, allow it only minimally.
+        outer_r = min(outer_r, max(float(outer_max), inner_r + float(min_gap)))
+
+        inner_vals.append(inner_r)
+        outer_vals.append(outer_r)
+
+        # Expanded rectangles
+        ox1 = int(round(max(0.0, x1 - outer_r)))
+        oy1 = int(round(max(0.0, y1 - outer_r)))
+        ox2 = int(round(min(float(pad_w), x2 + outer_r)))
+        oy2 = int(round(min(float(pad_h), y2 + outer_r)))
+
+        ix1 = int(round(max(0.0, x1 - inner_r)))
+        iy1 = int(round(max(0.0, y1 - inner_r)))
+        ix2 = int(round(min(float(pad_w), x2 + inner_r)))
+        iy2 = int(round(min(float(pad_h), y2 + inner_r)))
+
+        if ox2 <= ox1 or oy2 <= oy1:
+            continue
+
+        # outer rectangle
+        local_ctx_mask[b, 0, oy1:oy2, ox1:ox2] = 1.0
+
+        # remove inner rectangle
+        if ix2 > ix1 and iy2 > iy1:
+            local_ctx_mask[b, 0, iy1:iy2, ix1:ix2] = 0.0
+
+    if len(inner_vals) == 0:
         stats = {
             "rlcp_adaptive_inner_mean": 0.0,
             "rlcp_adaptive_outer_mean": 0.0,
             "rlcp_adaptive_inner_min": 0.0,
             "rlcp_adaptive_outer_max": 0.0,
+            "rlcp_adaptive_inner_max": 0.0,
+            "rlcp_adaptive_outer_min": 0.0,
+        }
+    else:
+        stats = {
+            "rlcp_adaptive_inner_mean": float(sum(inner_vals) / len(inner_vals)),
+            "rlcp_adaptive_outer_mean": float(sum(outer_vals) / len(outer_vals)),
+            "rlcp_adaptive_inner_min": float(min(inner_vals)),
+            "rlcp_adaptive_outer_max": float(max(outer_vals)),
+            "rlcp_adaptive_inner_max": float(max(inner_vals)),
+            "rlcp_adaptive_outer_min": float(min(outer_vals)),
         }
 
     return local_ctx_mask, stats
