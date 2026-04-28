@@ -158,19 +158,23 @@ def build_scale_adaptive_context_mask(
         outer = clamp(beta * scale, outer_min, outer_max)
         outer = max(outer, inner + min_gap)
 
+    Important:
+        Use outer_union and inner_union separately to avoid multi-target contamination.
+        If one target's outer region overlaps another target's inner region, the final
+        local context still excludes all target inner regions.
+
     Returns:
         local_ctx_mask: [B, 1, pad_h, pad_w]
         stats: dict
     """
-    import math
-    import torch
-
     batch_size = int(batch.get("batch_size", 0))
-    local_ctx_mask = torch.zeros(
+
+    outer_union = torch.zeros(
         (batch_size, 1, pad_h, pad_w),
         device=device,
         dtype=torch.float32,
     )
+    inner_union = torch.zeros_like(outer_union)
 
     batch_idx = batch["batch_idx"]
     cls = batch["cls"]
@@ -194,15 +198,22 @@ def build_scale_adaptive_context_mask(
     inner_vals = []
     outer_vals = []
 
-    if boxes_t.numel() == 0:
-        return local_ctx_mask, {
-            "rlcp_adaptive_inner_mean": 0.0,
-            "rlcp_adaptive_outer_mean": 0.0,
-            "rlcp_adaptive_inner_min": 0.0,
-            "rlcp_adaptive_outer_max": 0.0,
-            "rlcp_adaptive_inner_max": 0.0,
-            "rlcp_adaptive_outer_min": 0.0,
-        }
+    empty_stats = {
+        "rlcp_adaptive_inner_mean": 0.0,
+        "rlcp_adaptive_outer_mean": 0.0,
+        "rlcp_adaptive_inner_min": 0.0,
+        "rlcp_adaptive_outer_max": 0.0,
+        "rlcp_adaptive_inner_max": 0.0,
+        "rlcp_adaptive_outer_min": 0.0,
+    }
+
+    if batch_size <= 0 or boxes_t.numel() == 0:
+        local_ctx_mask = torch.zeros_like(outer_union)
+        return local_ctx_mask, empty_stats
+
+    # Ensure shape [N, 4]
+    if boxes_t.ndim == 1:
+        boxes_t = boxes_t.view(-1, 4)
 
     for i in range(boxes_t.shape[0]):
         if int(cls_t[i].item()) != int(target_class_id):
@@ -223,7 +234,7 @@ def build_scale_adaptive_context_mask(
         box_w = max(1.0, x2 - x1)
         box_h = max(1.0, y2 - y1)
 
-        # scale: geometric mean of bbox size
+        # Use geometric mean as object scale
         scale = math.sqrt(box_w * box_h)
 
         raw_inner = float(alpha) * scale
@@ -233,11 +244,11 @@ def build_scale_adaptive_context_mask(
         inner_r = max(float(inner_min), min(float(inner_max), raw_inner))
         outer_r = max(float(outer_min), min(float(outer_max), raw_outer))
 
-        # Safety: make sure outer ring is outside inner ring
+        # Safety: outer ring must be outside inner ring
         outer_r = max(outer_r, inner_r + float(min_gap))
 
-        # Still cap outer to image-reasonable maximum if possible
-        # If outer_r exceeds outer_max due to min_gap, allow it only minimally.
+        # Prevent unlimited expansion. If inner + gap exceeds outer_max,
+        # allow only the minimal amount required by min_gap.
         outer_r = min(outer_r, max(float(outer_max), inner_r + float(min_gap)))
 
         inner_vals.append(inner_r)
@@ -254,34 +265,28 @@ def build_scale_adaptive_context_mask(
         ix2 = int(round(min(float(pad_w), x2 + inner_r)))
         iy2 = int(round(min(float(pad_h), y2 + inner_r)))
 
-        if ox2 <= ox1 or oy2 <= oy1:
-            continue
+        if ox2 > ox1 and oy2 > oy1:
+            outer_union[b, 0, oy1:oy2, ox1:ox2] = 1.0
 
-        # outer rectangle
-        local_ctx_mask[b, 0, oy1:oy2, ox1:ox2] = 1.0
-
-        # remove inner rectangle
         if ix2 > ix1 and iy2 > iy1:
-            local_ctx_mask[b, 0, iy1:iy2, ix1:ix2] = 0.0
+            inner_union[b, 0, iy1:iy2, ix1:ix2] = 1.0
+
+    # Final annulus:
+    # all target outer regions minus all target inner regions.
+    # This avoids target-inner contamination in multi-instance scenes.
+    local_ctx_mask = torch.clamp(outer_union * (1.0 - inner_union), 0.0, 1.0)
 
     if len(inner_vals) == 0:
-        stats = {
-            "rlcp_adaptive_inner_mean": 0.0,
-            "rlcp_adaptive_outer_mean": 0.0,
-            "rlcp_adaptive_inner_min": 0.0,
-            "rlcp_adaptive_outer_max": 0.0,
-            "rlcp_adaptive_inner_max": 0.0,
-            "rlcp_adaptive_outer_min": 0.0,
-        }
-    else:
-        stats = {
-            "rlcp_adaptive_inner_mean": float(sum(inner_vals) / len(inner_vals)),
-            "rlcp_adaptive_outer_mean": float(sum(outer_vals) / len(outer_vals)),
-            "rlcp_adaptive_inner_min": float(min(inner_vals)),
-            "rlcp_adaptive_outer_max": float(max(outer_vals)),
-            "rlcp_adaptive_inner_max": float(max(inner_vals)),
-            "rlcp_adaptive_outer_min": float(min(outer_vals)),
-        }
+        return local_ctx_mask, empty_stats
+
+    stats = {
+        "rlcp_adaptive_inner_mean": float(sum(inner_vals) / len(inner_vals)),
+        "rlcp_adaptive_outer_mean": float(sum(outer_vals) / len(outer_vals)),
+        "rlcp_adaptive_inner_min": float(min(inner_vals)),
+        "rlcp_adaptive_outer_max": float(max(outer_vals)),
+        "rlcp_adaptive_inner_max": float(max(inner_vals)),
+        "rlcp_adaptive_outer_min": float(min(outer_vals)),
+    }
 
     return local_ctx_mask, stats
 

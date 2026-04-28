@@ -471,15 +471,64 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
         self.universal_lr_fourier = float(method_cfg.get("universal_lr_fourier", 0.05)) 
         self.universal_lr_suppress = float(method_cfg.get("universal_lr_suppress", 0.002))
 
-        self.coords = sample_midfreq_coords(
-            h=self.imgsz,
-            w=self.imgsz,
-            num_bases=self.shortcut_num_bases,
-            seed=int(cfg.get("experiment", {}).get("seeds", [0])[0]),
-            enable_search=True,
-        )
+        self.enable_adaptive_freq_basis = bool(method_cfg.get("enable_adaptive_freq_basis", False))
+        self.freq_candidate_num_bases = int(method_cfg.get("freq_candidate_num_bases", 64))
+        self.freq_active_num_bases = int(method_cfg.get("freq_active_num_bases", self.shortcut_num_bases))
+        self.adaptive_freq_warmup_epochs = int(method_cfg.get("adaptive_freq_warmup_epochs", 5))
+        self.adaptive_freq_explore_mode = str(method_cfg.get("adaptive_freq_explore_mode", "round_robin"))
+        self.adaptive_freq_select_metric = str(method_cfg.get("adaptive_freq_select_metric", "grad_norm"))
+        self.adaptive_freq_update_once = bool(method_cfg.get("adaptive_freq_update_once", True))
+        self.freq_basis_seed = int(method_cfg.get("freq_basis_seed", 0))
 
-        self.fourier_coeff = torch.nn.Parameter(torch.zeros((self.shortcut_num_bases, 3), device=self.device))
+        if self.enable_adaptive_freq_basis:
+            if self.freq_active_num_bases != self.shortcut_num_bases:
+                raise ValueError(
+                    f"freq_active_num_bases ({self.freq_active_num_bases}) must equal "
+                    f"shortcut_num_bases ({self.shortcut_num_bases}) when adaptive basis is enabled."
+                )
+            if self.freq_candidate_num_bases < self.freq_active_num_bases:
+                raise ValueError(
+                    f"freq_candidate_num_bases ({self.freq_candidate_num_bases}) must be >= "
+                    f"freq_active_num_bases ({self.freq_active_num_bases})."
+                )
+            self.freq_candidate_coords = sample_midfreq_coords(
+                h=self.imgsz,
+                w=self.imgsz,
+                num_bases=self.freq_candidate_num_bases,
+                seed=self.freq_basis_seed,
+                enable_search=True,
+            )
+            self.fourier_coeff = torch.nn.Parameter(
+                torch.zeros((self.freq_candidate_num_bases, 3), device=self.device)
+            )
+            self.freq_active_idx = torch.arange(self.freq_active_num_bases, device=self.device, dtype=torch.long)
+            self.freq_score = torch.zeros((self.freq_candidate_num_bases,), device=self.device, dtype=torch.float32)
+            self.freq_usage = torch.zeros((self.freq_candidate_num_bases,), device=self.device, dtype=torch.float32)
+            self._adaptive_freq_grad_warned = False
+            self._adaptive_freq_score_top_mean = float("nan")
+            self._adaptive_freq_mode_warned = False
+            self._adaptive_freq_metric_warned = False
+            self.coords = [tuple(self.freq_candidate_coords[int(i)]) for i in self.freq_active_idx.detach().cpu().tolist()]
+        else:
+            self.coords = sample_midfreq_coords(
+                h=self.imgsz,
+                w=self.imgsz,
+                num_bases=self.shortcut_num_bases,
+                seed=int(cfg.get("experiment", {}).get("seeds", [0])[0]),
+                enable_search=True,
+            )
+            self.fourier_coeff = torch.nn.Parameter(torch.zeros((self.shortcut_num_bases, 3), device=self.device))
+            self.freq_candidate_coords = self.coords
+            self.freq_candidate_num_bases = self.shortcut_num_bases
+            self.freq_active_num_bases = self.shortcut_num_bases
+            self.freq_active_idx = torch.arange(self.shortcut_num_bases, device=self.device, dtype=torch.long)
+            self.freq_score = torch.zeros((self.shortcut_num_bases,), device=self.device, dtype=torch.float32)
+            self.freq_usage = torch.zeros((self.shortcut_num_bases,), device=self.device, dtype=torch.float32)
+            self._adaptive_freq_grad_warned = False
+            self._adaptive_freq_score_top_mean = float("nan")
+            self._adaptive_freq_mode_warned = False
+            self._adaptive_freq_metric_warned = False
+
         self.suppress_small = torch.nn.Parameter(
             torch.zeros((1, 3, self.suppress_small_size, self.suppress_small_size), device=self.device)
         )
@@ -495,6 +544,25 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
             num_classes=self.num_classes,
             target_class_id=self.target_class_id,
         )
+
+    def _get_active_freq_indices(self, epoch: int, step: int) -> torch.Tensor:
+        if not self.enable_adaptive_freq_basis:
+            return torch.arange(self.shortcut_num_bases, device=self.device)
+
+        if epoch < self.adaptive_freq_warmup_epochs:
+            if self.adaptive_freq_explore_mode != "round_robin" and not self._adaptive_freq_mode_warned:
+                print(
+                    f"[AdaptiveFreq][Warning] unsupported adaptive_freq_explore_mode="
+                    f"{self.adaptive_freq_explore_mode}, fallback to round_robin."
+                )
+                self._adaptive_freq_mode_warned = True
+            k = self.freq_active_num_bases
+            m = self.freq_candidate_num_bases
+            start = (step * k) % m
+            idx = (torch.arange(k, device=self.device) + start) % m
+            return idx.long()
+
+        return self.freq_active_idx.long()
 
     def _collect_target_images(self, train_img_dir: str, train_label_dir: str) -> List[str]:
         all_images = list_images(train_img_dir)
@@ -803,12 +871,21 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     print(f"   rlcp_adaptive_outer_min: {rlcp_adapt_stats.get('rlcp_adaptive_outer_min', 0.0):.3f}")
                     self._sanity_mask_space_printed = True
 
+                active_idx = self._get_active_freq_indices(epoch=epoch, step=global_step)
+                if self.enable_adaptive_freq_basis:
+                    active_idx_list = active_idx.detach().cpu().tolist()
+                    coords_active = [tuple(self.freq_candidate_coords[int(i)]) for i in active_idx_list]
+                    coeff_active = self.fourier_coeff[active_idx]
+                else:
+                    coords_active = self.coords
+                    coeff_active = self.fourier_coeff
+
                 raw_perturb, perturb, adv, _support, _jnd = self._compose_delta_batched(
                     img_t=img_t,
                     inner_t=inner_t,
                     ring_t=ring_t,
-                    coords=self.coords,
-                    fourier_coeff=self.fourier_coeff,
+                    coords=coords_active,
+                    fourier_coeff=coeff_active,
                     suppress_small=self.suppress_small,
                     current_epoch=epoch  
                 )
@@ -1167,6 +1244,25 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
                 total_loss.backward()
 
+                if self.enable_adaptive_freq_basis and epoch < self.adaptive_freq_warmup_epochs:
+                    with torch.no_grad():
+                        if self.adaptive_freq_select_metric != "grad_norm" and not self._adaptive_freq_metric_warned:
+                            print(
+                                f"[AdaptiveFreq][Warning] unsupported adaptive_freq_select_metric="
+                                f"{self.adaptive_freq_select_metric}, fallback to grad_norm."
+                            )
+                            self._adaptive_freq_metric_warned = True
+                        grad = self.fourier_coeff.grad
+                        if grad is None:
+                            if not self._adaptive_freq_grad_warned:
+                                print("[AdaptiveFreq][Warning] fourier_coeff.grad is None during warmup; skip score update.")
+                                self._adaptive_freq_grad_warned = True
+                        else:
+                            reduce_dims = tuple(range(1, grad.ndim))
+                            grad_score = grad.detach().abs().mean(dim=reduce_dims)
+                            self.freq_score[active_idx] += grad_score[active_idx]
+                            self.freq_usage[active_idx] += 1.0
+
                 if self.fourier_coeff.grad is not None:
                     grad_norm_fourier = float(torch.norm(self.fourier_coeff.grad).item())
                 else:
@@ -1251,16 +1347,72 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     if k != "max_abs_delta":  
                         epoch_diag[k] = epoch_diag[k] / float(batch_count)
 
+            freq_score_top_mean = float("nan")
+            if self.enable_adaptive_freq_basis:
+                with torch.no_grad():
+                    score_now = self.freq_score / self.freq_usage.clamp_min(1.0)
+                    top_idx_now = torch.topk(score_now, k=self.freq_active_num_bases, largest=True).indices
+                    freq_score_top_mean = float(score_now[top_idx_now].mean().item())
+
+                if self.adaptive_freq_update_once:
+                    need_select_topk = (epoch + 1 == self.adaptive_freq_warmup_epochs)
+                else:
+                    need_select_topk = (epoch + 1 >= self.adaptive_freq_warmup_epochs)
+
+                if need_select_topk:
+                    with torch.no_grad():
+                        score = self.freq_score / self.freq_usage.clamp_min(1.0)
+                        top_idx = torch.topk(score, k=self.freq_active_num_bases, largest=True).indices
+                        self.freq_active_idx = top_idx.sort().values.detach()
+
+                        mask = torch.zeros(self.freq_candidate_num_bases, device=self.device, dtype=torch.bool)
+                        mask[self.freq_active_idx] = True
+                        self.fourier_coeff.data[~mask] = 0.0
+
+                        self.coords = [
+                            tuple(self.freq_candidate_coords[int(i)])
+                            for i in self.freq_active_idx.detach().cpu().tolist()
+                        ]
+                        self._adaptive_freq_score_top_mean = float(score[self.freq_active_idx].mean().item())
+                        freq_score_top_mean = self._adaptive_freq_score_top_mean
+
+                        print("[AdaptiveFreq] selected active basis:")
+                        print(f"  candidate_num={self.freq_candidate_num_bases}")
+                        print(f"  active_num={self.freq_active_num_bases}")
+                        print(f"  active_idx={self.freq_active_idx.detach().cpu().tolist()}")
+                        print(f"  score_mean={score.mean().item():.6e}")
+                        print(f"  score_top_mean={score[self.freq_active_idx].mean().item():.6e}")
+                        print(f"  score_max={score.max().item():.6e}")
+                        print(f"  score_min={score.min().item():.6e}")
+
+            if self.enable_adaptive_freq_basis:
+                freq_mode = "explore" if epoch < self.adaptive_freq_warmup_epochs else "fixed_topk"
+                fact = self.freq_active_num_bases
+                fcand = self.freq_candidate_num_bases
+            else:
+                freq_mode = "fixed"
+                fact = self.shortcut_num_bases
+                fcand = self.shortcut_num_bases
+
             row = {
                 "epoch": epoch + 1,
                 **epoch_diag,
                 "grad_norm_fourier": grad_norm_fourier if "grad_norm_fourier" in locals() else float("nan"),
                 "grad_norm_suppress": grad_norm_suppress if "grad_norm_suppress" in locals() else float("nan"),
             }
+            if self.enable_adaptive_freq_basis:
+                row.update(
+                    {
+                        "freq_mode": freq_mode,
+                        "freq_active_num_bases": fact,
+                        "freq_candidate_num_bases": fcand,
+                        "freq_score_top_mean": freq_score_top_mean,
+                    }
+                )
             self._append_diag_row(diagnostics_csv_path, row)
             latest_diag = row
 
-            print(
+            epoch_log = (
                 f"[ALSD-ALCE][epoch {epoch + 1}/{self.universal_epochs}] "
                 f"L_ent={row['L_entangle_bg']:.4f} L_anchor={row['L_anchor']:.4f} "
                 f"L_flat={row['L_collapse_aux']:.4f} L_margin={row['L_margin']:.4f} "
@@ -1269,14 +1421,27 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 f"Sat={row['saturation_ratio']:.2%} "
                 f"Max_D={row['max_abs_delta']:.4f}"
             )
+            if self.enable_adaptive_freq_basis:
+                epoch_log += (
+                    f" Freq={freq_mode} FAct={fact} FCand={fcand} FScoreTop={freq_score_top_mean:.3e}"
+                )
+            print(epoch_log)
 
             scheduler.step()
 
         os.makedirs(os.path.dirname(global_params_path), exist_ok=True)
+        if self.enable_adaptive_freq_basis:
+            save_idx = self.freq_active_idx.long()
+            save_coords = [tuple(self.freq_candidate_coords[int(i)]) for i in save_idx.detach().cpu().tolist()]
+            save_fourier_coeff = self.fourier_coeff.detach()[save_idx].cpu()
+        else:
+            save_coords = self.coords
+            save_fourier_coeff = self.fourier_coeff.detach().cpu()
+
         torch.save(
             {
-                "coords": [[int(y), int(x)] for y, x in self.coords],
-                "fourier_coeff": self.fourier_coeff.detach().cpu(),
+                "coords": [[int(y), int(x)] for y, x in save_coords],
+                "fourier_coeff": save_fourier_coeff,
                 "suppress_small": self.suppress_small.detach().cpu(),
                 "method": "tausb_mask",
                 "target_class_id": self.target_class_id,
@@ -1289,7 +1454,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
             {
                 "latest": latest_diag,
                 "global_params_path": global_params_path,
-                "coords": [[int(y), int(x)] for y, x in self.coords],
+                "coords": [[int(y), int(x)] for y, x in save_coords],
             },
         )
 

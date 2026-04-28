@@ -2,113 +2,117 @@
   "latest": {
     "epoch": 40,
     "align_clean_topk": 0.02230143283061155,
-    "align_adv_topk": 0.01955235833571026,
-    "L_entangle_bg": 2.977955352290096,
-    "L_anchor": 0.9695125121691721,
-    "L_collapse_aux": 0.16017773166650862,
-    "alsi_score": 1291948.356487858,
-    "cos_t_conf": 0.6114883204483708,
-    "cos_t_clean": 0.8829419286831998,
-    "M_conf_sum": 3316.0340026428266,
-    "rlcp_conf_mass": 307565.82939632545,
-    "rlcp_trim_keep_ratio": 0.8204260058733627,
-    "rlcp_core_exclusion_ratio": 0.1264858452471061,
+    "align_adv_topk": 0.019759423161790832,
+    "L_entangle_bg": 3.19789782283813,
+    "L_anchor": 0.9382641136333385,
+    "L_collapse_aux": 0.1623842307901758,
+    "alsi_score": 1266706.3785906045,
+    "cos_t_conf": 0.5829281708517309,
+    "cos_t_clean": 0.8829725190201867,
+    "M_conf_sum": 2805.6471481790472,
+    "rlcp_conf_mass": 260134.18897637795,
+    "rlcp_trim_keep_ratio": 0.8224717155685577,
+    "rlcp_core_exclusion_ratio": 0.12516013264424888,
     "rlcp_adaptive_inner_mean": 13.658916741340557,
     "rlcp_adaptive_outer_mean": 32.20805911955406,
     "rlcp_adaptive_inner_min": 8.053572198398166,
     "rlcp_adaptive_outer_max": 36.0,
-    "confounder_purity_ratio": 0.8575397976081336,
+    "confounder_purity_ratio": 0.8748073662046055,
     "overlap_ratio": 0.9434548658026962,
-    "preserve_loss": 0.016102914396536553,
-    "L_margin": 0.019467180729244794,
+    "preserve_loss": 0.01591959752733978,
+    "L_margin": 0.018711443940816776,
     "margin_clean_mean": 0.4128172507905585,
-    "margin_adv_mean": 0.3489059063745296,
+    "margin_adv_mean": 0.35256519088438487,
     "gate_positive_ratio": 0.011904762126505375,
     "pag_positive_ratio": 0.5344347106444886,
     "pag_threshold": 0.7732155866608705,
     "pag_mean_target_score": 0.7506459742774761,
     "pag_fallback_count": 4.673228346456693,
-    "perturbed_area_ratio_mean": 0.1635528298344199,
-    "L_tv": 0.07002129806132298,
-    "L_budget": 0.704619527801754,
-    "L_total": 54.424619739762754,
-    "L_tsvc": 0.16017773166650862,
-    "L_sem": 0.9695125121691721,
-    "sld_score": 1291948.356487858,
-    "mean_abs_delta": 0.008193563034371755,
+    "perturbed_area_ratio_mean": 0.1643065098585106,
+    "L_tv": 0.06395797760487384,
+    "L_budget": 0.7118458618016381,
+    "L_total": 57.902081997688676,
+    "L_tsvc": 0.1623842307901758,
+    "L_sem": 0.9382641136333385,
+    "sld_score": 1266706.3785906045,
+    "mean_abs_delta": 0.008108326439254396,
     "max_abs_delta": 0.0627450942993164,
-    "saturation_ratio": 0.12363523281035148,
+    "saturation_ratio": 0.12106644986026244,
     "support_prebaked_ratio": 0.0,
     "support_fallback_ratio": 1.0,
     "support_empty_ratio": 0.0,
-    "grad_norm_fourier": 5.019927978515625,
-    "grad_norm_suppress": -1.0
+    "grad_norm_fourier": 4.979282855987549,
+    "grad_norm_suppress": -1.0,
+    "freq_mode": "fixed_topk",
+    "freq_active_num_bases": 16,
+    "freq_candidate_num_bases": 64,
+    "freq_score_top_mean": 0.6069837808609009
   },
   "global_params_path": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/noise/global_params.pt",
   "coords": [
     [
-      535,
-      84
-    ],
-    [
-      552,
-      126
-    ],
-    [
-      22,
-      546
-    ],
-    [
-      128,
-      559
-    ],
-    [
       591,
       609
-    ],
-    [
-      581,
-      63
-    ],
-    [
-      545,
-      15
-    ],
-    [
-      478,
-      629
-    ],
-    [
-      577,
-      78
-    ],
-    [
-      520,
-      592
     ],
     [
       630,
       60
     ],
     [
-      106,
-      43
+      616,
+      564
     ],
     [
-      589,
-      17
+      577,
+      132
     ],
     [
-      69,
-      119
+      562,
+      494
     ],
     [
-      144,
-      59
+      596,
+      542
     ],
     [
-      69,
-      518
+      129,
+      555
+    ],
+    [
+      34,
+      493
+    ],
+    [
+      610,
+      558
+    ],
+    [
+      49,
+      593
+    ],
+    [
+      542,
+      25
+    ],
+    [
+      584,
+      131
+    ],
+    [
+      119,
+      589
+    ],
+    [
+      499,
+      628
+    ],
+    [
+      34,
+      585
+    ],
+    [
+      92,
+      568
     ]
   ]
 }

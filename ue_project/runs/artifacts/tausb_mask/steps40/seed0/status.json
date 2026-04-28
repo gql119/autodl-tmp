@@ -2,8 +2,8 @@
   "method": "tausb_mask",
   "steps": 40,
   "seed": 0,
-  "created_at": "2026-04-27T12:02:51.743634Z",
-  "updated_at": "2026-04-27T17:40:37.329652Z",
+  "created_at": "2026-04-28T05:11:42.884038Z",
+  "updated_at": "2026-04-28T11:26:17.128511Z",
   "current_stage": "",
   "completed_stages": [
     "generate_poisoned_dataset",
@@ -13,17 +13,17 @@
   "stage_state": {
     "generate_poisoned_dataset": {
       "status": "completed",
-      "start_time": "2026-04-27T12:02:51.744547Z",
+      "start_time": "2026-04-28T05:11:42.884408Z",
       "tausb_global_params": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/noise/global_params.pt",
       "processed": 16551,
       "total": 16551,
-      "end_time": "2026-04-27T15:04:55.215157Z",
+      "end_time": "2026-04-28T08:40:47.021713Z",
       "manifest_csv": "/root/autodl-tmp/ue_project/runs/poisoned_datasets/tausb_mask/steps40/seed0/manifest.csv"
     },
     "train_victim": {
       "status": "completed",
-      "start_time": "2026-04-27T15:04:55.225255Z",
-      "end_time": "2026-04-27T17:39:07.178063Z",
+      "start_time": "2026-04-28T08:40:47.032499Z",
+      "end_time": "2026-04-28T11:24:18.988662Z",
       "deleted_cache_files": 1,
       "train_data_yaml": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/train_data.yaml",
       "latest_checkpoint": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/checkpoints/latest.pt",
@@ -37,8 +37,8 @@
     },
     "evaluate": {
       "status": "completed",
-      "start_time": "2026-04-27T17:39:10.224214Z",
-      "end_time": "2026-04-27T17:40:37.329624Z",
+      "start_time": "2026-04-28T11:24:22.777779Z",
+      "end_time": "2026-04-28T11:26:17.128493Z",
       "metrics_json": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/metrics/metrics.json",
       "metrics_csv": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/metrics/metrics.csv",
       "eval_log": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/eval_log.txt"

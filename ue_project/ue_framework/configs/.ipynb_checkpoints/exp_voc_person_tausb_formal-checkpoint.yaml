@@ -81,6 +81,14 @@ methods:
 
     shortcut_num_bases: 16
     suppress_small_size: 32
+    enable_adaptive_freq_basis: true
+    freq_candidate_num_bases: 64
+    freq_active_num_bases: 16
+    adaptive_freq_warmup_epochs: 5
+    adaptive_freq_explore_mode: round_robin
+    adaptive_freq_select_metric: grad_norm
+    adaptive_freq_update_once: true
+    freq_basis_seed: 0
 
     align_alpha: 0.5
     align_beta: 6.0
@@ -92,7 +100,7 @@ methods:
 
     lambda_tsvc: 20.0
     lambda_sem: 5.0
-    lambda_preserve: 3.5
+    lambda_preserve: 4.0
     lambda_tv: 0.0001
     lambda_budget: 0.0
 
@@ -107,7 +115,7 @@ methods:
       pag_layer_ratios: [0.7, 0.6, 0.4]
       pag_min_pos: [8, 6, 4]
 
-      use_adaptive_context: true
+      use_adaptive_context: false
       rlcp_core_scale: 0.8
       rlcp_trim_ratio: 0.1
       rlcp_adaptive_alpha: 0.15
