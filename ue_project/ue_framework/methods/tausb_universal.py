@@ -126,6 +126,23 @@ class _TAUSBCommon(BasePoisonGenerator):
             alce_cfg.get("use_adaptive_context", method_cfg.get("use_adaptive_context", True))
         )
         
+        self.rlcp_adaptive_inner_min = float(
+            alce_cfg.get("rlcp_adaptive_inner_min", method_cfg.get("rlcp_adaptive_inner_min", 8.0))
+        )
+        self.rlcp_adaptive_inner_max = float(
+            alce_cfg.get("rlcp_adaptive_inner_max", method_cfg.get("rlcp_adaptive_inner_max", 16.0))
+        )
+        self.rlcp_adaptive_outer_min = float(
+            alce_cfg.get("rlcp_adaptive_outer_min", method_cfg.get("rlcp_adaptive_outer_min", 24.0))
+        )
+        self.rlcp_adaptive_outer_max = float(
+            alce_cfg.get("rlcp_adaptive_outer_max", method_cfg.get("rlcp_adaptive_outer_max", 36.0))
+        )
+        self.rlcp_adaptive_min_gap = float(
+            alce_cfg.get("rlcp_adaptive_min_gap", method_cfg.get("rlcp_adaptive_min_gap", 8.0))
+        )
+        
+
         # 🚀 升级：读取 FPN 分层 PAG 比例 [P3, P4, P5] 和 最小存活数
         self.pag_layer_ratios = alce_cfg.get("pag_layer_ratios", method_cfg.get("pag_layer_ratios", [0.7, 0.6, 0.4]))
         self.pag_min_pos = alce_cfg.get("pag_min_pos", method_cfg.get("pag_min_pos", [8, 6, 4]))
@@ -713,6 +730,11 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         device=self.device,
                         alpha=self.rlcp_adaptive_alpha,
                         beta=self.rlcp_adaptive_beta,
+                        inner_min=self.rlcp_adaptive_inner_min,
+                        inner_max=self.rlcp_adaptive_inner_max,
+                        outer_min=self.rlcp_adaptive_outer_min,
+                        outer_max=self.rlcp_adaptive_outer_max,
+                        min_gap=self.rlcp_adaptive_min_gap,
                     )
                     local_ctx_t = local_ctx_t.to(dtype=inner_t.dtype)
                 else:
@@ -777,6 +799,8 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     print(f"   rlcp_adaptive_outer_mean: {rlcp_adapt_stats.get('rlcp_adaptive_outer_mean', 0.0):.3f}")
                     print(f"   rlcp_adaptive_inner_min: {rlcp_adapt_stats.get('rlcp_adaptive_inner_min', 0.0):.3f}")
                     print(f"   rlcp_adaptive_outer_max: {rlcp_adapt_stats.get('rlcp_adaptive_outer_max', 0.0):.3f}")
+                    print(f"   rlcp_adaptive_inner_max: {rlcp_adapt_stats.get('rlcp_adaptive_inner_max', 0.0):.3f}")
+                    print(f"   rlcp_adaptive_outer_min: {rlcp_adapt_stats.get('rlcp_adaptive_outer_min', 0.0):.3f}")
                     self._sanity_mask_space_printed = True
 
                 raw_perturb, perturb, adv, _support, _jnd = self._compose_delta_batched(
