@@ -113,11 +113,11 @@ methods:
       lambda_flat: 2.4
       entangle_tau: 0.1
 
-      # PAG on
-      pag_layer_ratios: [0.7, 0.6, 0.4]
-      pag_min_pos: [8, 6, 4]
+      # PAG off: 保留所有 strict target assigned positives
+      pag_layer_ratios: [1.0, 1.0, 1.0]
+      pag_min_pos: [0, 0, 0]
 
-      # Context still off
+      # Context / RLCP off for this base
       use_adaptive_context: false
       rlcp_core_scale: 0.8
       rlcp_trim_ratio: 0.1
