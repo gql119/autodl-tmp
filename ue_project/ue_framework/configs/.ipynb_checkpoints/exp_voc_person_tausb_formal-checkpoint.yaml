@@ -75,20 +75,13 @@ methods:
   tausb_mask:
     support_type: mask
     ring_width: 4
-    
-    # 新增：优先使用离线实例级 mask
-    use_prebaked_instance_mask: true
 
-    # 新增：第一轮建议 false。等确认没问题后，可以改 true 做严格实验
+    use_prebaked_instance_mask: true
     strict_instance_mask: false
-    
-    # ====================================================
-    # 🚀 1. 武器库容量 (Weaponry Capacity)
-    # ====================================================
-    # 既然有了梯度的绝对阻断和掩码的极致抠图，我们可以放心释放容量
-    shortcut_num_bases: 16       # 满载 16 组基底，编织高频类条件水印
+
+    shortcut_num_bases: 16
     suppress_small_size: 32
-    
+
     align_alpha: 0.5
     align_beta: 6.0
     assignment_topk: 100
@@ -97,44 +90,39 @@ methods:
     supp_amp_buffer: 1.0
     tanh_temp: 1.0
 
-    # ====================================================
-    # 🚨 2. 核心损失权重 (TSVC-DA 新引擎)
-    # ====================================================
-    # 删除废弃的 lambda_induce, lambda_shape, lambda_cls_aux
-    
-    # 【核心 A】空间方差坍缩权重 (Collapse)
-    # 负责压平目标区域的空间起伏，致盲定位。建议在 10.0 - 20.0 之间调整。
-    lambda_tsvc: 15.0       
-    
-    # 【核心 B】双重语义锚定权重 (Semantic Anchor)
-    # 负责死死拉住均值向量的余弦方向和 L2 范数，存活分类。
-    lambda_sem: 5.0         
-    
-    # 【防线基石】非目标区域保护权重
-    # 由于现在的 TSVC 专注于深层特征空间，10.0 可能会产生过强的拉扯，建议先降至 5.0 观察。
-    lambda_preserve: 5.0    
-    
-    # 【核心防御】极低的 TV 损失！
-    lambda_tv: 0.0001            
-    lambda_budget: 0.0 
+    lambda_tsvc: 20.0
+    lambda_sem: 5.0
+    lambda_preserve: 4.0
+    lambda_tv: 0.0001
+    lambda_budget: 0.0
 
-    # ====================================================
-    # ⚙️ 3. 运行环境与能量释放
-    # ====================================================
+    alce:
+      enabled: true
+
+      lambda_ent: 16.5
+      lambda_anchor: 5.0
+      lambda_flat: 2.4
+      entangle_tau: 0.1
+
+      pag_layer_ratios: [0.7, 0.6, 0.4]
+      pag_min_pos: [8, 6, 4]
+
+      use_adaptive_context: true
+      rlcp_core_scale: 0.8
+      rlcp_trim_ratio: 0.1
+      rlcp_adaptive_alpha: 0.10
+      rlcp_adaptive_beta: 0.25
+      min_conf_pixels: 0.0
+
+      lambda_preserve: 3.5
+      lambda_preserve_feat: 0.5
+      lambda_preserve_logits: 0.8
+      lambda_margin: 0.6
+
     universal_epochs: 40
-    
-    # 【防 OOM 设定】16 组基底 + 多层 Hook 极其吃显存。
-    # 如果你的显卡 (如 4090/A100) 报 OOM，请降至 12 或 8。
     universal_batch_size: 16
-    
-    eot_samples: 2               # 配合代码中的 EG-style Dropout
-    
-    # 【能量地板】
-    # 初始为 0.3，配合代码中的动态拉升（后期会到 0.5）。
-    # 允许在平滑区域（如人脸、衣服）注入足够的对抗能量。
-    jnd_floor: 0.3               
+    eot_samples: 2
+    jnd_floor: 0.4
     jnd_ceiling: 1.0
-    
-    # 配合 16 组基底的最佳探索步长，防止优化器跑飞
-    universal_lr_fourier: 0.05   
+    universal_lr_fourier: 0.05
     universal_lr_suppress: 0.002

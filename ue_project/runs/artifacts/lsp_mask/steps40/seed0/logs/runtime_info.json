@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-04-28T22:20:46.300625Z",
+  "seed": 0,
+  "method": "lsp_mask",
+  "steps": 40,
+  "torch_version": "2.0.0+cu118",
+  "cuda_available": true,
+  "cuda_device_count": 1,
+  "cudnn_enabled": true,
+  "cudnn_version": 8700,
+  "cuda_devices": [
+    "NVIDIA GeForce RTX 4090 D"
+  ],
+  "git_commit": "bfbbb6ca21938f80a08c366626dd1b1e18af088e"
+}

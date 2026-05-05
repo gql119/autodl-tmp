@@ -1,0 +1,20 @@
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+[launch_one] method= rem_mask
+[launch_one] steps= 40
+[launch_one] seed= 0
+[launch_one] stage= all
+[launch_one] run_root= /root/autodl-tmp/ue_project/runs
+[launch_one] artifact_root= /root/autodl-tmp/ue_project/runs/artifacts/rem_mask/steps40/seed0
+[launch_one] poisoned_root= /root/autodl-tmp/ue_project/runs/poisoned_datasets/rem_mask/steps40/seed0
+[launch_one] resume= False
+[REM-mask]
+  support_area_ratio=0.108848
+  rem_loss_start=-0.500181
+  rem_loss_end=-0.501400
+  inner_loss_start=-0.500562
+  inner_loss_end=-0.501555
+  delta_linf=0.062745
+  eta_linf=0.015686
+  objective=robust_minimize_target_det_loss_proxy
+  use_target_only_labels=False

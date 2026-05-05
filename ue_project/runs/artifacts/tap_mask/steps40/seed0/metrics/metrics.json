@@ -1,0 +1,17 @@
+{
+  "method": "tap_mask",
+  "steps": 40,
+  "seed": 0,
+  "mAP50_target": 0.415736674351004,
+  "mAP50_non_target": 0.7067189563767012,
+  "mAP50_all": 0.6921698422754163,
+  "AP_person_free_non_target": 0.578735980395535,
+  "AP_person_cooccur_non_target": 0.5590349323750311,
+  "PSNR": 34.579973716193216,
+  "LPIPS": 0.09419953745505896,
+  "average_perturbed_area_ratio": 0.35436236341600064,
+  "average_support_area_ratio": 0.35460194072790674,
+  "poisoned_count": 6095,
+  "target_collapse_score": 0.4867448464802421,
+  "non_target_retention_score": 0.9060499440726939
+}
