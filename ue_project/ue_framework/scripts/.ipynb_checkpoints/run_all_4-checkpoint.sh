@@ -16,7 +16,7 @@ seeds=(0)
 
 for method in "${methods[@]}"; do
   for seed in "${seeds[@]}"; do
-    log_file="${LOG_DIR}/${method}_steps40_seed${seed}_fast.log"
+    log_file="${LOG_DIR}/${method}_steps40_seed${seed}_xr1.log"
     echo "[run_all_4] method=${method} steps=40 seed=${seed} gpu=${GPU_ID}"
     python -u ue_framework/launch_one.py \
       --config "${CONFIG}" \

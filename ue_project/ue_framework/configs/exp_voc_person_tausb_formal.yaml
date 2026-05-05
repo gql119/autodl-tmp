@@ -107,33 +107,41 @@ methods:
     alce:
       enabled: true
 
-      lambda_ent: 16.5
+      # ALCE off
+      lambda_ent: 0.0
       lambda_anchor: 5.0
       lambda_flat: 2.4
       entangle_tau: 0.1
 
+      # PAG on
       pag_layer_ratios: [0.7, 0.6, 0.4]
       pag_min_pos: [8, 6, 4]
 
-      use_adaptive_context: true
+      # Context still off
+      use_adaptive_context: false
       rlcp_core_scale: 0.8
       rlcp_trim_ratio: 0.1
       rlcp_adaptive_alpha: 0.15
       rlcp_adaptive_beta: 0.35
-      
-      # bounded adaptive RLCP
       rlcp_adaptive_inner_min: 8.0
       rlcp_adaptive_inner_max: 16.0
       rlcp_adaptive_outer_min: 24.0
       rlcp_adaptive_outer_max: 36.0
       rlcp_adaptive_min_gap: 8.0
-      
       min_conf_pixels: 0.0
 
-      lambda_preserve: 3.5
-      lambda_preserve_feat: 0.5
-      lambda_preserve_logits: 0.8
-      lambda_margin: 0.6
+      # DSNP off
+      lambda_preserve: 0.0
+      lambda_preserve_feat: 0.0
+      lambda_preserve_logits: 0.0
+      lambda_margin: 0.0
+
+      enable_preserve_feat: false
+      enable_preserve_logits: false
+      enable_preserve_margin: false
+      enable_preserve_relation_intra: false
+      enable_preserve_relation_decision: false
+      enable_person_free_protect: false
 
     universal_epochs: 40
     universal_batch_size: 16

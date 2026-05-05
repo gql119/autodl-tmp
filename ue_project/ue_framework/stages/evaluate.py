@@ -1,5 +1,6 @@
 import csv
 import os
+import json
 from typing import Dict, List
 
 import numpy as np
@@ -69,6 +70,13 @@ def _is_true_like(v) -> bool:
     return s in TRUE_LIKE
 
 
+def _safe_float(v, default=float("nan")) -> float:
+    try:
+        return float(v)
+    except Exception:
+        return default
+
+
 def _compute_psnr(clean: np.ndarray, poisoned: np.ndarray) -> float:
     mse = float(np.mean((clean - poisoned) ** 2))
     if mse <= 1e-12:
@@ -81,7 +89,94 @@ def _compute_area_ratio(clean: np.ndarray, poisoned: np.ndarray) -> float:
     return float(np.mean(diff > 1e-6))
 
 
+def _read_poison_stats_jsonl(path: str) -> List[Dict]:
+    if not os.path.isfile(path):
+        return []
+    rows = []
+    with open(path, "r", encoding="utf-8") as f:
+        for ln in f:
+            s = ln.strip()
+            if not s:
+                continue
+            try:
+                rows.append(json.loads(s))
+            except Exception:
+                continue
+    return rows
+
+
+def _compute_quality_from_poison_stats(poison_rows: List[Dict]) -> Dict:
+    if not poison_rows:
+        return {
+            "PSNR": float("nan"),
+            "LPIPS": float("nan"),
+            "average_perturbed_area_ratio": 0.0,
+            "average_support_area_ratio": 0.0,
+            "poisoned_count": 0,
+        }
+
+    poisoned_rows = []
+    for r in poison_rows:
+        v = r.get("poisoned", 0)
+        try:
+            is_p = int(v) == 1
+        except Exception:
+            is_p = _is_true_like(v)
+        if is_p:
+            poisoned_rows.append(r)
+
+    poisoned_count = len(poisoned_rows)
+    if poisoned_count <= 0:
+        print("[WARN][PoisonStats] poisoned_count=0. Check generation.")
+        return {
+            "PSNR": float("nan"),
+            "LPIPS": float("nan"),
+            "average_perturbed_area_ratio": 0.0,
+            "average_support_area_ratio": 0.0,
+            "poisoned_count": 0,
+        }
+
+    psnr_vals = []
+    lpips_vals = []
+    changed_vals = []
+    support_vals = []
+    for r in poisoned_rows:
+        p = _safe_float(r.get("psnr"))
+        if np.isfinite(p):
+            psnr_vals.append(p)
+
+        l = r.get("lpips", None)
+        l = _safe_float(l) if l is not None else float("nan")
+        if np.isfinite(l):
+            lpips_vals.append(l)
+
+        c = _safe_float(r.get("changed_pixel_ratio"))
+        if np.isfinite(c):
+            changed_vals.append(c)
+
+        s = _safe_float(r.get("support_area_ratio"))
+        if np.isfinite(s) and s > 0:
+            support_vals.append(s)
+
+    psnr_mean = float(np.mean(psnr_vals)) if psnr_vals else float("nan")
+    lpips_mean = float(np.mean(lpips_vals)) if lpips_vals else float("nan")
+    changed_mean = float(np.mean(changed_vals)) if changed_vals else 0.0
+    support_mean = float(np.mean(support_vals)) if support_vals else 0.0
+    return {
+        "PSNR": psnr_mean,
+        "LPIPS": lpips_mean,
+        "average_perturbed_area_ratio": changed_mean,
+        "average_support_area_ratio": support_mean,
+        "poisoned_count": poisoned_count,
+    }
+
+
 def _compute_image_quality(ctx: RunContext, manifest_rows: List[Dict]) -> Dict:
+    poison_stats_jsonl = os.path.join(ctx.paths.artifact_root, "poison_stats.jsonl")
+    poison_rows = _read_poison_stats_jsonl(poison_stats_jsonl)
+    if poison_rows:
+        return _compute_quality_from_poison_stats(poison_rows)
+
     poisoned_rows = [
         r
         for r in manifest_rows
@@ -111,6 +206,7 @@ def _compute_image_quality(ctx: RunContext, manifest_rows: List[Dict]) -> Dict:
             "PSNR": float("nan"),
             "LPIPS": float("nan"),
             "average_perturbed_area_ratio": 0.0,
+            "average_support_area_ratio": 0.0,
             "poisoned_count": 0,
         }
 
@@ -159,6 +255,7 @@ def _compute_image_quality(ctx: RunContext, manifest_rows: List[Dict]) -> Dict:
         "PSNR": psnr_mean,
         "LPIPS": lpips_val,
         "average_perturbed_area_ratio": area_mean,
+        "average_support_area_ratio": 0.0,
         "poisoned_count": len(psnr_values),
     }
 
@@ -267,6 +364,8 @@ def run_evaluate(ctx: RunContext) -> None:
         "PSNR": quality_metrics["PSNR"],
         "LPIPS": quality_metrics["LPIPS"],
         "average_perturbed_area_ratio": quality_metrics["average_perturbed_area_ratio"],
+        "average_support_area_ratio": quality_metrics.get("average_support_area_ratio", 0.0),
+        "poisoned_count": int(quality_metrics.get("poisoned_count", 0)),
     }
 
     final_metrics.update(
@@ -310,5 +409,6 @@ def run_evaluate(ctx: RunContext) -> None:
         "[evaluate] done: "
         f"mAP50_target={final_metrics['mAP50_target']:.4f}, "
         f"mAP50_non_target={final_metrics['mAP50_non_target']:.4f}, "
-        f"PSNR={final_metrics['PSNR']:.4f}, area={final_metrics['average_perturbed_area_ratio']:.6f}"
+        f"PSNR={final_metrics['PSNR']:.4f}, area={final_metrics['average_perturbed_area_ratio']:.6f}, "
+        f"poisoned_count={int(quality_metrics.get('poisoned_count', 0))}"
     )

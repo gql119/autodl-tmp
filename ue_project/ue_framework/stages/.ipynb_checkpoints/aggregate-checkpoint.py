@@ -1,4 +1,4 @@
-﻿import csv
+import csv
 import glob
 import json
 import os
@@ -20,6 +20,8 @@ NUMERIC_FIELDS = [
     "PSNR",
     "LPIPS",
     "average_perturbed_area_ratio",
+    "average_support_area_ratio",
+    "poisoned_count",
     "target_collapse_score",
     "non_target_retention_score",
 ]

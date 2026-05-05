@@ -2,51 +2,51 @@
   "latest": {
     "epoch": 40,
     "align_clean_topk": 0.02230143283061155,
-    "align_adv_topk": 0.019759423161790832,
-    "L_entangle_bg": 3.19789782283813,
-    "L_anchor": 0.9382641136333385,
-    "L_collapse_aux": 0.1623842307901758,
-    "alsi_score": 1266706.3785906045,
-    "cos_t_conf": 0.5829281708517309,
-    "cos_t_clean": 0.8829725190201867,
-    "M_conf_sum": 2805.6471481790472,
-    "rlcp_conf_mass": 260134.18897637795,
-    "rlcp_trim_keep_ratio": 0.8224717155685577,
-    "rlcp_core_exclusion_ratio": 0.12516013264424888,
-    "rlcp_adaptive_inner_mean": 13.658916741340557,
-    "rlcp_adaptive_outer_mean": 32.20805911955406,
-    "rlcp_adaptive_inner_min": 8.053572198398166,
-    "rlcp_adaptive_outer_max": 36.0,
-    "confounder_purity_ratio": 0.8748073662046055,
-    "overlap_ratio": 0.9434548658026962,
-    "preserve_loss": 0.01591959752733978,
-    "L_margin": 0.018711443940816776,
-    "margin_clean_mean": 0.4128172507905585,
-    "margin_adv_mean": 0.35256519088438487,
+    "align_adv_topk": 0.021870107064268056,
+    "L_entangle_bg": 4.255627567686747,
+    "L_anchor": 0.062120359674526324,
+    "L_collapse_aux": 0.22200260639894664,
+    "alsi_score": 1494487.4416946562,
+    "cos_t_conf": 0.5702236639572046,
+    "cos_t_clean": 0.989106232504102,
+    "M_conf_sum": 2627.680945849479,
+    "rlcp_conf_mass": 244210.53018372704,
+    "rlcp_trim_keep_ratio": 0.8232964126821779,
+    "rlcp_core_exclusion_ratio": 0.14093853477140236,
+    "rlcp_adaptive_inner_mean": 0.0,
+    "rlcp_adaptive_outer_mean": 0.0,
+    "rlcp_adaptive_inner_min": 0.0,
+    "rlcp_adaptive_outer_max": 0.0,
+    "confounder_purity_ratio": 0.8590709284628143,
+    "overlap_ratio": 0.9354073534174464,
+    "preserve_loss": 0.0,
+    "L_margin": 0.0,
+    "margin_clean_mean": 0.0,
+    "margin_adv_mean": 0.0,
     "gate_positive_ratio": 0.011904762126505375,
-    "pag_positive_ratio": 0.5344347106444886,
-    "pag_threshold": 0.7732155866608705,
+    "pag_positive_ratio": 1.0,
+    "pag_threshold": 0.5951141864084415,
     "pag_mean_target_score": 0.7506459742774761,
-    "pag_fallback_count": 4.673228346456693,
-    "perturbed_area_ratio_mean": 0.1643065098585106,
-    "L_tv": 0.06395797760487384,
-    "L_budget": 0.7118458618016381,
-    "L_total": 57.902081997688676,
-    "L_tsvc": 0.1623842307901758,
-    "L_sem": 0.9382641136333385,
-    "sld_score": 1266706.3785906045,
-    "mean_abs_delta": 0.008108326439254396,
+    "pag_fallback_count": 0.0,
+    "perturbed_area_ratio_mean": 0.16270246732188023,
+    "L_tv": 0.06781729782034406,
+    "L_budget": 0.7214051062666526,
+    "L_total": 0.8434148556760602,
+    "L_tsvc": 0.22200260639894664,
+    "L_sem": 0.062120359674526324,
+    "sld_score": 1494487.4416946562,
+    "mean_abs_delta": 0.008111746529523,
     "max_abs_delta": 0.0627450942993164,
-    "saturation_ratio": 0.12106644986026244,
+    "saturation_ratio": 0.1210918738616733,
     "support_prebaked_ratio": 0.0,
     "support_fallback_ratio": 1.0,
     "support_empty_ratio": 0.0,
-    "grad_norm_fourier": 4.979282855987549,
+    "grad_norm_fourier": 1.4854570627212524,
     "grad_norm_suppress": -1.0,
     "freq_mode": "fixed_topk",
     "freq_active_num_bases": 16,
     "freq_candidate_num_bases": 64,
-    "freq_score_top_mean": 0.6069837808609009
+    "freq_score_top_mean": 0.06422964483499527
   },
   "global_params_path": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/noise/global_params.pt",
   "coords": [
@@ -55,64 +55,64 @@
       609
     ],
     [
+      545,
+      15
+    ],
+    [
       630,
       60
+    ],
+    [
+      589,
+      17
+    ],
+    [
+      50,
+      506
     ],
     [
       616,
       564
     ],
     [
-      577,
-      132
+      53,
+      22
     ],
     [
-      562,
-      494
+      558,
+      545
     ],
     [
-      596,
-      542
-    ],
-    [
-      129,
-      555
-    ],
-    [
-      34,
-      493
+      612,
+      572
     ],
     [
       610,
       558
     ],
     [
+      7,
+      584
+    ],
+    [
       49,
       593
-    ],
-    [
-      542,
-      25
-    ],
-    [
-      584,
-      131
-    ],
-    [
-      119,
-      589
-    ],
-    [
-      499,
-      628
     ],
     [
       34,
       585
     ],
     [
-      92,
-      568
+      564,
+      594
+    ],
+    [
+      48,
+      610
+    ],
+    [
+      612,
+      96
     ]
   ]
 }

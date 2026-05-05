@@ -1,0 +1,76 @@
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+[launch_one] method= tausb_mask
+[launch_one] steps= 40
+[launch_one] seed= 0
+[launch_one] stage= all
+[launch_one] run_root= /root/autodl-tmp/ue_project/runs
+[launch_one] artifact_root= /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0
+[launch_one] poisoned_root= /root/autodl-tmp/ue_project/runs/poisoned_datasets/tausb_mask/steps40/seed0
+[launch_one] resume= False
+[TAUSB] training global universal params ...
+
+🔬 [Mask Space Diagnostics] (Mid-range Annulus)
+   Target Inner Sum: 587330.0
+   Target Ring Sum: 114232.0
+   Non-Target Core Sum: 552385.0
+   Local Ctx Annulus Sum: 273168.0
+   Final M_conf Sum: 231017.0
+   ----------------------------------
+   ⚠️ Removed by Non-Target Objects: 42151.0
+   ⚠️ Removed by Ring (Should be 0 now): 0.0
+   🔥 Raw Purity Ratio: 84.57%
+   rlcp_core_exclusion_ratio: 15.43%
+   context_mode: fixed
+   rlcp_adaptive_inner_mean: 0.000
+   rlcp_adaptive_outer_mean: 0.000
+   rlcp_adaptive_inner_min: 0.000
+   rlcp_adaptive_outer_max: 0.000
+   rlcp_adaptive_inner_max: 0.000
+   rlcp_adaptive_outer_min: 0.000
+
+======================================================================
+🎯 [STRICT AL-SVC PROBE] Intercepted Real TAL Assigner Outputs
+======================================================================
+  - target_labels  : shape=(16, 8400), dtype=torch.int64, min=1.00, max=15.00
+  - target_scores  : shape=(16, 8400, 20), dtype=torch.float32, min=0.00, max=1.00
+  - fg_mask        : shape=(16, 8400), dtype=torch.bool, min=0.00, max=1.00
+  - target_gt_idx  : shape=(16, 8400), dtype=torch.int64, min=0.00, max=7.00
+======================================================================
+
+
+🔬 [Sanity Check 1] fg positives: 568
+🔬 [Sanity Check 1] strict target positives: 348
+🔬 [Sanity Check 1] pag positives: 348 (ratio=100.00%, threshold=0.5472, mean_target_score=0.7686)
+🔬 [PAG Layer Stats]
+   model.15: strict=54 -> pag=54 (ratio=100.00%)
+   model.18: strict=92 -> pag=92 (ratio=100.00%)
+   model.21: strict=202 -> pag=202 (ratio=100.00%)
+🔬 [Sanity Check 2&3 - model.15]
+   M_topology sum: 14340.4
+   M_assign_2d sum: 54.0
+   M_AL sum: 43.8
+   rlcp_conf_mass: 5647.3
+   rlcp_trim_keep_ratio: 81.10%
+   rlcp_core_exclusion_ratio: 15.38%
+   confounder_purity_ratio: 84.60%
+   overlap ratio: 81.14%
+🔬 [Sanity Check 2&3 - model.18]
+   M_topology sum: 3584.7
+   M_assign_2d sum: 92.0
+   M_AL sum: 83.6
+   rlcp_conf_mass: 1412.2
+   rlcp_trim_keep_ratio: 83.32%
+   rlcp_core_exclusion_ratio: 15.26%
+   confounder_purity_ratio: 84.59%
+   overlap ratio: 90.85%
+🔬 [Sanity Check 2&3 - model.21]
+   M_topology sum: 896.9
+   M_assign_2d sum: 202.0
+   M_AL sum: 194.7
+   rlcp_conf_mass: 351.8
+   rlcp_trim_keep_ratio: 84.44%
+   rlcp_core_exclusion_ratio: 15.12%
+   confounder_purity_ratio: 84.50%
+   overlap ratio: 96.40%
+  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_0_step_0.png
