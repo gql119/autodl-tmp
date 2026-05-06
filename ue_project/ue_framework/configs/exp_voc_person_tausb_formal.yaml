@@ -107,8 +107,8 @@ methods:
     alce:
       enabled: true
 
-      # ALCE off
-      lambda_ent: 0.0
+      # ALCE on
+      lambda_ent: 16.5
       lambda_anchor: 5.0
       lambda_flat: 2.4
       entangle_tau: 0.1
@@ -117,8 +117,8 @@ methods:
       pag_layer_ratios: [0.7, 0.6, 0.4]
       pag_min_pos: [8, 6, 4]
 
-      # Context still off
-      use_adaptive_context: false
+      # Adaptive context on
+      use_adaptive_context: true
       rlcp_core_scale: 0.8
       rlcp_trim_ratio: 0.1
       rlcp_adaptive_alpha: 0.15
@@ -142,7 +142,7 @@ methods:
       enable_preserve_relation_intra: false
       enable_preserve_relation_decision: false
       enable_person_free_protect: false
-
+      
     universal_epochs: 40
     universal_batch_size: 16
     eot_samples: 2

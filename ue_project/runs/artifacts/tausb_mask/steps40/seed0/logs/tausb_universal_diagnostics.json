@@ -2,62 +2,54 @@
   "latest": {
     "epoch": 40,
     "align_clean_topk": 0.02230143283061155,
-    "align_adv_topk": 0.021870107064268056,
-    "L_entangle_bg": 4.255627567686747,
-    "L_anchor": 0.062120359674526324,
-    "L_collapse_aux": 0.22200260639894664,
-    "alsi_score": 1494487.4416946562,
-    "cos_t_conf": 0.5702236639572046,
-    "cos_t_clean": 0.989106232504102,
-    "M_conf_sum": 2627.680945849479,
-    "rlcp_conf_mass": 244210.53018372704,
-    "rlcp_trim_keep_ratio": 0.8232964126821779,
-    "rlcp_core_exclusion_ratio": 0.14093853477140236,
-    "rlcp_adaptive_inner_mean": 0.0,
-    "rlcp_adaptive_outer_mean": 0.0,
-    "rlcp_adaptive_inner_min": 0.0,
-    "rlcp_adaptive_outer_max": 0.0,
-    "confounder_purity_ratio": 0.8590709284628143,
-    "overlap_ratio": 0.9354073534174464,
+    "align_adv_topk": 0.018660400823624,
+    "L_entangle_bg": 2.984822230389112,
+    "L_anchor": 1.069710172067477,
+    "L_collapse_aux": 0.15662371365260577,
+    "alsi_score": 1262100.5246756447,
+    "cos_t_conf": 0.5962961996503805,
+    "cos_t_clean": 0.8689247383454962,
+    "M_conf_sum": 2805.6471481790472,
+    "rlcp_conf_mass": 260134.18897637795,
+    "rlcp_trim_keep_ratio": 0.8224717155685577,
+    "rlcp_core_exclusion_ratio": 0.12516013264424888,
+    "rlcp_adaptive_inner_mean": 13.658916741340557,
+    "rlcp_adaptive_outer_mean": 32.20805911955406,
+    "rlcp_adaptive_inner_min": 8.053572198398166,
+    "rlcp_adaptive_outer_max": 36.0,
+    "confounder_purity_ratio": 0.8748073662046055,
+    "overlap_ratio": 0.9434548658026962,
     "preserve_loss": 0.0,
     "L_margin": 0.0,
     "margin_clean_mean": 0.0,
     "margin_adv_mean": 0.0,
     "gate_positive_ratio": 0.011904762126505375,
-    "pag_positive_ratio": 1.0,
-    "pag_threshold": 0.5951141864084415,
+    "pag_positive_ratio": 0.5344347106444886,
+    "pag_threshold": 0.7732155866608705,
     "pag_mean_target_score": 0.7506459742774761,
-    "pag_fallback_count": 0.0,
-    "perturbed_area_ratio_mean": 0.16270246732188023,
-    "L_tv": 0.06781729782034406,
-    "L_budget": 0.7214051062666526,
-    "L_total": 0.8434148556760602,
-    "L_tsvc": 0.22200260639894664,
-    "L_sem": 0.062120359674526324,
-    "sld_score": 1494487.4416946562,
-    "mean_abs_delta": 0.008111746529523,
+    "pag_fallback_count": 4.673228346456693,
+    "perturbed_area_ratio_mean": 0.1648250833114614,
+    "L_tv": 0.07348291134935978,
+    "L_budget": 0.7267603389234367,
+    "L_total": 54.97402228207726,
+    "L_tsvc": 0.15662371365260577,
+    "L_sem": 1.069710172067477,
+    "sld_score": 1262100.5246756447,
+    "mean_abs_delta": 0.00810565974861579,
     "max_abs_delta": 0.0627450942993164,
-    "saturation_ratio": 0.1210918738616733,
+    "saturation_ratio": 0.12089141526716587,
     "support_prebaked_ratio": 0.0,
     "support_fallback_ratio": 1.0,
     "support_empty_ratio": 0.0,
-    "grad_norm_fourier": 1.4854570627212524,
+    "grad_norm_fourier": 7.228085041046143,
     "grad_norm_suppress": -1.0,
     "freq_mode": "fixed_topk",
     "freq_active_num_bases": 16,
     "freq_candidate_num_bases": 64,
-    "freq_score_top_mean": 0.06422964483499527
+    "freq_score_top_mean": 0.6069428324699402
   },
   "global_params_path": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/noise/global_params.pt",
   "coords": [
-    [
-      591,
-      609
-    ],
-    [
-      545,
-      15
-    ],
     [
       630,
       60
@@ -67,52 +59,60 @@
       17
     ],
     [
-      50,
-      506
-    ],
-    [
       616,
       564
-    ],
-    [
-      53,
-      22
-    ],
-    [
-      558,
-      545
     ],
     [
       612,
       572
     ],
     [
-      610,
-      558
+      577,
+      132
     ],
     [
-      7,
-      584
+      562,
+      494
+    ],
+    [
+      596,
+      542
+    ],
+    [
+      34,
+      493
+    ],
+    [
+      610,
+      558
     ],
     [
       49,
       593
     ],
     [
+      542,
+      25
+    ],
+    [
+      584,
+      131
+    ],
+    [
+      119,
+      589
+    ],
+    [
+      499,
+      628
+    ],
+    [
       34,
       585
     ],
     [
-      564,
-      594
-    ],
-    [
-      48,
-      610
-    ],
-    [
-      612,
-      96
+      92,
+      568
     ]
   ]
 }
