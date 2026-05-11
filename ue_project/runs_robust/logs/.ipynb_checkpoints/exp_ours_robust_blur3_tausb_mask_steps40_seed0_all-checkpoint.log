@@ -1,0 +1,85 @@
+[launch_one] method= tausb_mask
+[launch_one] steps= 40
+[launch_one] seed= 0
+[launch_one] stage= all
+[launch_one] run_root= /root/autodl-tmp/ue_project/runs_robust/blur3
+[launch_one] artifact_root= /root/autodl-tmp/ue_project/runs_robust/blur3/artifacts/tausb_mask/steps40/seed0
+[launch_one] poisoned_root= /root/autodl-tmp/ue_project/runs_robust/blur3/poisoned_datasets/tausb_mask/steps40/seed0
+[launch_one] resume= False
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/root/miniconda3/lib/python3.8/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/root/miniconda3/lib/python3.8/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Loading model from: /root/miniconda3/lib/python3.8/site-packages/lpips/weights/v0.1/alex.pth
+[TAUSB] training global universal params ...
+
+🔬 [Mask Space Diagnostics] (Mid-range Annulus)
+   Target Inner Sum: 587330.0
+   Target Ring Sum: 114232.0
+   Non-Target Core Sum: 552385.0
+   Local Ctx Annulus Sum: 290794.0
+   Final M_conf Sum: 249382.0
+   ----------------------------------
+   ⚠️ Removed by Non-Target Objects: 41412.0
+   ⚠️ Removed by Ring (Should be 0 now): 0.0
+   🔥 Raw Purity Ratio: 85.76%
+   rlcp_core_exclusion_ratio: 14.24%
+   context_mode: adaptive
+   rlcp_adaptive_inner_mean: 13.490
+   rlcp_adaptive_outer_mean: 31.916
+   rlcp_adaptive_inner_min: 8.000
+   rlcp_adaptive_outer_max: 36.000
+   rlcp_adaptive_inner_max: 16.000
+   rlcp_adaptive_outer_min: 24.000
+
+======================================================================
+🎯 [STRICT AL-SVC PROBE] Intercepted Real TAL Assigner Outputs
+======================================================================
+  - target_labels  : shape=(16, 8400), dtype=torch.int64, min=1.00, max=15.00
+  - target_scores  : shape=(16, 8400, 20), dtype=torch.float32, min=0.00, max=1.00
+  - fg_mask        : shape=(16, 8400), dtype=torch.bool, min=0.00, max=1.00
+  - target_gt_idx  : shape=(16, 8400), dtype=torch.int64, min=0.00, max=7.00
+======================================================================
+
+
+🔬 [Sanity Check 1] fg positives: 568
+🔬 [Sanity Check 1] strict target positives: 348
+🔬 [Sanity Check 1] pag positives: 176 (ratio=50.57%, threshold=0.7805, mean_target_score=0.7686)
+🔬 [PAG Layer Stats]
+   model.15: strict=54 -> pag=39 (ratio=72.22%)
+   model.18: strict=92 -> pag=56 (ratio=60.87%)
+   model.21: strict=202 -> pag=81 (ratio=40.10%)
+🔬 [Sanity Check 2&3 - model.15]
+   M_topology sum: 14340.4
+   M_assign_2d sum: 39.0
+   M_AL sum: 33.9
+   rlcp_conf_mass: 6136.1
+   rlcp_trim_keep_ratio: 80.61%
+   rlcp_core_exclusion_ratio: 14.14%
+   confounder_purity_ratio: 85.78%
+   overlap ratio: 87.05%
+🔬 [Sanity Check 2&3 - model.18]
+   M_topology sum: 3584.7
+   M_assign_2d sum: 56.0
+   M_AL sum: 52.8
+   rlcp_conf_mass: 1525.3
+   rlcp_trim_keep_ratio: 86.04%
+   rlcp_core_exclusion_ratio: 13.97%
+   confounder_purity_ratio: 85.83%
+   overlap ratio: 94.27%
+🔬 [Sanity Check 2&3 - model.21]
+   M_topology sum: 896.9
+   M_assign_2d sum: 81.0
+   M_AL sum: 79.0
+   rlcp_conf_mass: 382.4
+   rlcp_trim_keep_ratio: 83.26%
+   rlcp_core_exclusion_ratio: 14.00%
+   confounder_purity_ratio: 85.83%
+   overlap ratio: 97.47%
+
+🔬 [DSNP-lite Diagnostics]
+   L_margin: 0.000000
+   margin_clean_mean: 0.475873
+   margin_adv_mean: 0.475873
+  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs_robust/blur3/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_0_step_0.png

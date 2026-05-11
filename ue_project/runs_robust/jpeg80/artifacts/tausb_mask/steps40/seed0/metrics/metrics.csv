@@ -1,0 +1,2 @@
+method,steps,seed,mAP50_target,mAP50_non_target,mAP50_all,AP_person_free_non_target,AP_person_cooccur_non_target,PSNR,LPIPS,average_perturbed_area_ratio,average_support_area_ratio,poisoned_count,target_collapse_score,non_target_retention_score
+tausb_mask,40,0,0.11336868759160046,0.7068889992121606,0.6772129836311326,0.575631911476701,0.5512328800638219,29.710907574493742,0.11780363983952939,0.8784907421726714,0.23296110887461594,6095,0.8600386572943204,0.9062679477078982

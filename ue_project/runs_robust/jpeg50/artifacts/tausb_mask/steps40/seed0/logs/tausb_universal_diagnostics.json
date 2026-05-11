@@ -1,0 +1,118 @@
+{
+  "latest": {
+    "epoch": 40,
+    "align_clean_topk": 0.02230143283061155,
+    "align_adv_topk": 0.019705240644045233,
+    "L_entangle_bg": 3.198627729741294,
+    "L_anchor": 0.941311405164989,
+    "L_collapse_aux": 0.16238963244155324,
+    "alsi_score": 1267911.6012267226,
+    "cos_t_conf": 0.5829078378066199,
+    "cos_t_clean": 0.8831858161709755,
+    "M_conf_sum": 2805.6471481790472,
+    "rlcp_conf_mass": 260134.18897637795,
+    "rlcp_trim_keep_ratio": 0.8224717155685577,
+    "rlcp_core_exclusion_ratio": 0.12516013264424888,
+    "rlcp_adaptive_inner_mean": 13.658916741340557,
+    "rlcp_adaptive_outer_mean": 32.20805911955406,
+    "rlcp_adaptive_inner_min": 8.053572198398166,
+    "rlcp_adaptive_outer_max": 36.0,
+    "confounder_purity_ratio": 0.8748073662046055,
+    "overlap_ratio": 0.9434548658026962,
+    "preserve_loss": 0.01583151597397651,
+    "L_margin": 0.01856413344173384,
+    "margin_clean_mean": 0.4128172507905585,
+    "margin_adv_mean": 0.3527361092956986,
+    "gate_positive_ratio": 0.011904762126505375,
+    "pag_positive_ratio": 0.5344347106444886,
+    "pag_threshold": 0.7732155866608705,
+    "pag_mean_target_score": 0.7506459742774761,
+    "pag_fallback_count": 4.673228346456693,
+    "perturbed_area_ratio_mean": 0.16433183172243473,
+    "L_tv": 0.06396859990838631,
+    "L_budget": 0.7121091369255947,
+    "L_total": 57.92906653536899,
+    "L_tsvc": 0.16238963244155324,
+    "L_sem": 0.941311405164989,
+    "sld_score": 1267911.6012267226,
+    "mean_abs_delta": 0.008112060611339145,
+    "max_abs_delta": 0.0627450942993164,
+    "saturation_ratio": 0.12116157655601739,
+    "support_prebaked_ratio": 0.0,
+    "support_fallback_ratio": 1.0,
+    "support_empty_ratio": 0.0,
+    "grad_norm_fourier": 5.686865329742432,
+    "grad_norm_suppress": -1.0,
+    "freq_mode": "fixed_topk",
+    "freq_active_num_bases": 16,
+    "freq_candidate_num_bases": 64,
+    "freq_score_top_mean": 0.6087676882743835
+  },
+  "global_params_path": "/root/autodl-tmp/ue_project/runs_robust/jpeg50/artifacts/tausb_mask/steps40/seed0/noise/global_params.pt",
+  "coords": [
+    [
+      591,
+      609
+    ],
+    [
+      630,
+      60
+    ],
+    [
+      616,
+      564
+    ],
+    [
+      577,
+      132
+    ],
+    [
+      562,
+      494
+    ],
+    [
+      596,
+      542
+    ],
+    [
+      129,
+      555
+    ],
+    [
+      34,
+      493
+    ],
+    [
+      610,
+      558
+    ],
+    [
+      49,
+      593
+    ],
+    [
+      542,
+      25
+    ],
+    [
+      584,
+      131
+    ],
+    [
+      119,
+      589
+    ],
+    [
+      499,
+      628
+    ],
+    [
+      34,
+      585
+    ],
+    [
+      92,
+      568
+    ]
+  ]
+}

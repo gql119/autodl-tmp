@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import torch
 from ultralytics import YOLO
-
+from ..utils.robust_transforms import apply_poison_post_transform
 from ..data_utils import (
     copy_label,
     image_has_target,
@@ -410,6 +410,31 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
                     support_type=support_type,
                     image_path=item["img_path"],
                 )
+
+                has_poison_support = False
+                try:
+                    has_poison_support = (
+                        result.support_mask is not None
+                        and float(np.asarray(result.support_mask).sum()) > 0.0
+                    )
+                except Exception:
+                    has_poison_support = False
+
+                result.poisoned_image, post_transform_info = apply_poison_post_transform(
+                    result.poisoned_image,
+                    ctx.cfg,
+                    has_poison_support=has_poison_support,
+                )
+
+                # 如果后处理返回 uint8，这里统一转回 float32 [0,1]
+                if isinstance(result.poisoned_image, np.ndarray) and result.poisoned_image.dtype == np.uint8:
+                    result.poisoned_image = result.poisoned_image.astype(np.float32) / 255.0
+
+                if not hasattr(result, "extras") or result.extras is None:
+                    result.extras = {}
+
+                result.extras.update(post_transform_info)
+
                 _record_poisoned_item(item, result)
 
         pending_poison_items = []

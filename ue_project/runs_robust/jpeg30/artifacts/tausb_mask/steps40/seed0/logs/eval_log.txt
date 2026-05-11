@@ -1,0 +1,17 @@
+Unified evaluation complete.
+method: tausb_mask
+steps: 40
+seed: 0
+mAP50_target: 0.16436220535442794
+mAP50_non_target: 0.7048723499587941
+mAP50_all: 0.6778468427285758
+AP_person_free_non_target: 0.5733425223322702
+AP_person_cooccur_non_target: 0.5444128931405093
+PSNR: 26.945974353538983
+LPIPS: 0.19267946402309272
+average_perturbed_area_ratio: 0.9521031422580145
+average_support_area_ratio: 0.23296110887461594
+poisoned_count: 6095
+target_collapse_score: 0.7970836970932988
+non_target_retention_score: 0.9036824999471719
+poisoned_count: 6095

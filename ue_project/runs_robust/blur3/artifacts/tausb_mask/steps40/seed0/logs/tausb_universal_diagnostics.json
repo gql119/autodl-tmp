@@ -1,0 +1,118 @@
+{
+  "latest": {
+    "epoch": 40,
+    "align_clean_topk": 0.02230143283061155,
+    "align_adv_topk": 0.01977901112989784,
+    "L_entangle_bg": 3.400013239052039,
+    "L_anchor": 0.8045905602416341,
+    "L_collapse_aux": 0.1668483016137376,
+    "alsi_score": 1299918.2836770567,
+    "cos_t_conf": 0.578186138317132,
+    "cos_t_clean": 0.9004107786054063,
+    "M_conf_sum": 2805.6471481790472,
+    "rlcp_conf_mass": 260134.18897637795,
+    "rlcp_trim_keep_ratio": 0.8224717155685577,
+    "rlcp_core_exclusion_ratio": 0.12516013264424888,
+    "rlcp_adaptive_inner_mean": 13.658916741340557,
+    "rlcp_adaptive_outer_mean": 32.20805911955406,
+    "rlcp_adaptive_inner_min": 8.053572198398166,
+    "rlcp_adaptive_outer_max": 36.0,
+    "confounder_purity_ratio": 0.8748073662046055,
+    "overlap_ratio": 0.9434548658026962,
+    "preserve_loss": 0.014476369477300037,
+    "L_margin": 0.017270928379386576,
+    "margin_clean_mean": 0.4128172507905585,
+    "margin_adv_mean": 0.356135794751131,
+    "gate_positive_ratio": 0.011904762126505375,
+    "pag_positive_ratio": 0.5344347106444886,
+    "pag_threshold": 0.7732155866608705,
+    "pag_mean_target_score": 0.7506459742774761,
+    "pag_fallback_count": 4.673228346456693,
+    "perturbed_area_ratio_mean": 0.16548581628661768,
+    "L_tv": 0.060408575181651304,
+    "L_budget": 0.726931948517877,
+    "L_total": 60.574280836450775,
+    "L_tsvc": 0.1668483016137376,
+    "L_sem": 0.8045905602416341,
+    "sld_score": 1299918.2836770567,
+    "mean_abs_delta": 0.0081462581089534,
+    "max_abs_delta": 0.0627450942993164,
+    "saturation_ratio": 0.12207323600222746,
+    "support_prebaked_ratio": 0.0,
+    "support_fallback_ratio": 1.0,
+    "support_empty_ratio": 0.0,
+    "grad_norm_fourier": 8.668431282043457,
+    "grad_norm_suppress": -1.0,
+    "freq_mode": "fixed_topk",
+    "freq_active_num_bases": 16,
+    "freq_candidate_num_bases": 64,
+    "freq_score_top_mean": 0.6087138652801514
+  },
+  "global_params_path": "/root/autodl-tmp/ue_project/runs_robust/blur3/artifacts/tausb_mask/steps40/seed0/noise/global_params.pt",
+  "coords": [
+    [
+      630,
+      60
+    ],
+    [
+      589,
+      17
+    ],
+    [
+      616,
+      564
+    ],
+    [
+      612,
+      572
+    ],
+    [
+      577,
+      132
+    ],
+    [
+      562,
+      494
+    ],
+    [
+      596,
+      542
+    ],
+    [
+      34,
+      493
+    ],
+    [
+      610,
+      558
+    ],
+    [
+      49,
+      593
+    ],
+    [
+      542,
+      25
+    ],
+    [
+      584,
+      131
+    ],
+    [
+      119,
+      589
+    ],
+    [
+      499,
+      628
+    ],
+    [
+      34,
+      585
+    ],
+    [
+      92,
+      568
+    ]
+  ]
+}
