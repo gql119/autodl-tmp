@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-05T09:24:58.739404Z",
+  "timestamp": "2026-05-28T11:12:40.920909Z",
   "seed": 0,
   "method": "tausb_mask",
   "steps": 40,
@@ -11,5 +11,5 @@
   "cuda_devices": [
     "NVIDIA GeForce RTX 4090 D"
   ],
-  "git_commit": "1182e6bfd5695f19990191af2e40e90020719eb5"
+  "git_commit": "155091c27dbab2f38cda6ddd62204f835cf35b69"
 }

@@ -2,7 +2,7 @@ import csv
 import math
 import os
 import random
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import cv2
 import numpy as np
@@ -14,7 +14,7 @@ from ..data_utils import image_has_target, label_path_for_image, list_images, lo
 from ..io_utils import atomic_write_json
 from ..ultra.hijacked_loss import HijackedV8Loss
 from .base import BasePoisonGenerator, PoisonResult
-from .fourier import build_fourier_pattern, sample_midfreq_coords, spectrum_to_numpy
+from .fourier import build_fourier_pattern, sample_bandfreq_coords, sample_midfreq_coords, spectrum_to_numpy
 from .shadow_tal import DifferentiableShadowTAL
 from .alce_acgt import (
     build_non_target_core_mask,
@@ -195,6 +195,8 @@ class _TAUSBCommon(BasePoisonGenerator):
         
         self.instance_mask_dir = str(cfg.get("data", {}).get("instance_mask_dir", "") or "")
         self.allow_pseudo_mask_fallback = bool(cfg.get("data", {}).get("allow_pseudo_mask_fallback", True))
+        self.legacy_best_reproduce_mode = bool(method_cfg.get("legacy_best_reproduce_mode", False))
+        self.force_pseudo_mask_fallback = bool(method_cfg.get("force_pseudo_mask_fallback", False))
 
         self.use_prebaked_instance_mask = bool(method_cfg.get("use_prebaked_instance_mask", True))
         self.strict_instance_mask = bool(method_cfg.get("strict_instance_mask", False))
@@ -217,6 +219,8 @@ class _TAUSBCommon(BasePoisonGenerator):
         self.multi_features.clear()
 
     def _resolve_instance_mask_path(self, image_path: str):
+        if self.legacy_best_reproduce_mode and self.force_pseudo_mask_fallback:
+            return None
         if not self.use_prebaked_instance_mask:
             return None
         if not self.instance_mask_dir:
@@ -236,6 +240,25 @@ class _TAUSBCommon(BasePoisonGenerator):
 
         if support_type != "mask":
             raise ValueError(f"tausb_mask only supports support_type='mask', got {support_type}")
+
+        if self.legacy_best_reproduce_mode and self.force_pseudo_mask_fallback:
+            inner_mask = build_support_mask(
+                image_shape=image_shape,
+                annotations=annotations,
+                target_class_id=self.target_class_id,
+                support_type="mask",
+                ring_width=ring_width,
+                mask_path=None,
+            )
+            ring_mask = build_support_mask(
+                image_shape=image_shape,
+                annotations=annotations,
+                target_class_id=self.target_class_id,
+                support_type="mask_ring",
+                ring_width=ring_width,
+                mask_path=None,
+            )
+            return inner_mask.astype(np.float32), ring_mask.astype(np.float32), "forced_pseudo_fallback"
 
         mask_path = self._resolve_instance_mask_path(image_path)
 
@@ -470,6 +493,9 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
         self.universal_batch_size = int(method_cfg.get("universal_batch_size", 16))
         self.universal_lr_fourier = float(method_cfg.get("universal_lr_fourier", 0.05)) 
         self.universal_lr_suppress = float(method_cfg.get("universal_lr_suppress", 0.002))
+        self.phase0_diagnostics_only = bool(method_cfg.get("phase0_diagnostics_only", False))
+        self.phase0_max_epochs = int(method_cfg.get("phase0_max_epochs", 1))
+        self.save_phase0_probe_only = bool(method_cfg.get("save_phase0_probe_only", False))
 
         self.enable_adaptive_freq_basis = bool(method_cfg.get("enable_adaptive_freq_basis", False))
         self.freq_candidate_num_bases = int(method_cfg.get("freq_candidate_num_bases", 64))
@@ -479,6 +505,24 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
         self.adaptive_freq_select_metric = str(method_cfg.get("adaptive_freq_select_metric", "grad_norm"))
         self.adaptive_freq_update_once = bool(method_cfg.get("adaptive_freq_update_once", True))
         self.freq_basis_seed = int(method_cfg.get("freq_basis_seed", 0))
+        self.enable_band_aware_freq_basis = bool(method_cfg.get("enable_band_aware_freq_basis", False))
+        self.freq_band_names = [str(x) for x in method_cfg.get("freq_band_names", ["low", "mid", "high"])]
+        self.freq_band_candidate_nums = [int(x) for x in method_cfg.get("freq_band_candidate_nums", [16, 32, 16])]
+        self.freq_band_active_nums = [int(x) for x in method_cfg.get("freq_band_active_nums", [1, 13, 2])]
+        self.freq_band_radius_ranges = method_cfg.get(
+            "freq_band_radius_ranges",
+            {
+                "low": [2, 8],
+                "mid": [8, 24],
+                "high": [24, 48],
+            },
+        )
+        self.freq_band_adaptive_quota = bool(method_cfg.get("freq_band_adaptive_quota", False))
+        self.freq_band_active_min = [int(x) for x in method_cfg.get("freq_band_active_min", [0, 12, 1])]
+        self.freq_band_active_max = [int(x) for x in method_cfg.get("freq_band_active_max", [3, 16, 4])]
+        self.freq_candidate_meta: List[Dict[str, Any]] = []
+        self.freq_band_to_indices: Dict[str, List[int]] = {}
+        self._freq_band_radius_mean: Dict[str, float] = {}
 
         if self.enable_adaptive_freq_basis:
             if self.freq_active_num_bases != self.shortcut_num_bases:
@@ -491,17 +535,116 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     f"freq_candidate_num_bases ({self.freq_candidate_num_bases}) must be >= "
                     f"freq_active_num_bases ({self.freq_active_num_bases})."
                 )
-            self.freq_candidate_coords = sample_midfreq_coords(
-                h=self.imgsz,
-                w=self.imgsz,
-                num_bases=self.freq_candidate_num_bases,
-                seed=self.freq_basis_seed,
-                enable_search=True,
-            )
+            if self.enable_band_aware_freq_basis:
+                if len(set(self.freq_band_names)) != len(self.freq_band_names):
+                    raise ValueError("freq_band_names must be unique for band-aware adaptive frequency basis.")
+                if len(self.freq_band_names) != len(self.freq_band_candidate_nums):
+                    raise ValueError("freq_band_names and freq_band_candidate_nums must have the same length.")
+                if len(self.freq_band_names) != len(self.freq_band_active_nums):
+                    raise ValueError("freq_band_names and freq_band_active_nums must have the same length.")
+                if not isinstance(self.freq_band_radius_ranges, dict):
+                    raise ValueError("freq_band_radius_ranges must be a dict when enable_band_aware_freq_basis=true.")
+                if sum(self.freq_band_candidate_nums) != self.freq_candidate_num_bases:
+                    raise ValueError(
+                        f"sum(freq_band_candidate_nums) ({sum(self.freq_band_candidate_nums)}) must equal "
+                        f"freq_candidate_num_bases ({self.freq_candidate_num_bases})."
+                    )
+                if sum(self.freq_band_active_nums) != self.freq_active_num_bases:
+                    raise ValueError(
+                        f"sum(freq_band_active_nums) ({sum(self.freq_band_active_nums)}) must equal "
+                        f"freq_active_num_bases ({self.freq_active_num_bases})."
+                    )
+                for band_name, cand_k, act_k in zip(
+                    self.freq_band_names, self.freq_band_candidate_nums, self.freq_band_active_nums
+                ):
+                    if cand_k <= 0:
+                        raise ValueError(
+                            f"freq_band_candidate_nums for band '{band_name}' must be > 0, got {cand_k}."
+                        )
+                    if act_k < 0:
+                        raise ValueError(f"freq_band_active_nums for band '{band_name}' must be >= 0, got {act_k}.")
+                    if act_k > cand_k:
+                        raise ValueError(
+                            f"freq_band_active_nums for band '{band_name}' ({act_k}) must be <= "
+                            f"freq_band_candidate_nums ({cand_k})."
+                        )
+                    rr = self.freq_band_radius_ranges.get(band_name)
+                    if rr is None or len(rr) != 2:
+                        raise ValueError(f"Missing or invalid freq_band_radius_ranges for band '{band_name}'.")
+                band_coords, band_meta = sample_bandfreq_coords(
+                    h=self.imgsz,
+                    w=self.imgsz,
+                    band_names=self.freq_band_names,
+                    band_num_bases=self.freq_band_candidate_nums,
+                    band_radius_ranges=self.freq_band_radius_ranges,
+                    seed=self.freq_basis_seed,
+                    enable_search=True,
+                )
+                if len(band_coords) != self.freq_candidate_num_bases:
+                    raise RuntimeError(
+                        f"band-aware candidate generation returned {len(band_coords)} coords, "
+                        f"expected {self.freq_candidate_num_bases}."
+                    )
+                if len(band_meta) != len(band_coords):
+                    raise RuntimeError("band-aware candidate meta length mismatch.")
+                self.freq_candidate_coords = [tuple(map(int, t)) for t in band_coords]
+                self.freq_band_to_indices = {name: [] for name in self.freq_band_names}
+                self.freq_candidate_meta = []
+                for idx, meta in enumerate(band_meta):
+                    band_name = str(meta.get("band", "mid"))
+                    y = int(meta.get("y", 0))
+                    x = int(meta.get("x", 0))
+                    radius = float(meta.get("radius", 0.0))
+                    local_index = len(self.freq_band_to_indices.get(band_name, []))
+                    if band_name not in self.freq_band_to_indices:
+                        self.freq_band_to_indices[band_name] = []
+                    self.freq_band_to_indices[band_name].append(int(idx))
+                    self.freq_candidate_meta.append(
+                        {
+                            "index": int(idx),
+                            "band": band_name,
+                            "band_id": int(self.freq_band_names.index(band_name)),
+                            "local_index": int(local_index),
+                            "y": y,
+                            "x": x,
+                            "radius": radius,
+                        }
+                    )
+                self._freq_band_radius_mean = {}
+                for band_name in self.freq_band_names:
+                    bidx = self.freq_band_to_indices.get(band_name, [])
+                    if not bidx:
+                        self._freq_band_radius_mean[band_name] = float("nan")
+                        continue
+                    r_vals = [float(self.freq_candidate_meta[i]["radius"]) for i in bidx]
+                    self._freq_band_radius_mean[band_name] = float(np.mean(r_vals)) if r_vals else float("nan")
+            else:
+                self.freq_candidate_coords = sample_midfreq_coords(
+                    h=self.imgsz,
+                    w=self.imgsz,
+                    num_bases=self.freq_candidate_num_bases,
+                    seed=self.freq_basis_seed,
+                    enable_search=True,
+                )
+                self.freq_band_to_indices = {}
+                self.freq_candidate_meta = []
             self.fourier_coeff = torch.nn.Parameter(
                 torch.zeros((self.freq_candidate_num_bases, 3), device=self.device)
             )
-            self.freq_active_idx = torch.arange(self.freq_active_num_bases, device=self.device, dtype=torch.long)
+            if self.enable_band_aware_freq_basis:
+                init_active_idx: List[int] = []
+                for band_name, k in zip(self.freq_band_names, self.freq_band_active_nums):
+                    band_idx = self.freq_band_to_indices.get(band_name, [])
+                    init_active_idx.extend([int(i) for i in band_idx[: int(k)]])
+                if len(init_active_idx) != self.freq_active_num_bases:
+                    raise RuntimeError(
+                        f"band-aware init active count mismatch: {len(init_active_idx)} vs {self.freq_active_num_bases}"
+                    )
+                self.freq_active_idx = torch.tensor(
+                    sorted(init_active_idx), device=self.device, dtype=torch.long
+                )
+            else:
+                self.freq_active_idx = torch.arange(self.freq_active_num_bases, device=self.device, dtype=torch.long)
             self.freq_score = torch.zeros((self.freq_candidate_num_bases,), device=self.device, dtype=torch.float32)
             self.freq_usage = torch.zeros((self.freq_candidate_num_bases,), device=self.device, dtype=torch.float32)
             self._adaptive_freq_grad_warned = False
@@ -528,6 +671,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
             self._adaptive_freq_score_top_mean = float("nan")
             self._adaptive_freq_mode_warned = False
             self._adaptive_freq_metric_warned = False
+            self.enable_band_aware_freq_basis = False
 
         self.suppress_small = torch.nn.Parameter(
             torch.zeros((1, 3, self.suppress_small_size, self.suppress_small_size), device=self.device)
@@ -545,22 +689,117 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
             target_class_id=self.target_class_id,
         )
 
+    def _split_indices_by_band(self, indices: torch.Tensor) -> Dict[str, List[int]]:
+        out = {name: [] for name in self.freq_band_names}
+        if not self.enable_band_aware_freq_basis:
+            return out
+
+        idx_set = set(int(x) for x in indices.detach().cpu().tolist())
+        for band_name in self.freq_band_names:
+            band_idx = self.freq_band_to_indices.get(band_name, [])
+            out[band_name] = [int(i) for i in band_idx if int(i) in idx_set]
+        return out
+
+    def _get_band_round_robin_indices(self, step: int) -> torch.Tensor:
+        selected: List[torch.Tensor] = []
+        for band_name, k in zip(self.freq_band_names, self.freq_band_active_nums):
+            act_k = int(k)
+            if act_k <= 0:
+                continue
+            band_indices = self.freq_band_to_indices.get(band_name, [])
+            m = len(band_indices)
+            if m == 0:
+                raise RuntimeError(f"Band '{band_name}' has no candidate frequencies.")
+            if act_k > m:
+                raise RuntimeError(
+                    f"Band '{band_name}' active quota ({act_k}) cannot exceed candidate num ({m})."
+                )
+            band_tensor = torch.tensor(band_indices, device=self.device, dtype=torch.long)
+            start = (step * act_k) % m
+            local = (torch.arange(act_k, device=self.device) + start) % m
+            selected.append(band_tensor[local.long()])
+
+        if not selected:
+            return torch.zeros((0,), device=self.device, dtype=torch.long)
+        out = torch.cat(selected, dim=0).long()
+        if out.numel() != self.freq_active_num_bases:
+            raise RuntimeError(
+                f"Band round-robin produced {out.numel()} active idx, expected {self.freq_active_num_bases}."
+            )
+        return out
+
+    def _select_topk_per_band(self, score: torch.Tensor) -> torch.Tensor:
+        selected: List[torch.Tensor] = []
+        for band_name, k in zip(self.freq_band_names, self.freq_band_active_nums):
+            act_k = int(k)
+            if act_k <= 0:
+                continue
+            band_indices = self.freq_band_to_indices.get(band_name, [])
+            if not band_indices:
+                raise RuntimeError(f"Band '{band_name}' has no candidate frequencies.")
+            band_tensor = torch.tensor(band_indices, device=self.device, dtype=torch.long)
+            if act_k > band_tensor.numel():
+                raise RuntimeError(
+                    f"Band '{band_name}' active quota ({act_k}) cannot exceed candidate num ({band_tensor.numel()})."
+                )
+            band_score = score[band_tensor]
+            top_local = torch.topk(band_score, k=act_k, largest=True).indices
+            selected.append(band_tensor[top_local.long()])
+
+        if not selected:
+            return torch.zeros((0,), device=self.device, dtype=torch.long)
+        out = torch.cat(selected, dim=0).long()
+        if out.numel() != self.freq_active_num_bases:
+            raise RuntimeError(
+                f"Band top-k produced {out.numel()} active idx, expected {self.freq_active_num_bases}."
+            )
+        return out
+
+    def _compute_band_score_stats(self, score: torch.Tensor) -> Dict[str, Dict[str, float]]:
+        stats: Dict[str, Dict[str, float]] = {}
+        if not self.enable_band_aware_freq_basis:
+            return stats
+        for band_name, act_k in zip(self.freq_band_names, self.freq_band_active_nums):
+            band_indices = self.freq_band_to_indices.get(band_name, [])
+            if not band_indices:
+                stats[band_name] = {"mean": float("nan"), "top_mean": float("nan")}
+                continue
+            band_tensor = torch.tensor(band_indices, device=self.device, dtype=torch.long)
+            band_score = score[band_tensor]
+            mean_val = float(band_score.mean().item())
+            if int(act_k) <= 0:
+                top_val = float("nan")
+            else:
+                top_k = int(min(int(act_k), int(band_score.numel())))
+                top_val = float(torch.topk(band_score, k=top_k, largest=True).values.mean().item())
+            stats[band_name] = {"mean": mean_val, "top_mean": top_val}
+        return stats
+
     def _get_active_freq_indices(self, epoch: int, step: int) -> torch.Tensor:
         if not self.enable_adaptive_freq_basis:
             return torch.arange(self.shortcut_num_bases, device=self.device)
 
         if epoch < self.adaptive_freq_warmup_epochs:
-            if self.adaptive_freq_explore_mode != "round_robin" and not self._adaptive_freq_mode_warned:
-                print(
-                    f"[AdaptiveFreq][Warning] unsupported adaptive_freq_explore_mode="
-                    f"{self.adaptive_freq_explore_mode}, fallback to round_robin."
-                )
-                self._adaptive_freq_mode_warned = True
-            k = self.freq_active_num_bases
-            m = self.freq_candidate_num_bases
-            start = (step * k) % m
-            idx = (torch.arange(k, device=self.device) + start) % m
-            return idx.long()
+            if self.enable_band_aware_freq_basis:
+                if self.adaptive_freq_explore_mode not in {"band_round_robin", "round_robin"} and not self._adaptive_freq_mode_warned:
+                    print(
+                        f"[AdaptiveFreq][Warning] unsupported adaptive_freq_explore_mode="
+                        f"{self.adaptive_freq_explore_mode}, fallback to band_round_robin."
+                    )
+                    self._adaptive_freq_mode_warned = True
+                return self._get_band_round_robin_indices(step=step)
+            else:
+                if self.adaptive_freq_explore_mode != "round_robin" and not self._adaptive_freq_mode_warned:
+                    print(
+                        f"[AdaptiveFreq][Warning] unsupported adaptive_freq_explore_mode="
+                        f"{self.adaptive_freq_explore_mode}, fallback to round_robin."
+                    )
+                    self._adaptive_freq_mode_warned = True
+                k = self.freq_active_num_bases
+                m = self.freq_candidate_num_bases
+                start = (step * k) % m
+                idx = (torch.arange(k, device=self.device) + start) % m
+                return idx.long()
 
         return self.freq_active_idx.long()
 
@@ -608,9 +847,13 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
             ]
         )
 
+        run_epochs = self.universal_epochs
+        if self.phase0_diagnostics_only:
+            run_epochs = min(self.universal_epochs, max(1, self.phase0_max_epochs))
+
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer, 
-            T_max=self.universal_epochs, 
+            T_max=max(1, run_epochs), 
             eta_min=1e-5
         )
 
@@ -633,7 +876,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
         global_step = 0
         latest_diag = {}
 
-        for epoch in range(self.universal_epochs):
+        for epoch in range(run_epochs):
             if epoch < 15:
                 cur_lambda_preserve = self.lambda_preserve * 0.3  
             elif epoch < 25:
@@ -683,6 +926,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 "saturation_ratio": 0.0,
                 "support_prebaked_ratio": 0.0,
                 "support_fallback_ratio": 0.0,
+                "support_forced_pseudo_fallback_ratio": 0.0,
                 "support_empty_ratio": 0.0,
             }
             batch_count = 0
@@ -696,6 +940,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 valid_items = []
                 batch_prebaked = 0
                 batch_fallback = 0
+                batch_forced_fallback = 0
                 batch_empty = 0
                 
                 for data in batch_list:
@@ -708,8 +953,10 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     )
                     if support_source == "prebaked":
                         batch_prebaked += 1
-                    elif support_source == "pseudo_fallback":
+                    elif support_source in ("pseudo_fallback", "forced_pseudo_fallback"):
                         batch_fallback += 1
+                        if support_source == "forced_pseudo_fallback":
+                            batch_forced_fallback += 1
                     else:
                         batch_empty += 1
                         
@@ -720,6 +967,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 if total_support_count > 0:
                     epoch_diag["support_prebaked_ratio"] += batch_prebaked / total_support_count
                     epoch_diag["support_fallback_ratio"] += batch_fallback / total_support_count
+                    epoch_diag["support_forced_pseudo_fallback_ratio"] += batch_forced_fallback / total_support_count
                     epoch_diag["support_empty_ratio"] += batch_empty / total_support_count
 
                 if not valid_items:
@@ -1348,10 +1596,15 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         epoch_diag[k] = epoch_diag[k] / float(batch_count)
 
             freq_score_top_mean = float("nan")
+            band_score_stats: Dict[str, Dict[str, float]] = {}
             if self.enable_adaptive_freq_basis:
                 with torch.no_grad():
                     score_now = self.freq_score / self.freq_usage.clamp_min(1.0)
-                    top_idx_now = torch.topk(score_now, k=self.freq_active_num_bases, largest=True).indices
+                    if self.enable_band_aware_freq_basis:
+                        top_idx_now = self._select_topk_per_band(score_now)
+                        band_score_stats = self._compute_band_score_stats(score_now)
+                    else:
+                        top_idx_now = torch.topk(score_now, k=self.freq_active_num_bases, largest=True).indices
                     freq_score_top_mean = float(score_now[top_idx_now].mean().item())
 
                 if self.adaptive_freq_update_once:
@@ -1362,7 +1615,10 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 if need_select_topk:
                     with torch.no_grad():
                         score = self.freq_score / self.freq_usage.clamp_min(1.0)
-                        top_idx = torch.topk(score, k=self.freq_active_num_bases, largest=True).indices
+                        if self.enable_band_aware_freq_basis:
+                            top_idx = self._select_topk_per_band(score)
+                        else:
+                            top_idx = torch.topk(score, k=self.freq_active_num_bases, largest=True).indices
                         self.freq_active_idx = top_idx.sort().values.detach()
 
                         mask = torch.zeros(self.freq_candidate_num_bases, device=self.device, dtype=torch.bool)
@@ -1376,14 +1632,42 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         self._adaptive_freq_score_top_mean = float(score[self.freq_active_idx].mean().item())
                         freq_score_top_mean = self._adaptive_freq_score_top_mean
 
-                        print("[AdaptiveFreq] selected active basis:")
-                        print(f"  candidate_num={self.freq_candidate_num_bases}")
-                        print(f"  active_num={self.freq_active_num_bases}")
-                        print(f"  active_idx={self.freq_active_idx.detach().cpu().tolist()}")
-                        print(f"  score_mean={score.mean().item():.6e}")
-                        print(f"  score_top_mean={score[self.freq_active_idx].mean().item():.6e}")
-                        print(f"  score_max={score.max().item():.6e}")
-                        print(f"  score_min={score.min().item():.6e}")
+                        if self.enable_band_aware_freq_basis:
+                            selected_by_band = self._split_indices_by_band(self.freq_active_idx)
+                            selected_coords_by_band = {
+                                band_name: [
+                                    [int(self.freq_candidate_coords[i][0]), int(self.freq_candidate_coords[i][1])]
+                                    for i in selected_by_band.get(band_name, [])
+                                ]
+                                for band_name in self.freq_band_names
+                            }
+                            band_score_stats = self._compute_band_score_stats(score)
+                            quota_parts = [
+                                f"{band_name}={int(k)}" for band_name, k in zip(self.freq_band_names, self.freq_band_active_nums)
+                            ]
+                            print("[BandAwareFreq] selected active basis:")
+                            print(f"  candidate_num={self.freq_candidate_num_bases}")
+                            print(f"  active_num={self.freq_active_num_bases}")
+                            print(f"  active_quota: {' '.join(quota_parts)}")
+                            for band_name in self.freq_band_names:
+                                print(f"  selected_{band_name}_idx={selected_by_band.get(band_name, [])}")
+                            for band_name in self.freq_band_names:
+                                print(f"  selected_{band_name}_coords={selected_coords_by_band.get(band_name, [])}")
+                            for band_name in self.freq_band_names:
+                                bstats = band_score_stats.get(band_name, {})
+                                print(f"  score_mean_{band_name}={float(bstats.get('mean', float('nan'))):.6e}")
+                            for band_name in self.freq_band_names:
+                                bstats = band_score_stats.get(band_name, {})
+                                print(f"  score_top_mean_{band_name}={float(bstats.get('top_mean', float('nan'))):.6e}")
+                        else:
+                            print("[AdaptiveFreq] selected active basis:")
+                            print(f"  candidate_num={self.freq_candidate_num_bases}")
+                            print(f"  active_num={self.freq_active_num_bases}")
+                            print(f"  active_idx={self.freq_active_idx.detach().cpu().tolist()}")
+                            print(f"  score_mean={score.mean().item():.6e}")
+                            print(f"  score_top_mean={score[self.freq_active_idx].mean().item():.6e}")
+                            print(f"  score_max={score.max().item():.6e}")
+                            print(f"  score_min={score.min().item():.6e}")
 
             if self.enable_adaptive_freq_basis:
                 freq_mode = "explore" if epoch < self.adaptive_freq_warmup_epochs else "fixed_topk"
@@ -1393,6 +1677,36 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 freq_mode = "fixed"
                 fact = self.shortcut_num_bases
                 fcand = self.shortcut_num_bases
+
+            band_name_triplet = ["low", "mid", "high"]
+            if self.enable_adaptive_freq_basis and self.enable_band_aware_freq_basis:
+                band_candidate_map = {
+                    str(name): int(k) for name, k in zip(self.freq_band_names, self.freq_band_candidate_nums)
+                }
+                band_active_map = {
+                    str(name): int(k) for name, k in zip(self.freq_band_names, self.freq_band_active_nums)
+                }
+            else:
+                band_candidate_map = {}
+                band_active_map = {}
+            selected_idx_by_band: Dict[str, List[int]] = {name: [] for name in band_name_triplet}
+            selected_coords_by_band: Dict[str, List[List[int]]] = {name: [] for name in band_name_triplet}
+            band_score_mean_map: Dict[str, float] = {name: float("nan") for name in band_name_triplet}
+            band_score_top_mean_map: Dict[str, float] = {name: float("nan") for name in band_name_triplet}
+            band_radius_mean_map: Dict[str, float] = {name: float("nan") for name in band_name_triplet}
+            if self.enable_adaptive_freq_basis and self.enable_band_aware_freq_basis:
+                selected_raw = self._split_indices_by_band(self.freq_active_idx)
+                for name in band_name_triplet:
+                    idx_list = [int(i) for i in selected_raw.get(name, [])]
+                    selected_idx_by_band[name] = idx_list
+                    selected_coords_by_band[name] = [
+                        [int(self.freq_candidate_coords[i][0]), int(self.freq_candidate_coords[i][1])]
+                        for i in idx_list
+                    ]
+                    stats = band_score_stats.get(name, {})
+                    band_score_mean_map[name] = float(stats.get("mean", float("nan")))
+                    band_score_top_mean_map[name] = float(stats.get("top_mean", float("nan")))
+                    band_radius_mean_map[name] = float(self._freq_band_radius_mean.get(name, float("nan")))
 
             row = {
                 "epoch": epoch + 1,
@@ -1409,11 +1723,38 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         "freq_score_top_mean": freq_score_top_mean,
                     }
                 )
+            if self.enable_adaptive_freq_basis and self.enable_band_aware_freq_basis:
+                row.update(
+                    {
+                        "enable_band_aware_freq_basis": True,
+                        "freq_band_low_candidate_num": int(band_candidate_map.get("low", 0)),
+                        "freq_band_mid_candidate_num": int(band_candidate_map.get("mid", 0)),
+                        "freq_band_high_candidate_num": int(band_candidate_map.get("high", 0)),
+                        "freq_band_low_active_num": int(band_active_map.get("low", 0)),
+                        "freq_band_mid_active_num": int(band_active_map.get("mid", 0)),
+                        "freq_band_high_active_num": int(band_active_map.get("high", 0)),
+                        "freq_band_low_score_mean": band_score_mean_map["low"],
+                        "freq_band_mid_score_mean": band_score_mean_map["mid"],
+                        "freq_band_high_score_mean": band_score_mean_map["high"],
+                        "freq_band_low_score_top_mean": band_score_top_mean_map["low"],
+                        "freq_band_mid_score_top_mean": band_score_top_mean_map["mid"],
+                        "freq_band_high_score_top_mean": band_score_top_mean_map["high"],
+                        "freq_band_low_radius_mean": band_radius_mean_map["low"],
+                        "freq_band_mid_radius_mean": band_radius_mean_map["mid"],
+                        "freq_band_high_radius_mean": band_radius_mean_map["high"],
+                        "freq_selected_low_indices": selected_idx_by_band["low"],
+                        "freq_selected_mid_indices": selected_idx_by_band["mid"],
+                        "freq_selected_high_indices": selected_idx_by_band["high"],
+                        "freq_selected_low_coords": selected_coords_by_band["low"],
+                        "freq_selected_mid_coords": selected_coords_by_band["mid"],
+                        "freq_selected_high_coords": selected_coords_by_band["high"],
+                    }
+                )
             self._append_diag_row(diagnostics_csv_path, row)
             latest_diag = row
 
             epoch_log = (
-                f"[ALSD-ALCE][epoch {epoch + 1}/{self.universal_epochs}] "
+                f"[ALSD-ALCE][epoch {epoch + 1}/{run_epochs}] "
                 f"L_ent={row['L_entangle_bg']:.4f} L_anchor={row['L_anchor']:.4f} "
                 f"L_flat={row['L_collapse_aux']:.4f} L_margin={row['L_margin']:.4f} "
                 f"ALSI={row['alsi_score']:.2f} "
@@ -1429,25 +1770,73 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
             scheduler.step()
 
+        if self.phase0_diagnostics_only:
+            print("[LegacyBestReproduce] P0 signature check:")
+            checks = [
+                ("support_fallback_ratio", "eq", 1.0, 1.0),
+                ("support_prebaked_ratio", "eq", 0.0, 0.0),
+                ("support_forced_pseudo_fallback_ratio", "eq", 1.0, 1.0),
+                ("perturbed_area_ratio_mean", "range", 0.158, 0.165),
+                ("overlap_ratio", "range", 0.91, 0.97),
+                ("pag_positive_ratio", "range", 0.50, 0.56),
+                ("confounder_purity_ratio", "range", 0.845, 0.905),
+                ("L_entangle_bg", "range", 3.18, 3.36),
+                ("L_anchor", "range", 0.85, 0.97),
+                ("L_collapse_aux", "range", 0.162, 0.169),
+                ("saturation_ratio", "range", 0.085, 0.125),
+                ("max_abs_delta", "range", 0.062745 - 1e-3, 0.062745 + 1e-3),
+            ]
+            p0_mismatch = False
+            for key, mode, low, high in checks:
+                val = float(latest_diag.get(key, float("nan")))
+                if mode == "eq":
+                    ok = (not math.isnan(val)) and abs(val - low) <= 1e-6
+                    expected_str = f"{low:.6f}"
+                else:
+                    ok = (not math.isnan(val)) and (val >= low) and (val <= high)
+                    expected_str = f"[{low:.6f}, {high:.6f}]"
+                status = "OK" if ok else "Mismatch"
+                print(f"  {key}={val:.6f} expected {expected_str} -> {status}")
+                if not ok:
+                    p0_mismatch = True
+            if p0_mismatch:
+                print("[LegacyBestReproduce] P0 signature mismatch. Do not run full.")
+            else:
+                print("[LegacyBestReproduce] P0 signature matched.")
+
         os.makedirs(os.path.dirname(global_params_path), exist_ok=True)
         if self.enable_adaptive_freq_basis:
             save_idx = self.freq_active_idx.long()
-            save_coords = [tuple(self.freq_candidate_coords[int(i)]) for i in save_idx.detach().cpu().tolist()]
+            save_idx_list = [int(i) for i in save_idx.detach().cpu().tolist()]
+            save_coords = [tuple(self.freq_candidate_coords[int(i)]) for i in save_idx_list]
             save_fourier_coeff = self.fourier_coeff.detach()[save_idx].cpu()
         else:
+            save_idx_list = []
             save_coords = self.coords
             save_fourier_coeff = self.fourier_coeff.detach().cpu()
 
-        torch.save(
-            {
-                "coords": [[int(y), int(x)] for y, x in save_coords],
-                "fourier_coeff": save_fourier_coeff,
-                "suppress_small": self.suppress_small.detach().cpu(),
-                "method": "tausb_mask",
-                "target_class_id": self.target_class_id,
-            },
-            global_params_path,
-        )
+        save_pack: Dict[str, Any] = {
+            "coords": [[int(y), int(x)] for y, x in save_coords],
+            "fourier_coeff": save_fourier_coeff,
+            "suppress_small": self.suppress_small.detach().cpu(),
+            "method": "tausb_mask",
+            "target_class_id": self.target_class_id,
+        }
+        if self.enable_adaptive_freq_basis and self.enable_band_aware_freq_basis:
+            save_pack.update(
+                {
+                    "enable_band_aware_freq_basis": True,
+                    "freq_band_names": [str(x) for x in self.freq_band_names],
+                    "freq_band_candidate_nums": [int(x) for x in self.freq_band_candidate_nums],
+                    "freq_band_active_nums": [int(x) for x in self.freq_band_active_nums],
+                    "freq_candidate_meta": self.freq_candidate_meta,
+                    "freq_active_meta": [
+                        self.freq_candidate_meta[int(i)] for i in save_idx_list if 0 <= int(i) < len(self.freq_candidate_meta)
+                    ],
+                }
+            )
+
+        torch.save(save_pack, global_params_path)
 
         atomic_write_json(
             diagnostics_json_path,

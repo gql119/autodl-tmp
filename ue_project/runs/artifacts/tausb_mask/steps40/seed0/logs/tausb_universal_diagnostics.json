@@ -1,118 +1,227 @@
 {
   "latest": {
-    "epoch": 40,
-    "align_clean_topk": 0.02230143283061155,
-    "align_adv_topk": 0.018660400823624,
-    "L_entangle_bg": 2.984822230389112,
-    "L_anchor": 1.069710172067477,
-    "L_collapse_aux": 0.15662371365260577,
-    "alsi_score": 1262100.5246756447,
-    "cos_t_conf": 0.5962961996503805,
-    "cos_t_clean": 0.8689247383454962,
-    "M_conf_sum": 2805.6471481790472,
-    "rlcp_conf_mass": 260134.18897637795,
-    "rlcp_trim_keep_ratio": 0.8224717155685577,
-    "rlcp_core_exclusion_ratio": 0.12516013264424888,
-    "rlcp_adaptive_inner_mean": 13.658916741340557,
-    "rlcp_adaptive_outer_mean": 32.20805911955406,
-    "rlcp_adaptive_inner_min": 8.053572198398166,
+    "epoch": 1,
+    "align_clean_topk": 0.02245887715780125,
+    "align_adv_topk": 0.018845508899906372,
+    "L_entangle_bg": 3.4135602540544325,
+    "L_anchor": 0.7778449340826596,
+    "L_collapse_aux": 0.17547913587938144,
+    "alsi_score": 1327227.6509107049,
+    "cos_t_conf": 0.5722227065595016,
+    "cos_t_clean": 0.8967756931837051,
+    "M_conf_sum": 2802.2899678548183,
+    "rlcp_conf_mass": 260326.51706036745,
+    "rlcp_trim_keep_ratio": 0.8226384649465504,
+    "rlcp_core_exclusion_ratio": 0.12476999648109487,
+    "rlcp_adaptive_inner_mean": 13.660112979413595,
+    "rlcp_adaptive_outer_mean": 32.21580564920282,
+    "rlcp_adaptive_inner_min": 8.03983035209196,
     "rlcp_adaptive_outer_max": 36.0,
-    "confounder_purity_ratio": 0.8748073662046055,
-    "overlap_ratio": 0.9434548658026962,
-    "preserve_loss": 0.0,
-    "L_margin": 0.0,
-    "margin_clean_mean": 0.0,
-    "margin_adv_mean": 0.0,
+    "confounder_purity_ratio": 0.875206006529874,
+    "overlap_ratio": 0.942750745821261,
+    "preserve_loss": 0.012605920011725209,
+    "L_margin": 0.014834464144886268,
+    "margin_clean_mean": 0.41357947273908324,
+    "margin_adv_mean": 0.3638988099503392,
     "gate_positive_ratio": 0.011904762126505375,
-    "pag_positive_ratio": 0.5344347106444886,
-    "pag_threshold": 0.7732155866608705,
-    "pag_mean_target_score": 0.7506459742774761,
-    "pag_fallback_count": 4.673228346456693,
-    "perturbed_area_ratio_mean": 0.1648250833114614,
-    "L_tv": 0.07348291134935978,
-    "L_budget": 0.7267603389234367,
-    "L_total": 54.97402228207726,
-    "L_tsvc": 0.15662371365260577,
-    "L_sem": 1.069710172067477,
-    "sld_score": 1262100.5246756447,
-    "mean_abs_delta": 0.00810565974861579,
+    "pag_positive_ratio": 0.5343659166269891,
+    "pag_threshold": 0.7756266490148154,
+    "pag_mean_target_score": 0.7521251167284895,
+    "pag_fallback_count": 4.74015748031496,
+    "perturbed_area_ratio_mean": 0.1586462524658426,
+    "L_tv": 0.014899362119408496,
+    "L_budget": 0.5654235935508423,
+    "L_total": 60.647355597788895,
+    "L_tsvc": 0.17547913587938144,
+    "L_sem": 0.7778449340826596,
+    "sld_score": 1327227.6509107049,
+    "mean_abs_delta": 0.00714507586141838,
     "max_abs_delta": 0.0627450942993164,
-    "saturation_ratio": 0.12089141526716587,
+    "saturation_ratio": 0.0924963946906444,
     "support_prebaked_ratio": 0.0,
     "support_fallback_ratio": 1.0,
+    "support_forced_pseudo_fallback_ratio": 1.0,
     "support_empty_ratio": 0.0,
-    "grad_norm_fourier": 7.228085041046143,
+    "grad_norm_fourier": 6.336233615875244,
     "grad_norm_suppress": -1.0,
-    "freq_mode": "fixed_topk",
+    "freq_mode": "explore",
     "freq_active_num_bases": 16,
     "freq_candidate_num_bases": 64,
-    "freq_score_top_mean": 0.6069428324699402
+    "freq_score_top_mean": 0.9769105911254883,
+    "enable_band_aware_freq_basis": true,
+    "freq_band_low_candidate_num": 16,
+    "freq_band_mid_candidate_num": 32,
+    "freq_band_high_candidate_num": 16,
+    "freq_band_low_active_num": 1,
+    "freq_band_mid_active_num": 13,
+    "freq_band_high_active_num": 2,
+    "freq_band_low_score_mean": 0.9744619131088257,
+    "freq_band_mid_score_mean": 0.7982390522956848,
+    "freq_band_high_score_mean": 0.9386798143386841,
+    "freq_band_low_score_top_mean": 1.224913239479065,
+    "freq_band_mid_score_top_mean": 0.9242786169052124,
+    "freq_band_high_score_top_mean": 1.1950174570083618,
+    "freq_band_low_radius_mean": 5.5528267713635415,
+    "freq_band_mid_radius_mean": 16.407041394653806,
+    "freq_band_high_radius_mean": 38.8692674917306,
+    "freq_selected_low_indices": [
+      0
+    ],
+    "freq_selected_mid_indices": [
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28
+    ],
+    "freq_selected_high_indices": [
+      48,
+      49
+    ],
+    "freq_selected_low_coords": [
+      [
+        633,
+        0
+      ]
+    ],
+    "freq_selected_mid_coords": [
+      [
+        630,
+        638
+      ],
+      [
+        13,
+        625
+      ],
+      [
+        626,
+        630
+      ],
+      [
+        635,
+        19
+      ],
+      [
+        630,
+        7
+      ],
+      [
+        8,
+        625
+      ],
+      [
+        16,
+        636
+      ],
+      [
+        6,
+        12
+      ],
+      [
+        636,
+        628
+      ],
+      [
+        4,
+        623
+      ],
+      [
+        634,
+        10
+      ],
+      [
+        18,
+        4
+      ],
+      [
+        623,
+        10
+      ]
+    ],
+    "freq_selected_high_coords": [
+      [
+        633,
+        608
+      ],
+      [
+        0,
+        33
+      ]
+    ]
   },
   "global_params_path": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/noise/global_params.pt",
   "coords": [
     [
+      633,
+      0
+    ],
+    [
       630,
-      60
+      638
     ],
     [
-      589,
-      17
+      13,
+      625
     ],
     [
-      616,
-      564
+      626,
+      630
     ],
     [
-      612,
-      572
+      635,
+      19
     ],
     [
-      577,
-      132
+      630,
+      7
     ],
     [
-      562,
-      494
+      8,
+      625
     ],
     [
-      596,
-      542
+      16,
+      636
     ],
     [
-      34,
-      493
+      6,
+      12
     ],
     [
-      610,
-      558
-    ],
-    [
-      49,
-      593
-    ],
-    [
-      542,
-      25
-    ],
-    [
-      584,
-      131
-    ],
-    [
-      119,
-      589
-    ],
-    [
-      499,
+      636,
       628
     ],
     [
-      34,
-      585
+      4,
+      623
     ],
     [
-      92,
-      568
+      634,
+      10
+    ],
+    [
+      18,
+      4
+    ],
+    [
+      623,
+      10
+    ],
+    [
+      633,
+      608
+    ],
+    [
+      0,
+      33
     ]
   ]
 }

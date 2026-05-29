@@ -1,0 +1,19 @@
+{
+  "method": "tausb_mask",
+  "steps": 40,
+  "seed": 0,
+  "created_at": "2026-05-21T12:23:02.539167Z",
+  "updated_at": "2026-05-21T12:28:27.167265Z",
+  "current_stage": "",
+  "completed_stages": [
+    "generate_poisoned_dataset"
+  ],
+  "stage_state": {
+    "generate_poisoned_dataset": {
+      "status": "completed",
+      "start_time": "2026-05-21T12:23:02.540041Z",
+      "tausb_global_params": "/root/autodl-tmp/ue_project/runs_phase0/artifacts/tausb_mask/steps40/seed0/noise/global_params.pt",
+      "end_time": "2026-05-21T12:28:27.166707Z"
+    }
+  }
+}

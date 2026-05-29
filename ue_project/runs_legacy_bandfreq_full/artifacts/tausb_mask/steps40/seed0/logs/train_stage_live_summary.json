@@ -1,0 +1,9 @@
+{
+  "method": "tausb_mask",
+  "steps": 40,
+  "seed": 0,
+  "latest_epoch": 199,
+  "latest_checkpoint": "/root/autodl-tmp/ue_project/runs_legacy_bandfreq_full/artifacts/tausb_mask/steps40/seed0/checkpoints/latest.pt",
+  "best_checkpoint": "/root/autodl-tmp/ue_project/runs_legacy_bandfreq_full/artifacts/tausb_mask/steps40/seed0/checkpoints/best.pt",
+  "train_run_dir": "/root/autodl-tmp/ue_project/runs_legacy_bandfreq_full/artifacts/tausb_mask/steps40/seed0/train_runs/victim"
+}

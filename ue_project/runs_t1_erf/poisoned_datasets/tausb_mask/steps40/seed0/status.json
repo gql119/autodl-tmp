@@ -1,0 +1,23 @@
+{
+  "method": "tausb_mask",
+  "steps": 40,
+  "seed": 0,
+  "created_at": "2026-05-21T12:57:14.357785Z",
+  "updated_at": "2026-05-21T15:58:22.713038Z",
+  "current_stage": "",
+  "completed_stages": [
+    "generate_poisoned_dataset"
+  ],
+  "stage_state": {
+    "generate_poisoned_dataset": {
+      "status": "completed",
+      "start_time": "2026-05-21T12:57:14.358599Z",
+      "tausb_global_params": "/root/autodl-tmp/ue_project/runs_t1_erf/artifacts/tausb_mask/steps40/seed0/noise/global_params.pt",
+      "processed": 16551,
+      "total": 16551,
+      "end_time": "2026-05-21T15:58:22.713005Z",
+      "manifest_csv": "/root/autodl-tmp/ue_project/runs_t1_erf/poisoned_datasets/tausb_mask/steps40/seed0/manifest.csv",
+      "poison_stats_jsonl": "/root/autodl-tmp/ue_project/runs_t1_erf/artifacts/tausb_mask/steps40/seed0/poison_stats.jsonl"
+    }
+  }
+}

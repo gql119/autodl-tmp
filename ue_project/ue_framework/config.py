@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 import yaml
 
-SUPPORTED_METHODS = ["em_bbox", "em_mask", "rem_mask", "tausb_mask", "ours_mask", "tap_mask", "lsp_mask"]
+SUPPORTED_METHODS = ["em_bbox", "em_mask", "rem_mask", "tausb_mask", "ours_mask"]
 SUPPORTED_STAGES = [
     "generate_poisoned_dataset",
     "train_victim",
@@ -82,61 +82,14 @@ def _default_config() -> Dict[str, Any]:
             },
             "em_mask": {
                 "support_type": "mask",
-                "eps": 16 / 255,
-                "alpha": 2 / 255,
-                "em_steps": 40,
-                "random_start": False,
-                "objective": "target_score_proxy",
-                "use_target_only_labels": False,
-                "use_prebaked_instance_mask": True,
-                "strict_instance_mask": False,
-                "poison_batch_size": 12,
-                "poison_amp": False,
-                "use_global_steps": False,
+                "step_size": 2 / 255,
+                "noise_scale": 1.0,
             },
             "rem_mask": {
                 "support_type": "mask",
-                "eps": 16 / 255,
-                "alpha": 2 / 255,
-                "rem_steps": 40,
-                "random_start": False,
-                "objective": "target_score_proxy_eot",
-                "use_target_only_labels": False,
+                "step_size": 2 / 255,
+                "noise_scale": 1.0,
                 "eot_samples": 4,
-                "use_prebaked_instance_mask": True,
-                "strict_instance_mask": False,
-                "poison_batch_size": 4,
-                "poison_amp": False,
-                "use_global_steps": False,
-            },
-            "tap_mask": {
-                "support_type": "mask",
-                "eps": 16 / 255,
-                "alpha": 2 / 255,
-                "pgd_steps": 40,
-                "random_start": True,
-                "objective": "untargeted_det_loss",
-                "use_target_only_labels": True,
-                "use_prebaked_instance_mask": True,
-                "strict_instance_mask": False,
-                "poison_batch_size": 12,
-                "poison_amp": False,
-                "use_global_steps": False,
-            },
-            "lsp_mask": {
-                "support_type": "mask",
-                "eps": 16 / 255,
-                "patch_size": 8,
-                "pattern_dim_mode": "image",
-                "class_conditional": True,
-                "target_only": True,
-                "normalize": "linf",
-                "use_prebaked_instance_mask": True,
-                "strict_instance_mask": False,
-                "pattern_seed": 0,
-                "per_image_jitter": False,
-                "jitter_strength": 0.0,
-                "poison_num_workers": 8,
             },
             "tausb_mask": {
                 "support_type": "mask",
@@ -210,85 +163,6 @@ def _deep_update(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, An
 
 def _ensure_method_defaults(cfg: Dict[str, Any]) -> None:
     methods = cfg.get("methods", {})
-    if not isinstance(methods, dict):
-        return
-
-    em_mask = methods.get("em_mask", {})
-    if isinstance(em_mask, dict):
-        em_required = {
-            "support_type": "mask",
-            "alpha": 2 / 255,
-            "em_steps": 40,
-            "random_start": False,
-            "objective": "target_score_proxy",
-            "use_target_only_labels": False,
-            "use_prebaked_instance_mask": True,
-            "strict_instance_mask": False,
-            "poison_batch_size": 12,
-            "poison_amp": False,
-            "use_global_steps": False,
-        }
-        for k, v in em_required.items():
-            if k not in em_mask:
-                em_mask[k] = v
-
-    rem_mask = methods.get("rem_mask", {})
-    if isinstance(rem_mask, dict):
-        rem_required = {
-            "support_type": "mask",
-            "alpha": 2 / 255,
-            "rem_steps": 40,
-            "random_start": False,
-            "objective": "target_score_proxy_eot",
-            "use_target_only_labels": False,
-            "eot_samples": 4,
-            "use_prebaked_instance_mask": True,
-            "strict_instance_mask": False,
-            "poison_batch_size": 4,
-            "poison_amp": False,
-            "use_global_steps": False,
-        }
-        for k, v in rem_required.items():
-            if k not in rem_mask:
-                rem_mask[k] = v
-
-    tap = methods.get("tap_mask", {})
-    if isinstance(tap, dict):
-        tap_required = {
-            "support_type": "mask",
-            "alpha": 2 / 255,
-            "pgd_steps": 40,
-            "random_start": True,
-            "objective": "untargeted_det_loss",
-            "use_target_only_labels": True,
-            "use_prebaked_instance_mask": True,
-            "strict_instance_mask": False,
-            "poison_batch_size": 12,
-            "poison_amp": False,
-            "use_global_steps": False,
-        }
-        for k, v in tap_required.items():
-            if k not in tap:
-                tap[k] = v
-
-    lsp = methods.get("lsp_mask", {})
-    if isinstance(lsp, dict):
-        lsp_required = {
-            "support_type": "mask",
-            "patch_size": 8,
-            "class_conditional": True,
-            "target_only": True,
-            "normalize": "linf",
-            "use_prebaked_instance_mask": True,
-            "strict_instance_mask": False,
-            "pattern_seed": 0,
-            "per_image_jitter": False,
-            "jitter_strength": 0.0,
-            "poison_num_workers": 8,
-        }
-        for k, v in lsp_required.items():
-            if k not in lsp:
-                lsp[k] = v
 
     ours = methods.get("ours_mask", {})
     if isinstance(ours, dict):
