@@ -1,53 +1,69 @@
 {
   "latest": {
-    "epoch": 1,
-    "align_clean_topk": 0.02245887715780125,
-    "align_adv_topk": 0.018845508899906372,
-    "L_entangle_bg": 3.4135602540544325,
-    "L_anchor": 0.7778449340826596,
-    "L_collapse_aux": 0.17547913587938144,
-    "alsi_score": 1327227.6509107049,
-    "cos_t_conf": 0.5722227065595016,
-    "cos_t_clean": 0.8967756931837051,
-    "M_conf_sum": 2802.2899678548183,
-    "rlcp_conf_mass": 260326.51706036745,
-    "rlcp_trim_keep_ratio": 0.8226384649465504,
-    "rlcp_core_exclusion_ratio": 0.12476999648109487,
-    "rlcp_adaptive_inner_mean": 13.660112979413595,
-    "rlcp_adaptive_outer_mean": 32.21580564920282,
-    "rlcp_adaptive_inner_min": 8.03983035209196,
+    "epoch": 40,
+    "align_clean_topk": 0.02230143283061155,
+    "align_adv_topk": 0.01826468067551692,
+    "L_entangle_bg": 2.942798163947158,
+    "L_anchor": 1.0701204710432237,
+    "L_collapse_aux": 0.16373895163454721,
+    "alsi_score": 1314661.5237092092,
+    "cos_t_conf": 0.5928936215836232,
+    "cos_t_clean": 0.8626584466986773,
+    "M_conf_sum": 2805.6471481790472,
+    "rlcp_conf_mass": 260134.18897637795,
+    "rlcp_trim_keep_ratio": 0.8224717155685577,
+    "rlcp_core_exclusion_ratio": 0.12516013264424888,
+    "rlcp_adaptive_inner_mean": 13.658916741340557,
+    "rlcp_adaptive_outer_mean": 32.20805911955406,
+    "rlcp_adaptive_inner_min": 8.053572198398166,
     "rlcp_adaptive_outer_max": 36.0,
-    "confounder_purity_ratio": 0.875206006529874,
-    "overlap_ratio": 0.942750745821261,
-    "preserve_loss": 0.012605920011725209,
-    "L_margin": 0.014834464144886268,
-    "margin_clean_mean": 0.41357947273908324,
-    "margin_adv_mean": 0.3638988099503392,
+    "confounder_purity_ratio": 0.8748073662046055,
+    "overlap_ratio": 0.9434548658026962,
+    "preserve_loss": 0.016441349964955543,
+    "L_margin": 0.01997445459878488,
+    "margin_clean_mean": 0.4128172507905585,
+    "margin_adv_mean": 0.3472488651790331,
     "gate_positive_ratio": 0.011904762126505375,
-    "pag_positive_ratio": 0.5343659166269891,
-    "pag_threshold": 0.7756266490148154,
-    "pag_mean_target_score": 0.7521251167284895,
-    "pag_fallback_count": 4.74015748031496,
-    "perturbed_area_ratio_mean": 0.1586462524658426,
-    "L_tv": 0.014899362119408496,
-    "L_budget": 0.5654235935508423,
-    "L_total": 60.647355597788895,
-    "L_tsvc": 0.17547913587938144,
-    "L_sem": 0.7778449340826596,
-    "sld_score": 1327227.6509107049,
-    "mean_abs_delta": 0.00714507586141838,
+    "pag_positive_ratio": 0.5344347106444886,
+    "pag_threshold": 0.7732155866608705,
+    "pag_mean_target_score": 0.7506459742774761,
+    "pag_fallback_count": 4.673228346456693,
+    "perturbed_area_ratio_mean": 0.16374396386109,
+    "L_tv": 0.03308293581243575,
+    "L_budget": 0.7257451494847695,
+    "L_total": 54.357293867376534,
+    "L_tsvc": 0.16373895163454721,
+    "L_sem": 1.0701204710432237,
+    "sld_score": 1314661.5237092092,
+    "mean_abs_delta": 0.008242411677068065,
     "max_abs_delta": 0.0627450942993164,
-    "saturation_ratio": 0.0924963946906444,
+    "saturation_ratio": 0.1251343024058605,
     "support_prebaked_ratio": 0.0,
     "support_fallback_ratio": 1.0,
     "support_forced_pseudo_fallback_ratio": 1.0,
     "support_empty_ratio": 0.0,
-    "grad_norm_fourier": 6.336233615875244,
+    "grad_norm_fourier": 8.958333969116211,
     "grad_norm_suppress": -1.0,
-    "freq_mode": "explore",
+    "adaptive_freq_select_metric": "attack_collateral_ratio",
+    "freq_attack_grad_mean": 0.7807668447494507,
+    "freq_collateral_grad_mean": 6.027076324244263e-06,
+    "freq_ratio_mean": 161663.671875,
+    "freq_attack_grad_top_mean": 0.8811089992523193,
+    "freq_collateral_grad_top_mean": 6.989353096287232e-06,
+    "freq_ratio_top_mean": 176498.34375,
+    "freq_band_low_attack_top_mean": 1.0657709836959839,
+    "freq_band_mid_attack_top_mean": 0.8920875191688538,
+    "freq_band_high_attack_top_mean": 0.9661058187484741,
+    "freq_band_low_collateral_top_mean": 7.307943633350078e-06,
+    "freq_band_mid_collateral_top_mean": 7.254453066707356e-06,
+    "freq_band_high_collateral_top_mean": 7.714024832239375e-06,
+    "freq_band_low_ratio_top_mean": 211716.5625,
+    "freq_band_mid_ratio_top_mean": 172658.46875,
+    "freq_band_high_ratio_top_mean": 183848.4375,
+    "freq_mode": "fixed_topk",
     "freq_active_num_bases": 16,
     "freq_candidate_num_bases": 64,
-    "freq_score_top_mean": 0.9769105911254883,
+    "freq_score_top_mean": 176498.34375,
     "enable_band_aware_freq_basis": true,
     "freq_band_low_candidate_num": 16,
     "freq_band_mid_candidate_num": 32,
@@ -55,12 +71,12 @@
     "freq_band_low_active_num": 1,
     "freq_band_mid_active_num": 13,
     "freq_band_high_active_num": 2,
-    "freq_band_low_score_mean": 0.9744619131088257,
-    "freq_band_mid_score_mean": 0.7982390522956848,
-    "freq_band_high_score_mean": 0.9386798143386841,
-    "freq_band_low_score_top_mean": 1.224913239479065,
-    "freq_band_mid_score_top_mean": 0.9242786169052124,
-    "freq_band_high_score_top_mean": 1.1950174570083618,
+    "freq_band_low_score_mean": 191727.328125,
+    "freq_band_mid_score_mean": 144340.1875,
+    "freq_band_high_score_mean": 166246.96875,
+    "freq_band_low_score_top_mean": 211716.5625,
+    "freq_band_mid_score_top_mean": 172658.46875,
+    "freq_band_high_score_top_mean": 183848.4375,
     "freq_band_low_radius_mean": 5.5528267713635415,
     "freq_band_mid_radius_mean": 16.407041394653806,
     "freq_band_high_radius_mean": 38.8692674917306,
@@ -68,7 +84,6 @@
       0
     ],
     "freq_selected_mid_indices": [
-      16,
       17,
       18,
       19,
@@ -78,13 +93,14 @@
       23,
       24,
       25,
-      26,
-      27,
-      28
+      34,
+      36,
+      40,
+      41
     ],
     "freq_selected_high_indices": [
-      48,
-      49
+      50,
+      57
     ],
     "freq_selected_low_coords": [
       [
@@ -93,10 +109,6 @@
       ]
     ],
     "freq_selected_mid_coords": [
-      [
-        630,
-        638
-      ],
       [
         13,
         625
@@ -134,26 +146,30 @@
         623
       ],
       [
-        634,
-        10
+        630,
+        623
       ],
       [
-        18,
-        4
+        11,
+        15
       ],
       [
-        623,
-        10
+        626,
+        6
+      ],
+      [
+        14,
+        5
       ]
     ],
     "freq_selected_high_coords": [
       [
-        633,
-        608
+        631,
+        598
       ],
       [
-        0,
-        33
+        624,
+        600
       ]
     ]
   },
@@ -162,10 +178,6 @@
     [
       633,
       0
-    ],
-    [
-      630,
-      638
     ],
     [
       13,
@@ -204,24 +216,28 @@
       623
     ],
     [
-      634,
-      10
+      630,
+      623
     ],
     [
-      18,
-      4
+      11,
+      15
     ],
     [
-      623,
-      10
+      626,
+      6
     ],
     [
-      633,
-      608
+      14,
+      5
     ],
     [
-      0,
-      33
+      631,
+      598
+    ],
+    [
+      624,
+      600
     ]
   ]
 }

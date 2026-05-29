@@ -505,6 +505,15 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
         self.adaptive_freq_select_metric = str(method_cfg.get("adaptive_freq_select_metric", "grad_norm"))
         self.adaptive_freq_update_once = bool(method_cfg.get("adaptive_freq_update_once", True))
         self.freq_basis_seed = int(method_cfg.get("freq_basis_seed", 0))
+        self.freq_score_eps = float(method_cfg.get("freq_score_eps", 1.0e-6))
+        self.freq_score_min_attack_grad = float(method_cfg.get("freq_score_min_attack_grad", 1.0e-7))
+        self.freq_score_use_logits_collateral = bool(method_cfg.get("freq_score_use_logits_collateral", True))
+        self.freq_score_use_feat_collateral = bool(method_cfg.get("freq_score_use_feat_collateral", False))
+        self.freq_score_use_margin_collateral = bool(method_cfg.get("freq_score_use_margin_collateral", False))
+        self.freq_score_attack_use_weighted_loss = bool(method_cfg.get("freq_score_attack_use_weighted_loss", True))
+        self.freq_score_collateral_use_weighted_loss = bool(
+            method_cfg.get("freq_score_collateral_use_weighted_loss", True)
+        )
         self.enable_band_aware_freq_basis = bool(method_cfg.get("enable_band_aware_freq_basis", False))
         self.freq_band_names = [str(x) for x in method_cfg.get("freq_band_names", ["low", "mid", "high"])]
         self.freq_band_candidate_nums = [int(x) for x in method_cfg.get("freq_band_candidate_nums", [16, 32, 16])]
@@ -673,6 +682,18 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
             self._adaptive_freq_metric_warned = False
             self.enable_band_aware_freq_basis = False
 
+        self.freq_score_eps = max(self.freq_score_eps, 1.0e-12)
+        self.freq_score_min_attack_grad = max(self.freq_score_min_attack_grad, 0.0)
+        self.freq_attack_grad_score = torch.zeros(
+            (self.freq_candidate_num_bases,), device=self.device, dtype=torch.float32
+        )
+        self.freq_collateral_grad_score = torch.zeros(
+            (self.freq_candidate_num_bases,), device=self.device, dtype=torch.float32
+        )
+        self.freq_ratio_score = torch.zeros(
+            (self.freq_candidate_num_bases,), device=self.device, dtype=torch.float32
+        )
+
         self.suppress_small = torch.nn.Parameter(
             torch.zeros((1, 3, self.suppress_small_size, self.suppress_small_size), device=self.device)
         )
@@ -774,6 +795,58 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 top_val = float(torch.topk(band_score, k=top_k, largest=True).values.mean().item())
             stats[band_name] = {"mean": mean_val, "top_mean": top_val}
         return stats
+
+    @staticmethod
+    def _topk_mean(score: torch.Tensor, top_idx: torch.Tensor) -> float:
+        if score.numel() == 0 or top_idx.numel() == 0:
+            return float("nan")
+        return float(score[top_idx.long()].mean().item())
+
+    def _update_adaptive_freq_score(
+        self,
+        active_idx: torch.Tensor,
+        L_attack_score: torch.Tensor,
+        L_collateral_score: torch.Tensor,
+    ) -> None:
+        if not self.enable_adaptive_freq_basis:
+            return
+        if self.adaptive_freq_select_metric != "attack_collateral_ratio":
+            return
+
+        attack_grad = None
+        if torch.is_tensor(L_attack_score) and L_attack_score.requires_grad:
+            attack_grad = torch.autograd.grad(
+                L_attack_score,
+                self.fourier_coeff,
+                retain_graph=True,
+                allow_unused=True,
+            )[0]
+        if attack_grad is None:
+            attack_grad = torch.zeros_like(self.fourier_coeff)
+
+        collateral_grad = None
+        if torch.is_tensor(L_collateral_score) and L_collateral_score.requires_grad:
+            collateral_grad = torch.autograd.grad(
+                L_collateral_score,
+                self.fourier_coeff,
+                retain_graph=True,
+                allow_unused=True,
+            )[0]
+        if collateral_grad is None:
+            collateral_grad = torch.zeros_like(attack_grad)
+
+        reduce_dims = tuple(range(1, attack_grad.ndim))
+        attack_score = attack_grad.detach().abs().mean(dim=reduce_dims)
+        collateral_score = collateral_grad.detach().abs().mean(dim=reduce_dims)
+        ratio_score = attack_score / (collateral_score + self.freq_score_eps)
+        ratio_score = torch.where(attack_score >= self.freq_score_min_attack_grad, ratio_score, torch.zeros_like(ratio_score))
+
+        active_idx = active_idx.long()
+        self.freq_attack_grad_score[active_idx] += attack_score[active_idx]
+        self.freq_collateral_grad_score[active_idx] += collateral_score[active_idx]
+        self.freq_ratio_score[active_idx] += ratio_score[active_idx]
+        self.freq_score[active_idx] += ratio_score[active_idx]
+        self.freq_usage[active_idx] += 1.0
 
     def _get_active_freq_indices(self, epoch: int, step: int) -> torch.Tensor:
         if not self.enable_adaptive_freq_basis:
@@ -1144,6 +1217,9 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 L_anchor_total = torch.zeros((), device=self.device)
                 L_flat_total = torch.zeros((), device=self.device)
                 L_preserve_total = torch.zeros((), device=self.device)
+                L_preserve_logits_total = torch.zeros((), device=self.device)
+                L_preserve_feat_total = torch.zeros((), device=self.device)
+                L_margin_total = torch.zeros((), device=self.device)
                 
                 align_clean_topk_acc = 0.0
                 align_adv_topk_acc = 0.0
@@ -1412,10 +1488,12 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     # ====================================================
                     M_supp_spatial = inner_t 
                     M_non_supp_spatial = 1.0 - M_supp_spatial
-                    L_preserve = torch.zeros((), device=self.device) 
+                    L_preserve = torch.zeros((), device=self.device)
+                    L_preserve_feat = torch.zeros((), device=self.device)
+                    L_preserve_logits = torch.zeros((), device=self.device)
+                    L_margin = torch.zeros((), device=self.device)
                     
                     if cur_lambda_preserve > 0:
-                        L_preserve_feat = torch.zeros((), device=self.device)
                         for layer_name in self.preserve_layers:
                             if layer_name in features_clean_cache and layer_name in features_adv_cache:
                                 z_c = features_clean_cache[layer_name]
@@ -1471,12 +1549,18 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     L_anchor_total += L_semantic_anchor
                     L_flat_total += L_collapse_aux
                     L_preserve_total += L_preserve
+                    L_preserve_logits_total += L_preserve_logits
+                    L_preserve_feat_total += L_preserve_feat
+                    L_margin_total += L_margin
 
                 # 计算 EOT 平均
                 L_ent_final = L_ent_total / eot_count
                 L_anchor_final = L_anchor_total / eot_count
                 L_flat_final = L_flat_total / eot_count
                 L_preserve_final = L_preserve_total / eot_count
+                L_preserve_logits_final = L_preserve_logits_total / eot_count
+                L_preserve_feat_final = L_preserve_feat_total / eot_count
+                L_margin_final_for_score = L_margin_total / eot_count
 
                 L_tv = self._tv_loss(raw_perturb)
                 L_budget = F.relu(torch.max(torch.abs(raw_perturb)) - self.eps)
@@ -1490,26 +1574,72 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     + self.lambda_budget * L_budget          
                 )
 
+                attack_scale_ent = self.lambda_ent if self.freq_score_attack_use_weighted_loss else 1.0
+                attack_scale_anchor = self.lambda_anchor if self.freq_score_attack_use_weighted_loss else 1.0
+                attack_scale_flat = self.lambda_flat if self.freq_score_attack_use_weighted_loss else 1.0
+                L_attack_score = (
+                    attack_scale_ent * L_ent_final
+                    + attack_scale_anchor * L_anchor_final
+                    + attack_scale_flat * L_flat_final
+                )
+
+                collateral_terms = []
+                if self.freq_score_use_logits_collateral:
+                    c_scale = self.lambda_preserve_logits if self.freq_score_collateral_use_weighted_loss else 1.0
+                    collateral_terms.append(c_scale * L_preserve_logits_final)
+                if self.freq_score_use_feat_collateral:
+                    c_scale = self.lambda_preserve_feat if self.freq_score_collateral_use_weighted_loss else 1.0
+                    collateral_terms.append(c_scale * L_preserve_feat_final)
+                if self.freq_score_use_margin_collateral:
+                    c_scale = self.lambda_margin if self.freq_score_collateral_use_weighted_loss else 1.0
+                    collateral_terms.append(c_scale * L_margin_final_for_score)
+                if collateral_terms:
+                    L_collateral_score = collateral_terms[0]
+                    for t in collateral_terms[1:]:
+                        L_collateral_score = L_collateral_score + t
+                else:
+                    L_collateral_score = torch.zeros((), device=self.device, dtype=total_loss.dtype)
+
+                metric_for_update = self.adaptive_freq_select_metric
+                if (
+                    self.enable_adaptive_freq_basis
+                    and epoch < self.adaptive_freq_warmup_epochs
+                    and metric_for_update not in {"grad_norm", "attack_collateral_ratio"}
+                ):
+                    if not self._adaptive_freq_metric_warned:
+                        print(
+                            f"[AdaptiveFreq][Warning] unsupported adaptive_freq_select_metric="
+                            f"{self.adaptive_freq_select_metric}, fallback to grad_norm."
+                        )
+                        self._adaptive_freq_metric_warned = True
+                    metric_for_update = "grad_norm"
+
+                if (
+                    self.enable_adaptive_freq_basis
+                    and epoch < self.adaptive_freq_warmup_epochs
+                    and metric_for_update == "attack_collateral_ratio"
+                ):
+                    self._update_adaptive_freq_score(
+                        active_idx=active_idx,
+                        L_attack_score=L_attack_score,
+                        L_collateral_score=L_collateral_score,
+                    )
+
                 total_loss.backward()
 
                 if self.enable_adaptive_freq_basis and epoch < self.adaptive_freq_warmup_epochs:
                     with torch.no_grad():
-                        if self.adaptive_freq_select_metric != "grad_norm" and not self._adaptive_freq_metric_warned:
-                            print(
-                                f"[AdaptiveFreq][Warning] unsupported adaptive_freq_select_metric="
-                                f"{self.adaptive_freq_select_metric}, fallback to grad_norm."
-                            )
-                            self._adaptive_freq_metric_warned = True
-                        grad = self.fourier_coeff.grad
-                        if grad is None:
-                            if not self._adaptive_freq_grad_warned:
-                                print("[AdaptiveFreq][Warning] fourier_coeff.grad is None during warmup; skip score update.")
-                                self._adaptive_freq_grad_warned = True
-                        else:
-                            reduce_dims = tuple(range(1, grad.ndim))
-                            grad_score = grad.detach().abs().mean(dim=reduce_dims)
-                            self.freq_score[active_idx] += grad_score[active_idx]
-                            self.freq_usage[active_idx] += 1.0
+                        if metric_for_update == "grad_norm":
+                            grad = self.fourier_coeff.grad
+                            if grad is None:
+                                if not self._adaptive_freq_grad_warned:
+                                    print("[AdaptiveFreq][Warning] fourier_coeff.grad is None during warmup; skip score update.")
+                                    self._adaptive_freq_grad_warned = True
+                            else:
+                                reduce_dims = tuple(range(1, grad.ndim))
+                                grad_score = grad.detach().abs().mean(dim=reduce_dims)
+                                self.freq_score[active_idx] += grad_score[active_idx]
+                                self.freq_usage[active_idx] += 1.0
 
                 if self.fourier_coeff.grad is not None:
                     grad_norm_fourier = float(torch.norm(self.fourier_coeff.grad).item())
@@ -1597,6 +1727,15 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
             freq_score_top_mean = float("nan")
             band_score_stats: Dict[str, Dict[str, float]] = {}
+            band_attack_stats: Dict[str, Dict[str, float]] = {}
+            band_collateral_stats: Dict[str, Dict[str, float]] = {}
+            band_ratio_stats: Dict[str, Dict[str, float]] = {}
+            freq_attack_grad_mean = float("nan")
+            freq_collateral_grad_mean = float("nan")
+            freq_ratio_mean = float("nan")
+            freq_attack_grad_top_mean = float("nan")
+            freq_collateral_grad_top_mean = float("nan")
+            freq_ratio_top_mean = float("nan")
             if self.enable_adaptive_freq_basis:
                 with torch.no_grad():
                     score_now = self.freq_score / self.freq_usage.clamp_min(1.0)
@@ -1606,6 +1745,20 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     else:
                         top_idx_now = torch.topk(score_now, k=self.freq_active_num_bases, largest=True).indices
                     freq_score_top_mean = float(score_now[top_idx_now].mean().item())
+                    if self.adaptive_freq_select_metric == "attack_collateral_ratio":
+                        attack_now = self.freq_attack_grad_score / self.freq_usage.clamp_min(1.0)
+                        collateral_now = self.freq_collateral_grad_score / self.freq_usage.clamp_min(1.0)
+                        ratio_now = self.freq_ratio_score / self.freq_usage.clamp_min(1.0)
+                        freq_attack_grad_mean = float(attack_now.mean().item())
+                        freq_collateral_grad_mean = float(collateral_now.mean().item())
+                        freq_ratio_mean = float(ratio_now.mean().item())
+                        freq_attack_grad_top_mean = self._topk_mean(attack_now, top_idx_now)
+                        freq_collateral_grad_top_mean = self._topk_mean(collateral_now, top_idx_now)
+                        freq_ratio_top_mean = self._topk_mean(ratio_now, top_idx_now)
+                        if self.enable_band_aware_freq_basis:
+                            band_attack_stats = self._compute_band_score_stats(attack_now)
+                            band_collateral_stats = self._compute_band_score_stats(collateral_now)
+                            band_ratio_stats = self._compute_band_score_stats(ratio_now)
 
                 if self.adaptive_freq_update_once:
                     need_select_topk = (epoch + 1 == self.adaptive_freq_warmup_epochs)
@@ -1642,6 +1795,22 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                                 for band_name in self.freq_band_names
                             }
                             band_score_stats = self._compute_band_score_stats(score)
+                            selected_attack_top_mean = float("nan")
+                            selected_collateral_top_mean = float("nan")
+                            selected_ratio_top_mean = float("nan")
+                            selected_band_attack_stats: Dict[str, Dict[str, float]] = {}
+                            selected_band_collateral_stats: Dict[str, Dict[str, float]] = {}
+                            selected_band_ratio_stats: Dict[str, Dict[str, float]] = {}
+                            if self.adaptive_freq_select_metric == "attack_collateral_ratio":
+                                attack_now = self.freq_attack_grad_score / self.freq_usage.clamp_min(1.0)
+                                collateral_now = self.freq_collateral_grad_score / self.freq_usage.clamp_min(1.0)
+                                ratio_now = self.freq_ratio_score / self.freq_usage.clamp_min(1.0)
+                                selected_attack_top_mean = self._topk_mean(attack_now, self.freq_active_idx)
+                                selected_collateral_top_mean = self._topk_mean(collateral_now, self.freq_active_idx)
+                                selected_ratio_top_mean = self._topk_mean(ratio_now, self.freq_active_idx)
+                                selected_band_attack_stats = self._compute_band_score_stats(attack_now)
+                                selected_band_collateral_stats = self._compute_band_score_stats(collateral_now)
+                                selected_band_ratio_stats = self._compute_band_score_stats(ratio_now)
                             quota_parts = [
                                 f"{band_name}={int(k)}" for band_name, k in zip(self.freq_band_names, self.freq_band_active_nums)
                             ]
@@ -1659,6 +1828,20 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                             for band_name in self.freq_band_names:
                                 bstats = band_score_stats.get(band_name, {})
                                 print(f"  score_top_mean_{band_name}={float(bstats.get('top_mean', float('nan'))):.6e}")
+                            if self.adaptive_freq_select_metric == "attack_collateral_ratio":
+                                print("[AdaptiveFreq] metric=attack_collateral_ratio")
+                                print(f"  attack_top_mean={selected_attack_top_mean:.6e}")
+                                print(f"  collateral_top_mean={selected_collateral_top_mean:.6e}")
+                                print(f"  ratio_top_mean={selected_ratio_top_mean:.6e}")
+                                for band_name in self.freq_band_names:
+                                    b_attack = selected_band_attack_stats.get(band_name, {})
+                                    b_coll = selected_band_collateral_stats.get(band_name, {})
+                                    b_ratio = selected_band_ratio_stats.get(band_name, {})
+                                    print(
+                                        f"  band={band_name} attack_top_mean={float(b_attack.get('top_mean', float('nan'))):.6e} "
+                                        f"collateral_top_mean={float(b_coll.get('top_mean', float('nan'))):.6e} "
+                                        f"ratio_top_mean={float(b_ratio.get('top_mean', float('nan'))):.6e}"
+                                    )
                         else:
                             print("[AdaptiveFreq] selected active basis:")
                             print(f"  candidate_num={self.freq_candidate_num_bases}")
@@ -1668,6 +1851,14 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                             print(f"  score_top_mean={score[self.freq_active_idx].mean().item():.6e}")
                             print(f"  score_max={score.max().item():.6e}")
                             print(f"  score_min={score.min().item():.6e}")
+                            if self.adaptive_freq_select_metric == "attack_collateral_ratio":
+                                attack_now = self.freq_attack_grad_score / self.freq_usage.clamp_min(1.0)
+                                collateral_now = self.freq_collateral_grad_score / self.freq_usage.clamp_min(1.0)
+                                ratio_now = self.freq_ratio_score / self.freq_usage.clamp_min(1.0)
+                                print("[AdaptiveFreq] metric=attack_collateral_ratio")
+                                print(f"  attack_top_mean={self._topk_mean(attack_now, self.freq_active_idx):.6e}")
+                                print(f"  collateral_top_mean={self._topk_mean(collateral_now, self.freq_active_idx):.6e}")
+                                print(f"  ratio_top_mean={self._topk_mean(ratio_now, self.freq_active_idx):.6e}")
 
             if self.enable_adaptive_freq_basis:
                 freq_mode = "explore" if epoch < self.adaptive_freq_warmup_epochs else "fixed_topk"
@@ -1694,6 +1885,9 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
             band_score_mean_map: Dict[str, float] = {name: float("nan") for name in band_name_triplet}
             band_score_top_mean_map: Dict[str, float] = {name: float("nan") for name in band_name_triplet}
             band_radius_mean_map: Dict[str, float] = {name: float("nan") for name in band_name_triplet}
+            band_attack_top_mean_map: Dict[str, float] = {name: float("nan") for name in band_name_triplet}
+            band_collateral_top_mean_map: Dict[str, float] = {name: float("nan") for name in band_name_triplet}
+            band_ratio_top_mean_map: Dict[str, float] = {name: float("nan") for name in band_name_triplet}
             if self.enable_adaptive_freq_basis and self.enable_band_aware_freq_basis:
                 selected_raw = self._split_indices_by_band(self.freq_active_idx)
                 for name in band_name_triplet:
@@ -1707,12 +1901,34 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     band_score_mean_map[name] = float(stats.get("mean", float("nan")))
                     band_score_top_mean_map[name] = float(stats.get("top_mean", float("nan")))
                     band_radius_mean_map[name] = float(self._freq_band_radius_mean.get(name, float("nan")))
+                    attack_stats = band_attack_stats.get(name, {})
+                    collateral_stats = band_collateral_stats.get(name, {})
+                    ratio_stats = band_ratio_stats.get(name, {})
+                    band_attack_top_mean_map[name] = float(attack_stats.get("top_mean", float("nan")))
+                    band_collateral_top_mean_map[name] = float(collateral_stats.get("top_mean", float("nan")))
+                    band_ratio_top_mean_map[name] = float(ratio_stats.get("top_mean", float("nan")))
 
             row = {
                 "epoch": epoch + 1,
                 **epoch_diag,
                 "grad_norm_fourier": grad_norm_fourier if "grad_norm_fourier" in locals() else float("nan"),
                 "grad_norm_suppress": grad_norm_suppress if "grad_norm_suppress" in locals() else float("nan"),
+                "adaptive_freq_select_metric": self.adaptive_freq_select_metric,
+                "freq_attack_grad_mean": freq_attack_grad_mean,
+                "freq_collateral_grad_mean": freq_collateral_grad_mean,
+                "freq_ratio_mean": freq_ratio_mean,
+                "freq_attack_grad_top_mean": freq_attack_grad_top_mean,
+                "freq_collateral_grad_top_mean": freq_collateral_grad_top_mean,
+                "freq_ratio_top_mean": freq_ratio_top_mean,
+                "freq_band_low_attack_top_mean": band_attack_top_mean_map["low"],
+                "freq_band_mid_attack_top_mean": band_attack_top_mean_map["mid"],
+                "freq_band_high_attack_top_mean": band_attack_top_mean_map["high"],
+                "freq_band_low_collateral_top_mean": band_collateral_top_mean_map["low"],
+                "freq_band_mid_collateral_top_mean": band_collateral_top_mean_map["mid"],
+                "freq_band_high_collateral_top_mean": band_collateral_top_mean_map["high"],
+                "freq_band_low_ratio_top_mean": band_ratio_top_mean_map["low"],
+                "freq_band_mid_ratio_top_mean": band_ratio_top_mean_map["mid"],
+                "freq_band_high_ratio_top_mean": band_ratio_top_mean_map["high"],
             }
             if self.enable_adaptive_freq_basis:
                 row.update(
@@ -1780,7 +1996,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 ("overlap_ratio", "range", 0.91, 0.97),
                 ("pag_positive_ratio", "range", 0.50, 0.56),
                 ("confounder_purity_ratio", "range", 0.845, 0.905),
-                ("L_entangle_bg", "range", 3.18, 3.36),
+                ("L_entangle_bg", "range", 3.10, 3.36),
                 ("L_anchor", "range", 0.85, 0.97),
                 ("L_collapse_aux", "range", 0.162, 0.169),
                 ("saturation_ratio", "range", 0.085, 0.125),
