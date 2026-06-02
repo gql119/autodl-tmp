@@ -3,7 +3,7 @@ set -euo pipefail
 
 # [配置核对] 目前读取的是 tausb_formal。如果你想跑 ours_mask 实验，请将文件名改为 exp_voc_person_formal.yaml
 #CONFIG="ue_framework/configs/exp_voc_person_tausb_formal.yaml"
-CONFIG="ue_framework/configs/exp_voc_person_tausb_legacy_bandfreq_ratio_full.yaml"
+CONFIG="ue_framework/configs/exp_voc_person_tausb_fhml2_late_repair_full.yaml"
 GPU_ID="${GPU_ID:-0}"
 
 # [致命修复] 强制将全局输出目录指向 50GB 数据盘！
