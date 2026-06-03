@@ -9,19 +9,19 @@
 [TAUSB] training global universal params ...
 
 🔬 [Mask Space Diagnostics] (Mid-range Annulus)
-   Target Inner Sum: 587330.0
-   Target Ring Sum: 114232.0
-   Non-Target Core Sum: 552385.0
-   Local Ctx Annulus Sum: 290794.0
-   Final M_conf Sum: 249382.0
+   Target Inner Sum: 1301466.0
+   Target Ring Sum: 232891.0
+   Non-Target Core Sum: 1090540.0
+   Local Ctx Annulus Sum: 607939.0
+   Final M_conf Sum: 512868.0
    ----------------------------------
-   ⚠️ Removed by Non-Target Objects: 41412.0
+   ⚠️ Removed by Non-Target Objects: 95071.0
    ⚠️ Removed by Ring (Should be 0 now): 0.0
-   🔥 Raw Purity Ratio: 85.76%
-   rlcp_core_exclusion_ratio: 14.24%
+   🔥 Raw Purity Ratio: 84.36%
+   rlcp_core_exclusion_ratio: 15.64%
    context_mode: adaptive
-   rlcp_adaptive_inner_mean: 13.490
-   rlcp_adaptive_outer_mean: 31.916
+   rlcp_adaptive_inner_mean: 14.180
+   rlcp_adaptive_outer_mean: 33.039
    rlcp_adaptive_inner_min: 8.000
    rlcp_adaptive_outer_max: 36.000
    rlcp_adaptive_inner_max: 16.000
@@ -30,121 +30,121 @@
 ======================================================================
 🎯 [STRICT AL-SVC PROBE] Intercepted Real TAL Assigner Outputs
 ======================================================================
-  - target_labels  : shape=(16, 8400), dtype=torch.int64, min=1.00, max=15.00
-  - target_scores  : shape=(16, 8400, 20), dtype=torch.float32, min=0.00, max=1.00
-  - fg_mask        : shape=(16, 8400), dtype=torch.bool, min=0.00, max=1.00
-  - target_gt_idx  : shape=(16, 8400), dtype=torch.int64, min=0.00, max=7.00
+  - target_labels  : shape=(32, 8400), dtype=torch.int64, min=1.00, max=18.00
+  - target_scores  : shape=(32, 8400, 20), dtype=torch.float32, min=0.00, max=0.99
+  - fg_mask        : shape=(32, 8400), dtype=torch.bool, min=0.00, max=1.00
+  - target_gt_idx  : shape=(32, 8400), dtype=torch.int64, min=0.00, max=7.00
 ======================================================================
 
 
-🔬 [Sanity Check 1] fg positives: 568
-🔬 [Sanity Check 1] strict target positives: 348
-🔬 [Sanity Check 1] pag positives: 176 (ratio=50.57%, threshold=0.7805, mean_target_score=0.7686)
+🔬 [Sanity Check 1] fg positives: 1078
+🔬 [Sanity Check 1] strict target positives: 678
+🔬 [Sanity Check 1] pag positives: 342 (ratio=50.44%, threshold=0.7873, mean_target_score=0.7623)
 🔬 [PAG Layer Stats]
-   model.15: strict=54 -> pag=39 (ratio=72.22%)
-   model.18: strict=92 -> pag=56 (ratio=60.87%)
-   model.21: strict=202 -> pag=81 (ratio=40.10%)
+   model.15: strict=71 -> pag=54 (ratio=76.06%)
+   model.18: strict=181 -> pag=114 (ratio=62.98%)
+   model.21: strict=426 -> pag=174 (ratio=40.85%)
 🔬 [Sanity Check 2&3 - model.15]
-   M_topology sum: 14340.4
-   M_assign_2d sum: 39.0
-   M_AL sum: 33.9
-   rlcp_conf_mass: 6136.1
-   rlcp_trim_keep_ratio: 80.61%
-   rlcp_core_exclusion_ratio: 14.14%
-   confounder_purity_ratio: 85.78%
-   overlap ratio: 87.05%
+   M_topology sum: 31778.5
+   M_assign_2d sum: 54.0
+   M_AL sum: 48.9
+   rlcp_conf_mass: 12602.4
+   rlcp_trim_keep_ratio: 80.62%
+   rlcp_core_exclusion_ratio: 15.46%
+   confounder_purity_ratio: 84.47%
+   overlap ratio: 90.65%
 🔬 [Sanity Check 2&3 - model.18]
-   M_topology sum: 3584.7
-   M_assign_2d sum: 56.0
-   M_AL sum: 52.8
-   rlcp_conf_mass: 1525.3
-   rlcp_trim_keep_ratio: 86.04%
-   rlcp_core_exclusion_ratio: 13.97%
-   confounder_purity_ratio: 85.83%
-   overlap ratio: 94.27%
+   M_topology sum: 7943.0
+   M_assign_2d sum: 114.0
+   M_AL sum: 107.7
+   rlcp_conf_mass: 3137.8
+   rlcp_trim_keep_ratio: 83.49%
+   rlcp_core_exclusion_ratio: 15.39%
+   confounder_purity_ratio: 84.42%
+   overlap ratio: 94.49%
 🔬 [Sanity Check 2&3 - model.21]
-   M_topology sum: 896.9
-   M_assign_2d sum: 81.0
-   M_AL sum: 79.0
-   rlcp_conf_mass: 382.4
-   rlcp_trim_keep_ratio: 83.26%
-   rlcp_core_exclusion_ratio: 14.00%
-   confounder_purity_ratio: 85.83%
-   overlap ratio: 97.47%
+   M_topology sum: 1986.6
+   M_assign_2d sum: 174.0
+   M_AL sum: 167.0
+   rlcp_conf_mass: 786.8
+   rlcp_trim_keep_ratio: 84.68%
+   rlcp_core_exclusion_ratio: 15.33%
+   confounder_purity_ratio: 84.34%
+   overlap ratio: 95.96%
 
 🔬 [DSNP-lite Diagnostics]
    L_margin: 0.000000
-   margin_clean_mean: 0.475873
-   margin_adv_mean: 0.475873
+   margin_clean_mean: 0.476174
+   margin_adv_mean: 0.476174
   -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_0_step_0.png
-[ALSD-ALCE][epoch 1/40] L_ent=3.4160 L_anchor=0.7846 L_flat=0.1754 L_margin=0.0148 ALSI=1322860.20 Purity=87.52% PAG=53.44% Sat=9.23% Max_D=0.0627 Freq=explore FAct=16 FCand=64 FScoreTop=1.957e+05
-[ALSD-ALCE][epoch 2/40] L_ent=3.2603 L_anchor=0.8489 L_flat=0.1709 L_margin=0.0162 ALSI=1277194.75 Purity=87.49% PAG=53.46% Sat=9.92% Max_D=0.0627 Freq=explore FAct=16 FCand=64 FScoreTop=1.837e+05
-[ALSD-ALCE][epoch 3/40] L_ent=3.2477 L_anchor=0.8851 L_flat=0.1707 L_margin=0.0164 ALSI=1345448.77 Purity=87.49% PAG=53.45% Sat=10.23% Max_D=0.0627 Freq=explore FAct=16 FCand=64 FScoreTop=1.807e+05
-[ALSD-ALCE][epoch 4/40] L_ent=3.2217 L_anchor=0.9032 L_flat=0.1718 L_margin=0.0166 ALSI=1288698.85 Purity=87.48% PAG=53.51% Sat=10.40% Max_D=0.0627 Freq=explore FAct=16 FCand=64 FScoreTop=1.783e+05
+[ALSD-ALCE][epoch 1/40] L_ent=3.4609 L_anchor=0.7513 L_flat=0.1782 L_margin=0.0143 ALSI=1330555.79 Purity=87.57% PAG=53.57% Sat=8.92% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=explore FAct=16 FCand=64 FScoreTop=1.938e+05
+[ALSD-ALCE][epoch 2/40] L_ent=3.2476 L_anchor=0.8772 L_flat=0.1737 L_margin=0.0162 ALSI=1237992.71 Purity=87.59% PAG=53.54% Sat=9.86% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=explore FAct=16 FCand=64 FScoreTop=1.649e+05
+[ALSD-ALCE][epoch 3/40] L_ent=3.2139 L_anchor=0.9060 L_flat=0.1723 L_margin=0.0164 ALSI=1243305.46 Purity=87.52% PAG=53.60% Sat=10.13% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=explore FAct=16 FCand=64 FScoreTop=1.579e+05
+[ALSD-ALCE][epoch 4/40] L_ent=3.1944 L_anchor=0.9096 L_flat=0.1699 L_margin=0.0170 ALSI=1357721.15 Purity=87.57% PAG=53.59% Sat=10.34% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=explore FAct=16 FCand=64 FScoreTop=1.539e+05
 [BandAwareFreq] selected active basis:
   candidate_num=64
   active_num=16
   active_quota: low=1 mid=13 high=2
-  selected_low_idx=[0]
-  selected_mid_idx=[17, 18, 19, 20, 21, 22, 23, 24, 25, 34, 36, 40, 41]
-  selected_high_idx=[50, 57]
-  selected_low_coords=[[633, 0]]
-  selected_mid_coords=[[13, 625], [626, 630], [635, 19], [630, 7], [8, 625], [16, 636], [6, 12], [636, 628], [4, 623], [630, 623], [11, 15], [626, 6], [14, 5]]
-  selected_high_coords=[[631, 598], [624, 600]]
-  score_mean_low=1.917273e+05
-  score_mean_mid=1.443402e+05
-  score_mean_high=1.662470e+05
-  score_top_mean_low=2.117166e+05
-  score_top_mean_mid=1.726585e+05
-  score_top_mean_high=1.838484e+05
+  selected_low_idx=[1]
+  selected_mid_idx=[16, 17, 18, 19, 24, 25, 26, 29, 37, 40, 41, 44, 46]
+  selected_high_idx=[50, 62]
+  selected_low_coords=[[634, 2]]
+  selected_mid_coords=[[630, 638], [13, 625], [626, 630], [635, 19], [636, 628], [4, 623], [634, 10], [628, 5], [627, 630], [626, 6], [14, 5], [0, 629], [636, 14]]
+  selected_high_coords=[[631, 598], [610, 607]]
+  score_mean_low=1.690802e+05
+  score_mean_mid=1.275559e+05
+  score_mean_high=1.458224e+05
+  score_top_mean_low=2.139685e+05
+  score_top_mean_mid=1.461060e+05
+  score_top_mean_high=1.737559e+05
 [AdaptiveFreq] metric=attack_collateral_ratio
-  attack_top_mean=8.811090e-01
-  collateral_top_mean=6.989353e-06
-  ratio_top_mean=1.764983e+05
-  band=low attack_top_mean=1.065771e+00 collateral_top_mean=7.307944e-06 ratio_top_mean=2.117166e+05
-  band=mid attack_top_mean=8.920875e-01 collateral_top_mean=7.254453e-06 ratio_top_mean=1.726585e+05
-  band=high attack_top_mean=9.661058e-01 collateral_top_mean=7.714025e-06 ratio_top_mean=1.838484e+05
-[ALSD-ALCE][epoch 5/40] L_ent=3.2182 L_anchor=0.9106 L_flat=0.1685 L_margin=0.0169 ALSI=1369062.03 Purity=87.50% PAG=53.47% Sat=10.60% Max_D=0.0627 Freq=explore FAct=16 FCand=64 FScoreTop=1.765e+05
-  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_5_step_1905.png
-[ALSD-ALCE][epoch 6/40] L_ent=3.3956 L_anchor=0.7842 L_flat=0.1749 L_margin=0.0163 ALSI=1312798.04 Purity=87.50% PAG=53.49% Sat=10.96% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 7/40] L_ent=3.1822 L_anchor=0.9259 L_flat=0.1688 L_margin=0.0179 ALSI=1365993.22 Purity=87.51% PAG=53.46% Sat=11.49% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 8/40] L_ent=3.1330 L_anchor=0.9702 L_flat=0.1670 L_margin=0.0187 ALSI=1419180.65 Purity=87.48% PAG=53.40% Sat=11.58% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 9/40] L_ent=3.1124 L_anchor=0.9742 L_flat=0.1687 L_margin=0.0185 ALSI=1378016.16 Purity=87.49% PAG=53.46% Sat=11.75% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 10/40] L_ent=3.1025 L_anchor=0.9790 L_flat=0.1679 L_margin=0.0186 ALSI=1292505.91 Purity=87.51% PAG=53.48% Sat=11.96% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_10_step_3810.png
-[ALSD-ALCE][epoch 11/40] L_ent=3.0824 L_anchor=0.9943 L_flat=0.1680 L_margin=0.0189 ALSI=1285323.65 Purity=87.53% PAG=53.41% Sat=12.04% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 12/40] L_ent=3.0631 L_anchor=1.0097 L_flat=0.1666 L_margin=0.0189 ALSI=1319519.55 Purity=87.55% PAG=53.47% Sat=12.13% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 13/40] L_ent=3.0408 L_anchor=1.0072 L_flat=0.1666 L_margin=0.0191 ALSI=1292441.88 Purity=87.55% PAG=53.50% Sat=12.16% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 14/40] L_ent=3.0505 L_anchor=1.0174 L_flat=0.1641 L_margin=0.0191 ALSI=1310684.96 Purity=87.51% PAG=53.40% Sat=12.23% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 15/40] L_ent=3.0325 L_anchor=1.0180 L_flat=0.1655 L_margin=0.0193 ALSI=1279394.59 Purity=87.45% PAG=53.42% Sat=12.29% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_15_step_5715.png
-[ALSD-ALCE][epoch 16/40] L_ent=3.0465 L_anchor=1.0097 L_flat=0.1669 L_margin=0.0192 ALSI=1412234.19 Purity=87.51% PAG=53.45% Sat=12.31% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 17/40] L_ent=3.0151 L_anchor=1.0233 L_flat=0.1664 L_margin=0.0194 ALSI=1240869.59 Purity=87.46% PAG=53.49% Sat=12.35% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 18/40] L_ent=2.9971 L_anchor=1.0297 L_flat=0.1668 L_margin=0.0194 ALSI=1220794.16 Purity=87.49% PAG=53.45% Sat=12.43% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 19/40] L_ent=2.9962 L_anchor=1.0317 L_flat=0.1669 L_margin=0.0197 ALSI=1245286.01 Purity=87.45% PAG=53.48% Sat=12.51% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 20/40] L_ent=2.9851 L_anchor=1.0501 L_flat=0.1663 L_margin=0.0193 ALSI=1267111.29 Purity=87.48% PAG=53.43% Sat=12.52% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_20_step_7620.png
-[ALSD-ALCE][epoch 21/40] L_ent=2.9716 L_anchor=1.0588 L_flat=0.1635 L_margin=0.0196 ALSI=1314403.84 Purity=87.54% PAG=53.51% Sat=12.54% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 22/40] L_ent=2.9614 L_anchor=1.0516 L_flat=0.1652 L_margin=0.0195 ALSI=1302400.93 Purity=87.49% PAG=53.45% Sat=12.59% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 23/40] L_ent=2.9643 L_anchor=1.0577 L_flat=0.1649 L_margin=0.0197 ALSI=1317599.55 Purity=87.55% PAG=53.50% Sat=12.53% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 24/40] L_ent=2.9648 L_anchor=1.0512 L_flat=0.1649 L_margin=0.0195 ALSI=1321568.45 Purity=87.52% PAG=53.49% Sat=12.52% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 25/40] L_ent=2.9626 L_anchor=1.0572 L_flat=0.1653 L_margin=0.0199 ALSI=1297055.05 Purity=87.55% PAG=53.39% Sat=12.59% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_25_step_9525.png
-[ALSD-ALCE][epoch 26/40] L_ent=2.9548 L_anchor=1.0694 L_flat=0.1657 L_margin=0.0200 ALSI=1352616.90 Purity=87.50% PAG=53.50% Sat=12.56% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 27/40] L_ent=2.9588 L_anchor=1.0584 L_flat=0.1647 L_margin=0.0196 ALSI=1323148.44 Purity=87.51% PAG=53.49% Sat=12.56% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 28/40] L_ent=2.9553 L_anchor=1.0527 L_flat=0.1660 L_margin=0.0195 ALSI=1285555.11 Purity=87.48% PAG=53.39% Sat=12.57% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 29/40] L_ent=2.9506 L_anchor=1.0617 L_flat=0.1650 L_margin=0.0198 ALSI=1319164.11 Purity=87.56% PAG=53.50% Sat=12.50% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 30/40] L_ent=2.9477 L_anchor=1.0634 L_flat=0.1643 L_margin=0.0195 ALSI=1303530.67 Purity=87.45% PAG=53.48% Sat=12.58% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_30_step_11430.png
-[ALSD-ALCE][epoch 31/40] L_ent=2.9522 L_anchor=1.0717 L_flat=0.1635 L_margin=0.0203 ALSI=1423396.97 Purity=87.50% PAG=53.47% Sat=12.48% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 32/40] L_ent=2.9576 L_anchor=1.0678 L_flat=0.1650 L_margin=0.0200 ALSI=1340202.19 Purity=87.48% PAG=53.49% Sat=12.51% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 33/40] L_ent=2.9453 L_anchor=1.0789 L_flat=0.1646 L_margin=0.0197 ALSI=1234455.55 Purity=87.48% PAG=53.46% Sat=12.53% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 34/40] L_ent=2.9455 L_anchor=1.0704 L_flat=0.1657 L_margin=0.0194 ALSI=1299045.93 Purity=87.52% PAG=53.49% Sat=12.48% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 35/40] L_ent=2.9305 L_anchor=1.0735 L_flat=0.1660 L_margin=0.0198 ALSI=1283550.45 Purity=87.52% PAG=53.53% Sat=12.49% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_35_step_13335.png
-[ALSD-ALCE][epoch 36/40] L_ent=2.9466 L_anchor=1.0658 L_flat=0.1642 L_margin=0.0199 ALSI=1269368.84 Purity=87.52% PAG=53.39% Sat=12.48% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 37/40] L_ent=2.9436 L_anchor=1.0681 L_flat=0.1652 L_margin=0.0199 ALSI=1254711.38 Purity=87.48% PAG=53.43% Sat=12.51% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 38/40] L_ent=2.9399 L_anchor=1.0777 L_flat=0.1655 L_margin=0.0196 ALSI=1289446.04 Purity=87.49% PAG=53.49% Sat=12.46% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 39/40] L_ent=2.9373 L_anchor=1.0818 L_flat=0.1658 L_margin=0.0195 ALSI=1322001.03 Purity=87.49% PAG=53.52% Sat=12.47% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
-[ALSD-ALCE][epoch 40/40] L_ent=2.9428 L_anchor=1.0701 L_flat=0.1637 L_margin=0.0200 ALSI=1314661.52 Purity=87.48% PAG=53.44% Sat=12.51% Max_D=0.0627 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.765e+05
+  attack_top_mean=7.016395e-01
+  collateral_top_mean=5.293889e-06
+  ratio_top_mean=1.538036e+05
+  band=low attack_top_mean=8.968778e-01 collateral_top_mean=6.222676e-06 ratio_top_mean=2.139685e+05
+  band=mid attack_top_mean=6.891136e-01 collateral_top_mean=5.585049e-06 ratio_top_mean=1.461060e+05
+  band=high attack_top_mean=8.291553e-01 collateral_top_mean=6.726601e-06 ratio_top_mean=1.737559e+05
+[ALSD-ALCE][epoch 5/40] L_ent=3.1759 L_anchor=0.9422 L_flat=0.1718 L_margin=0.0172 ALSI=1288859.61 Purity=87.59% PAG=53.58% Sat=10.60% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=explore FAct=16 FCand=64 FScoreTop=1.538e+05
+  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_5_step_955.png
+[ALSD-ALCE][epoch 6/40] L_ent=3.2210 L_anchor=0.8872 L_flat=0.1715 L_margin=0.0160 ALSI=1337898.14 Purity=87.53% PAG=53.59% Sat=11.63% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 7/40] L_ent=3.1697 L_anchor=0.9250 L_flat=0.1702 L_margin=0.0165 ALSI=1338238.20 Purity=87.53% PAG=53.60% Sat=11.89% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 8/40] L_ent=3.1549 L_anchor=0.9324 L_flat=0.1705 L_margin=0.0166 ALSI=1411145.92 Purity=87.53% PAG=53.60% Sat=12.01% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 9/40] L_ent=3.1472 L_anchor=0.9411 L_flat=0.1705 L_margin=0.0167 ALSI=1341351.28 Purity=87.55% PAG=53.65% Sat=12.09% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 10/40] L_ent=3.1324 L_anchor=0.9514 L_flat=0.1700 L_margin=0.0170 ALSI=1322042.09 Purity=87.53% PAG=53.59% Sat=12.16% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_10_step_1910.png
+[ALSD-ALCE][epoch 11/40] L_ent=3.1344 L_anchor=0.9451 L_flat=0.1692 L_margin=0.0166 ALSI=1282344.92 Purity=87.58% PAG=53.63% Sat=12.26% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 12/40] L_ent=3.1387 L_anchor=0.9527 L_flat=0.1693 L_margin=0.0168 ALSI=1366208.87 Purity=87.54% PAG=53.56% Sat=12.29% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 13/40] L_ent=3.1205 L_anchor=0.9514 L_flat=0.1685 L_margin=0.0169 ALSI=1329618.29 Purity=87.58% PAG=53.59% Sat=12.31% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 14/40] L_ent=3.1176 L_anchor=0.9553 L_flat=0.1690 L_margin=0.0170 ALSI=1262632.31 Purity=87.55% PAG=53.63% Sat=12.39% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 15/40] L_ent=3.1133 L_anchor=0.9578 L_flat=0.1687 L_margin=0.0166 ALSI=1306575.96 Purity=87.57% PAG=53.59% Sat=12.44% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_15_step_2865.png
+[ALSD-ALCE][epoch 16/40] L_ent=3.1094 L_anchor=0.9579 L_flat=0.1688 L_margin=0.0167 ALSI=1327803.70 Purity=87.53% PAG=53.56% Sat=12.49% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 17/40] L_ent=3.0972 L_anchor=0.9587 L_flat=0.1680 L_margin=0.0171 ALSI=1279784.87 Purity=87.58% PAG=53.61% Sat=12.55% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 18/40] L_ent=3.0931 L_anchor=0.9549 L_flat=0.1681 L_margin=0.0168 ALSI=1376580.95 Purity=87.57% PAG=53.61% Sat=12.63% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 19/40] L_ent=3.0933 L_anchor=0.9666 L_flat=0.1676 L_margin=0.0172 ALSI=1339883.89 Purity=87.56% PAG=53.54% Sat=12.67% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 20/40] L_ent=3.0836 L_anchor=0.9746 L_flat=0.1673 L_margin=0.0169 ALSI=1378994.59 Purity=87.57% PAG=53.64% Sat=12.75% Late=0.00 EntS=1.01 AncS=1.01 FlatS=1.01 LogitS=1.01 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_20_step_3820.png
+[ALSD-ALCE][epoch 21/40] L_ent=3.0756 L_anchor=0.9904 L_flat=0.1675 L_margin=0.0169 ALSI=1346896.91 Purity=87.57% PAG=53.64% Sat=12.76% Late=0.20 EntS=0.91 AncS=0.97 FlatS=0.97 LogitS=1.25 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 22/40] L_ent=3.0836 L_anchor=0.9684 L_flat=0.1672 L_margin=0.0170 ALSI=1374263.66 Purity=87.53% PAG=53.64% Sat=12.78% Late=0.40 EntS=0.81 AncS=0.93 FlatS=0.93 LogitS=1.49 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 23/40] L_ent=3.0669 L_anchor=0.9856 L_flat=0.1675 L_margin=0.0174 ALSI=1325380.26 Purity=87.58% PAG=53.59% Sat=12.82% Late=0.60 EntS=0.71 AncS=0.89 FlatS=0.89 LogitS=1.73 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 24/40] L_ent=3.0691 L_anchor=0.9860 L_flat=0.1674 L_margin=0.0171 ALSI=1400784.62 Purity=87.52% PAG=53.60% Sat=12.80% Late=0.80 EntS=0.61 AncS=0.85 FlatS=0.85 LogitS=1.97 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 25/40] L_ent=3.0725 L_anchor=0.9812 L_flat=0.1677 L_margin=0.0172 ALSI=1302865.84 Purity=87.50% PAG=53.63% Sat=12.79% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_25_step_4775.png
+[ALSD-ALCE][epoch 26/40] L_ent=3.0729 L_anchor=0.9847 L_flat=0.1677 L_margin=0.0170 ALSI=1393602.14 Purity=87.58% PAG=53.66% Sat=12.82% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 27/40] L_ent=3.0622 L_anchor=0.9793 L_flat=0.1672 L_margin=0.0170 ALSI=1401228.88 Purity=87.57% PAG=53.66% Sat=12.81% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 28/40] L_ent=3.0723 L_anchor=0.9772 L_flat=0.1689 L_margin=0.0171 ALSI=1297039.74 Purity=87.54% PAG=53.59% Sat=12.81% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 29/40] L_ent=3.0676 L_anchor=0.9898 L_flat=0.1676 L_margin=0.0170 ALSI=1344889.01 Purity=87.58% PAG=53.62% Sat=12.79% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 30/40] L_ent=3.0693 L_anchor=0.9868 L_flat=0.1692 L_margin=0.0172 ALSI=1225951.19 Purity=87.56% PAG=53.62% Sat=12.83% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_30_step_5730.png
+[ALSD-ALCE][epoch 31/40] L_ent=3.0559 L_anchor=0.9833 L_flat=0.1661 L_margin=0.0170 ALSI=1329055.27 Purity=87.56% PAG=53.57% Sat=12.79% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 32/40] L_ent=3.0731 L_anchor=0.9793 L_flat=0.1665 L_margin=0.0171 ALSI=1325469.29 Purity=87.55% PAG=53.56% Sat=12.77% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 33/40] L_ent=3.0572 L_anchor=0.9756 L_flat=0.1667 L_margin=0.0173 ALSI=1309803.68 Purity=87.57% PAG=53.59% Sat=12.80% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 34/40] L_ent=3.0710 L_anchor=0.9816 L_flat=0.1678 L_margin=0.0171 ALSI=1337289.74 Purity=87.57% PAG=53.62% Sat=12.77% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 35/40] L_ent=3.0564 L_anchor=0.9867 L_flat=0.1674 L_margin=0.0174 ALSI=1290928.28 Purity=87.58% PAG=53.61% Sat=12.81% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+  -> [Visualizer] 调试图像已保存至: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/vis_debug/debug_epoch_35_step_6685.png
+[ALSD-ALCE][epoch 36/40] L_ent=3.0582 L_anchor=0.9983 L_flat=0.1672 L_margin=0.0172 ALSI=1347002.03 Purity=87.58% PAG=53.60% Sat=12.79% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 37/40] L_ent=3.0583 L_anchor=0.9730 L_flat=0.1674 L_margin=0.0174 ALSI=1346920.33 Purity=87.58% PAG=53.61% Sat=12.78% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 38/40] L_ent=3.0577 L_anchor=0.9872 L_flat=0.1671 L_margin=0.0171 ALSI=1356355.31 Purity=87.59% PAG=53.54% Sat=12.78% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 39/40] L_ent=3.0650 L_anchor=0.9956 L_flat=0.1665 L_margin=0.0170 ALSI=1319010.49 Purity=87.57% PAG=53.58% Sat=12.76% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
+[ALSD-ALCE][epoch 40/40] L_ent=3.0587 L_anchor=0.9989 L_flat=0.1672 L_margin=0.0173 ALSI=1370771.79 Purity=87.58% PAG=53.63% Sat=12.79% Late=1.00 EntS=0.51 AncS=0.81 FlatS=0.81 LogitS=2.21 Max_D=0.0627 CNP=0.0000 CNPw=0.000 CNPcnt=0.0 CNPdrop=0.0000 CNPhinge=0.0000 CNPhard=0.0000 CNPhcnt=0.0 Freq=fixed_topk FAct=16 FCand=64 FScoreTop=1.538e+05
 [generate_poisoned_dataset] done: processed=16551/16551, method=tausb_mask, steps=40, seed=0

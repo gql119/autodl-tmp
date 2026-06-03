@@ -514,6 +514,44 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
         self.freq_score_collateral_use_weighted_loss = bool(
             method_cfg.get("freq_score_collateral_use_weighted_loss", True)
         )
+        self.enable_cooccur_nt_logits_preserve = bool(
+            method_cfg.get("enable_cooccur_nt_logits_preserve", False)
+        )
+        self.cooccur_nt_logits_lambda = float(method_cfg.get("cooccur_nt_logits_lambda", 0.10))
+        self.cooccur_nt_min_clean_conf = float(method_cfg.get("cooccur_nt_min_clean_conf", 0.20))
+        self.cooccur_nt_only_on_real_fg = bool(method_cfg.get("cooccur_nt_only_on_real_fg", True))
+        self.cooccur_nt_assigned_class_only = bool(method_cfg.get("cooccur_nt_assigned_class_only", True))
+        self.cooccur_nt_exclude_target_class = bool(method_cfg.get("cooccur_nt_exclude_target_class", True))
+        self.cooccur_nt_warmup_start_epoch = int(method_cfg.get("cooccur_nt_warmup_start_epoch", 10))
+        self.cooccur_nt_warmup_end_epoch = int(method_cfg.get("cooccur_nt_warmup_end_epoch", 25))
+        self.cooccur_nt_apply_after_freq_selection = bool(
+            method_cfg.get("cooccur_nt_apply_after_freq_selection", True)
+        )
+        self.cooccur_nt_do_not_use_for_freq_score = bool(
+            method_cfg.get("cooccur_nt_do_not_use_for_freq_score", True)
+        )
+        self.cooccur_nt_loss_type = str(method_cfg.get("cooccur_nt_loss_type", "smooth_l1_prob"))
+        self.cooccur_nt_drop_tolerance = float(method_cfg.get("cooccur_nt_drop_tolerance", 0.005))
+        self.cooccur_nt_hard_top_ratio = float(method_cfg.get("cooccur_nt_hard_top_ratio", 1.0))
+        self.cooccur_nt_min_hard_count = int(method_cfg.get("cooccur_nt_min_hard_count", 16))
+        self.cooccur_nt_use_positive_drop_only = bool(
+            method_cfg.get("cooccur_nt_use_positive_drop_only", True)
+        )
+        self.cooccur_nt_hard_top_ratio = min(1.0, max(0.0, self.cooccur_nt_hard_top_ratio))
+        self.cooccur_nt_min_hard_count = max(1, self.cooccur_nt_min_hard_count)
+        self.enable_late_nt_repair = bool(method_cfg.get("enable_late_nt_repair", False))
+        self.late_repair_start_epoch = int(method_cfg.get("late_repairQ_start_epoch", 20))
+        self.late_repair_ramp_epochs = int(method_cfg.get("late_repair_ramp_epochs", 5))
+        self.late_attack_loss_scale_enabled = bool(method_cfg.get("late_attack_loss_scale_enabled", True))
+        self.late_lambda_ent_scale = float(method_cfg.get("late_lambda_ent_scale", 0.50))
+        self.late_lambda_anchor_scale = float(method_cfg.get("late_lambda_anchor_scale", 0.80))
+        self.late_lambda_flat_scale = float(method_cfg.get("late_lambda_flat_scale", 0.80))
+        self.late_preserve_logits_scale = float(method_cfg.get("late_preserve_logits_scale", 2.20))
+        self.late_preserve_feat_scale = float(method_cfg.get("late_preserve_feat_scale", 1.0))
+        self.late_margin_scale = float(method_cfg.get("late_margin_scale", 1.0))
+        self.late_cooccur_lambda_scale = float(method_cfg.get("late_cooccur_lambda_scale", 1.0))
+        self.late_only_after_freq_selection = bool(method_cfg.get("late_only_after_freq_selection", True))
+        self.late_repair_ramp_epochs = max(1, self.late_repair_ramp_epochs)
         self.enable_band_aware_freq_basis = bool(method_cfg.get("enable_band_aware_freq_basis", False))
         self.freq_band_names = [str(x) for x in method_cfg.get("freq_band_names", ["low", "mid", "high"])]
         self.freq_band_candidate_nums = [int(x) for x in method_cfg.get("freq_band_candidate_nums", [16, 32, 16])]
@@ -951,13 +989,66 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
         for epoch in range(run_epochs):
             if epoch < 15:
-                cur_lambda_preserve = self.lambda_preserve * 0.3  
+                cur_lambda_preserve = self.lambda_preserve * 0.3
             elif epoch < 25:
                 warmup_ratio = 0.3 + min(0.7, (epoch - 15) / 10.0 * 0.7)
                 cur_lambda_preserve = self.lambda_preserve * warmup_ratio
             else:
                 cur_lambda_preserve = self.lambda_preserve
                 warmup_ratio = min(1.0, (epoch - 25) / 5.0)
+            if not self.enable_cooccur_nt_logits_preserve:
+                cooccur_lambda_cur = 0.0
+            elif self.cooccur_nt_apply_after_freq_selection and epoch < self.adaptive_freq_warmup_epochs:
+                cooccur_lambda_cur = 0.0
+            elif epoch < self.cooccur_nt_warmup_start_epoch:
+                cooccur_lambda_cur = 0.0
+            elif epoch >= self.cooccur_nt_warmup_end_epoch:
+                cooccur_lambda_cur = self.cooccur_nt_logits_lambda
+            else:
+                r = (
+                    (epoch - self.cooccur_nt_warmup_start_epoch)
+                    / max(1, self.cooccur_nt_warmup_end_epoch - self.cooccur_nt_warmup_start_epoch)
+                )
+                cooccur_lambda_cur = self.cooccur_nt_logits_lambda * float(r)
+
+            late_repair_ratio = 0.0
+            if self.enable_late_nt_repair:
+                can_apply_late = True
+                if self.late_only_after_freq_selection and epoch < self.adaptive_freq_warmup_epochs:
+                    can_apply_late = False
+                if can_apply_late and epoch >= self.late_repair_start_epoch:
+                    late_repair_ratio = min(
+                        1.0,
+                        float(epoch - self.late_repair_start_epoch + 1)
+                        / float(max(1, self.late_repair_ramp_epochs)),
+                    )
+
+            if self.enable_late_nt_repair and late_repair_ratio > 0:
+                if self.late_attack_loss_scale_enabled:
+                    ent_scale_cur = 1.0 + late_repair_ratio * (self.late_lambda_ent_scale - 1.0)
+                    anchor_scale_cur = 1.0 + late_repair_ratio * (self.late_lambda_anchor_scale - 1.0)
+                    flat_scale_cur = 1.0 + late_repair_ratio * (self.late_lambda_flat_scale - 1.0)
+                else:
+                    ent_scale_cur = 1.0
+                    anchor_scale_cur = 1.0
+                    flat_scale_cur = 1.0
+                preserve_logits_scale_cur = 1.0 + late_repair_ratio * (self.late_preserve_logits_scale - 1.0)
+                preserve_feat_scale_cur = 1.0 + late_repair_ratio * (self.late_preserve_feat_scale - 1.0)
+                margin_scale_cur = 1.0 + late_repair_ratio * (self.late_margin_scale - 1.0)
+                cooccur_lambda_scale_cur = 1.0 + late_repair_ratio * (self.late_cooccur_lambda_scale - 1.0)
+            else:
+                ent_scale_cur = 1.0
+                anchor_scale_cur = 1.0
+                flat_scale_cur = 1.0
+                preserve_logits_scale_cur = 1.0
+                preserve_feat_scale_cur = 1.0
+                margin_scale_cur = 1.0
+                cooccur_lambda_scale_cur = 1.0
+
+            effective_lambda_ent = self.lambda_ent * ent_scale_cur
+            effective_lambda_anchor = self.lambda_anchor * anchor_scale_cur
+            effective_lambda_flat = self.lambda_flat * flat_scale_cur
+            effective_cooccur_lambda = cooccur_lambda_cur * cooccur_lambda_scale_cur
 
             epoch_diag = {
                 "align_clean_topk": 0.0,
@@ -1001,6 +1092,31 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 "support_fallback_ratio": 0.0,
                 "support_forced_pseudo_fallback_ratio": 0.0,
                 "support_empty_ratio": 0.0,
+                "L_cooccur_nt_logits": 0.0,
+                "cooccur_nt_lambda_cur": 0.0,
+                "cooccur_nt_fg_count": 0.0,
+                "cooccur_nt_img_ratio": 0.0,
+                "cooccur_nt_clean_prob_mean": 0.0,
+                "cooccur_nt_adv_prob_mean": 0.0,
+                "cooccur_nt_prob_drop": 0.0,
+                "cooccur_nt_prob_drop_raw_mean": 0.0,
+                "cooccur_nt_prob_drop_pos_mean": 0.0,
+                "cooccur_nt_prob_drop_hinge_mean": 0.0,
+                "cooccur_nt_hard_loss_mean": 0.0,
+                "cooccur_nt_hard_count": 0.0,
+                "late_repair_ratio": 0.0,
+                "ent_scale_cur": 1.0,
+                "anchor_scale_cur": 1.0,
+                "flat_scale_cur": 1.0,
+                "preserve_logits_scale_cur": 1.0,
+                "preserve_feat_scale_cur": 1.0,
+                "margin_scale_cur": 1.0,
+                "cooccur_lambda_scale_cur": 1.0,
+                "effective_lambda_ent": 0.0,
+                "effective_lambda_anchor": 0.0,
+                "effective_lambda_flat": 0.0,
+                "effective_cooccur_lambda": 0.0,
+                "cooccur_nt_loss_type": str(self.cooccur_nt_loss_type),
             }
             batch_count = 0
 
@@ -1015,6 +1131,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 batch_fallback = 0
                 batch_forced_fallback = 0
                 batch_empty = 0
+                cooccur_img_flags = []
                 
                 for data in batch_list:
                     inner_np, ring_np, support_source = self._build_support(
@@ -1035,6 +1152,15 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         
                     if float(inner_np.sum()) > 10.0:
                         valid_items.append((data, inner_np, ring_np, support_source))
+                        has_target = any(
+                            int(ann.get("cls", -1)) == self.target_class_id
+                            for ann in data["anns"]
+                        )
+                        has_non_target = any(
+                            int(ann.get("cls", -1)) != self.target_class_id
+                            for ann in data["anns"]
+                        )
+                        cooccur_img_flags.append(bool(has_target and has_non_target))
                 
                 total_support_count = batch_prebaked + batch_fallback + batch_empty
                 if total_support_count > 0:
@@ -1090,6 +1216,11 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 img_t = torch.stack(img_t_list).to(self.device, non_blocking=True)
                 inner_t = torch.stack(inner_t_list).to(self.device, non_blocking=True)
                 ring_t = torch.stack(ring_t_list).to(self.device, non_blocking=True)
+                cooccur_img_mask = torch.tensor(
+                    cooccur_img_flags,
+                    dtype=torch.bool,
+                    device=self.device,
+                )
                 
                 batch_h, batch_w = img_t.shape[-2:]
 
@@ -1220,6 +1351,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 L_preserve_logits_total = torch.zeros((), device=self.device)
                 L_preserve_feat_total = torch.zeros((), device=self.device)
                 L_margin_total = torch.zeros((), device=self.device)
+                L_cooccur_nt_total = torch.zeros((), device=self.device)
                 
                 align_clean_topk_acc = 0.0
                 align_adv_topk_acc = 0.0
@@ -1239,6 +1371,16 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 margin_clean_vals = []
                 margin_adv_vals = []
                 pag_fallback_vals = []
+                cooccur_nt_fg_count_vals = []
+                cooccur_nt_clean_prob_vals = []
+                cooccur_nt_adv_prob_vals = []
+                cooccur_nt_prob_drop_vals = []
+                cooccur_nt_img_ratio_vals = []
+                cooccur_nt_prob_drop_raw_vals = []
+                cooccur_nt_prob_drop_pos_vals = []
+                cooccur_nt_prob_drop_hinge_vals = []
+                cooccur_nt_hard_loss_vals = []
+                cooccur_nt_hard_count_vals = []
 
                 for eot_idx in range(eot_count):
                     clean_aug, adv_aug = self._apply_shared_eot_pair_batched(img_t, adv)
@@ -1328,12 +1470,31 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                             for k, v in raw_assign.items()
                         }
 
+                    real_labels = None
+                    cooccur_nt_fg_mask = None
                     if real_assign_clean:
-                        real_fg = real_assign_clean["fg_mask"].bool() 
+                        real_fg = real_assign_clean["fg_mask"].bool()
                         real_labels = real_assign_clean["target_labels"].long()
-                        
+
                         nt_fg_mask = real_fg & (real_labels != self.target_class_id)
-                        strict_gate_1d = real_fg & (real_labels == self.target_class_id) 
+                        base_cooccur_mask = nt_fg_mask
+                        if not self.cooccur_nt_only_on_real_fg:
+                            base_cooccur_mask = (real_labels != self.target_class_id)
+                        cooccur_img_mask_2d = cooccur_img_mask[:, None].expand_as(real_fg)
+                        cooccur_nt_fg_mask = base_cooccur_mask & cooccur_img_mask_2d
+                        if self.cooccur_nt_exclude_target_class:
+                            cooccur_nt_fg_mask = cooccur_nt_fg_mask & (real_labels != self.target_class_id)
+                        clean_all_logits = cache_clean["pred_scores_logits"]
+                        clean_all_prob = torch.sigmoid(clean_all_logits)
+                        assigned_labels = real_labels.clamp(min=0, max=self.num_classes - 1)
+                        assigned_clean_prob = clean_all_prob.gather(
+                            dim=2,
+                            index=assigned_labels.unsqueeze(-1),
+                        ).squeeze(-1)
+                        cooccur_nt_fg_mask = cooccur_nt_fg_mask & (
+                            assigned_clean_prob >= self.cooccur_nt_min_clean_conf
+                        )
+                        strict_gate_1d = real_fg & (real_labels == self.target_class_id)
 
                         # 🚀 动态计算当前 Batch 下 FPN 各层的 1D 展平尺寸
                         layer_sizes = []
@@ -1376,7 +1537,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     else:
                         strict_gate_1d = None
                         pag_gate_1d = None
-                        nt_fg_mask = None 
+                        nt_fg_mask = None
 
                     if strict_gate_1d is None or pag_gate_1d is None:
                         if not getattr(self, "_sanity_miss_printed", False):
@@ -1492,6 +1653,16 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     L_preserve_feat = torch.zeros((), device=self.device)
                     L_preserve_logits = torch.zeros((), device=self.device)
                     L_margin = torch.zeros((), device=self.device)
+                    L_cooccur_nt_logits = torch.zeros((), device=self.device)
+                    cooccur_nt_fg_count = 0
+                    cooccur_nt_clean_prob_mean = 0.0
+                    cooccur_nt_adv_prob_mean = 0.0
+                    cooccur_nt_prob_drop = 0.0
+                    cooccur_nt_prob_drop_raw_mean = 0.0
+                    cooccur_nt_prob_drop_pos_mean = 0.0
+                    cooccur_nt_prob_drop_hinge_mean = 0.0
+                    cooccur_nt_hard_loss_mean = 0.0
+                    cooccur_nt_hard_count = 0
                     
                     if cur_lambda_preserve > 0:
                         for layer_name in self.preserve_layers:
@@ -1527,9 +1698,9 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                         margin_adv_vals.append(float(margin_stats["margin_adv_mean"]))
 
                         L_preserve = (
-                            self.lambda_preserve_feat * L_preserve_feat
-                            + self.lambda_preserve_logits * L_preserve_logits
-                            + self.lambda_margin * L_margin
+                            self.lambda_preserve_feat * preserve_feat_scale_cur * L_preserve_feat
+                            + self.lambda_preserve_logits * preserve_logits_scale_cur * L_preserve_logits
+                            + self.lambda_margin * margin_scale_cur * L_margin
                         )
 
                         if (
@@ -1544,6 +1715,79 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                             print(f"   margin_adv_mean: {float(margin_stats['margin_adv_mean']):.6f}")
                             self._sanity_dsnp_printed = True
 
+                    if (
+                        self.enable_cooccur_nt_logits_preserve
+                        and cooccur_nt_fg_mask is not None
+                        and cooccur_nt_fg_mask.any()
+                        and real_labels is not None
+                    ):
+                        clean_logits_all = cache_clean["pred_scores_logits"]
+                        adv_logits_all = cache_adv["pred_scores_logits"]
+                        assigned_labels = real_labels.clamp(min=0, max=self.num_classes - 1)
+                        if not self.cooccur_nt_assigned_class_only:
+                            # Keep v1 fixed to assigned-class preserve only.
+                            pass
+                        clean_assigned_logits = clean_logits_all.gather(
+                            dim=2,
+                            index=assigned_labels.unsqueeze(-1),
+                        ).squeeze(-1)
+                        adv_assigned_logits = adv_logits_all.gather(
+                            dim=2,
+                            index=assigned_labels.unsqueeze(-1),
+                        ).squeeze(-1)
+
+                        clean_prob = torch.sigmoid(clean_assigned_logits[cooccur_nt_fg_mask]).detach()
+                        adv_prob = torch.sigmoid(adv_assigned_logits[cooccur_nt_fg_mask])
+                        prob_drop = clean_prob - adv_prob
+
+                        if self.cooccur_nt_loss_type == "smooth_l1_prob":
+                            L_cooccur_nt_logits = F.smooth_l1_loss(
+                                adv_prob,
+                                clean_prob,
+                                reduction="mean",
+                            )
+                            hard_vals = torch.zeros_like(prob_drop)
+                            cooccur_nt_hard_count = 0
+                            cooccur_nt_hard_loss_mean = 0.0
+                        elif self.cooccur_nt_loss_type == "prob_drop_hinge":
+                            if self.cooccur_nt_use_positive_drop_only:
+                                drop_penalty = F.relu(prob_drop - self.cooccur_nt_drop_tolerance)
+                            else:
+                                drop_penalty = torch.abs(prob_drop)
+
+                            if drop_penalty.numel() > 0:
+                                if self.cooccur_nt_hard_top_ratio < 1.0:
+                                    k = int(math.ceil(drop_penalty.numel() * self.cooccur_nt_hard_top_ratio))
+                                    k = max(self.cooccur_nt_min_hard_count, k)
+                                    k = min(k, drop_penalty.numel())
+                                    hard_vals = torch.topk(drop_penalty, k=k, largest=True).values
+                                    L_cooccur_nt_logits = hard_vals.mean()
+                                else:
+                                    hard_vals = drop_penalty
+                                    L_cooccur_nt_logits = drop_penalty.mean()
+                            else:
+                                hard_vals = drop_penalty
+                                L_cooccur_nt_logits = torch.zeros((), device=self.device)
+                            if hard_vals.numel() > 0:
+                                cooccur_nt_hard_count = int(hard_vals.numel())
+                                cooccur_nt_hard_loss_mean = float(hard_vals.detach().mean().item())
+                            else:
+                                cooccur_nt_hard_count = 0
+                                cooccur_nt_hard_loss_mean = 0.0
+                        else:
+                            raise ValueError(f"Unsupported cooccur_nt_loss_type: {self.cooccur_nt_loss_type}")
+
+                        cooccur_nt_fg_count = int(cooccur_nt_fg_mask.sum().item())
+                        cooccur_nt_clean_prob_mean = float(clean_prob.mean().item())
+                        cooccur_nt_adv_prob_mean = float(adv_prob.mean().item())
+                        cooccur_nt_prob_drop = cooccur_nt_clean_prob_mean - cooccur_nt_adv_prob_mean
+                        prob_drop_det = prob_drop.detach()
+                        cooccur_nt_prob_drop_raw_mean = float(prob_drop_det.mean().item())
+                        cooccur_nt_prob_drop_pos_mean = float(F.relu(prob_drop_det).mean().item())
+                        cooccur_nt_prob_drop_hinge_mean = float(
+                            F.relu(prob_drop_det - self.cooccur_nt_drop_tolerance).mean().item()
+                        )
+
                     # 累加 EOT 的 ALCE losses
                     L_ent_total += L_entangle_bg
                     L_anchor_total += L_semantic_anchor
@@ -1552,6 +1796,17 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                     L_preserve_logits_total += L_preserve_logits
                     L_preserve_feat_total += L_preserve_feat
                     L_margin_total += L_margin
+                    L_cooccur_nt_total += L_cooccur_nt_logits
+                    cooccur_nt_fg_count_vals.append(float(cooccur_nt_fg_count))
+                    cooccur_nt_clean_prob_vals.append(cooccur_nt_clean_prob_mean)
+                    cooccur_nt_adv_prob_vals.append(cooccur_nt_adv_prob_mean)
+                    cooccur_nt_prob_drop_vals.append(cooccur_nt_prob_drop)
+                    cooccur_nt_img_ratio_vals.append(float(cooccur_img_mask.float().mean().item()))
+                    cooccur_nt_prob_drop_raw_vals.append(cooccur_nt_prob_drop_raw_mean)
+                    cooccur_nt_prob_drop_pos_vals.append(cooccur_nt_prob_drop_pos_mean)
+                    cooccur_nt_prob_drop_hinge_vals.append(cooccur_nt_prob_drop_hinge_mean)
+                    cooccur_nt_hard_loss_vals.append(cooccur_nt_hard_loss_mean)
+                    cooccur_nt_hard_count_vals.append(float(cooccur_nt_hard_count))
 
                 # 计算 EOT 平均
                 L_ent_final = L_ent_total / eot_count
@@ -1561,17 +1816,19 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 L_preserve_logits_final = L_preserve_logits_total / eot_count
                 L_preserve_feat_final = L_preserve_feat_total / eot_count
                 L_margin_final_for_score = L_margin_total / eot_count
+                L_cooccur_nt_final = L_cooccur_nt_total / eot_count
 
                 L_tv = self._tv_loss(raw_perturb)
                 L_budget = F.relu(torch.max(torch.abs(raw_perturb)) - self.eps)
 
-                total_loss = ( 
-                    self.lambda_ent * L_ent_final
-                    + self.lambda_anchor * L_anchor_final
-                    + self.lambda_flat * L_flat_final
-                    + cur_lambda_preserve * L_preserve_final 
-                    + self.lambda_tv * L_tv  
-                    + self.lambda_budget * L_budget          
+                total_loss = (
+                    effective_lambda_ent * L_ent_final
+                    + effective_lambda_anchor * L_anchor_final
+                    + effective_lambda_flat * L_flat_final
+                    + cur_lambda_preserve * L_preserve_final
+                    + effective_cooccur_lambda * L_cooccur_nt_final
+                    + self.lambda_tv * L_tv
+                    + self.lambda_budget * L_budget
                 )
 
                 attack_scale_ent = self.lambda_ent if self.freq_score_attack_use_weighted_loss else 1.0
@@ -1704,6 +1961,31 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 epoch_diag["L_tsvc"] += float(L_flat_final.item())
                 epoch_diag["L_sem"] += float(L_anchor_final.item())
                 epoch_diag["sld_score"] += batch_alsi_score_acc / max(1, eot_count)
+                epoch_diag["L_cooccur_nt_logits"] += float(L_cooccur_nt_final.item())
+                epoch_diag["cooccur_nt_lambda_cur"] += float(cooccur_lambda_cur)
+                epoch_diag["cooccur_nt_fg_count"] += safe_mean(cooccur_nt_fg_count_vals)
+                epoch_diag["cooccur_nt_img_ratio"] += safe_mean(cooccur_nt_img_ratio_vals)
+                epoch_diag["cooccur_nt_clean_prob_mean"] += safe_mean(cooccur_nt_clean_prob_vals)
+                epoch_diag["cooccur_nt_adv_prob_mean"] += safe_mean(cooccur_nt_adv_prob_vals)
+                epoch_diag["cooccur_nt_prob_drop"] += safe_mean(cooccur_nt_prob_drop_vals)
+                epoch_diag["cooccur_nt_prob_drop_raw_mean"] += safe_mean(cooccur_nt_prob_drop_raw_vals)
+                epoch_diag["cooccur_nt_prob_drop_pos_mean"] += safe_mean(cooccur_nt_prob_drop_pos_vals)
+                epoch_diag["cooccur_nt_prob_drop_hinge_mean"] += safe_mean(cooccur_nt_prob_drop_hinge_vals)
+                epoch_diag["cooccur_nt_hard_loss_mean"] += safe_mean(cooccur_nt_hard_loss_vals)
+                epoch_diag["cooccur_nt_hard_count"] += safe_mean(cooccur_nt_hard_count_vals)
+                epoch_diag["late_repair_ratio"] += float(late_repair_ratio)
+                epoch_diag["ent_scale_cur"] += float(ent_scale_cur)
+                epoch_diag["anchor_scale_cur"] += float(anchor_scale_cur)
+                epoch_diag["flat_scale_cur"] += float(flat_scale_cur)
+                epoch_diag["preserve_logits_scale_cur"] += float(preserve_logits_scale_cur)
+                epoch_diag["preserve_feat_scale_cur"] += float(preserve_feat_scale_cur)
+                epoch_diag["margin_scale_cur"] += float(margin_scale_cur)
+                epoch_diag["cooccur_lambda_scale_cur"] += float(cooccur_lambda_scale_cur)
+                epoch_diag["effective_lambda_ent"] += float(effective_lambda_ent)
+                epoch_diag["effective_lambda_anchor"] += float(effective_lambda_anchor)
+                epoch_diag["effective_lambda_flat"] += float(effective_lambda_flat)
+                epoch_diag["effective_cooccur_lambda"] += float(effective_cooccur_lambda)
+                epoch_diag["cooccur_nt_loss_type"] = str(self.cooccur_nt_loss_type)
 
                 batch_max_d = float(torch.max(torch.abs(perturb)).item())
                 batch_mean_d = float(torch.mean(torch.abs(perturb)).item())
@@ -1722,7 +2004,7 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
 
             if batch_count > 0:
                 for k in list(epoch_diag.keys()):
-                    if k != "max_abs_delta":  
+                    if k != "max_abs_delta" and isinstance(epoch_diag[k], (int, float)):
                         epoch_diag[k] = epoch_diag[k] / float(batch_count)
 
             freq_score_top_mean = float("nan")
@@ -1929,6 +2211,30 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 "freq_band_low_ratio_top_mean": band_ratio_top_mean_map["low"],
                 "freq_band_mid_ratio_top_mean": band_ratio_top_mean_map["mid"],
                 "freq_band_high_ratio_top_mean": band_ratio_top_mean_map["high"],
+                "enable_cooccur_nt_logits_preserve": bool(self.enable_cooccur_nt_logits_preserve),
+                "cooccur_nt_loss_type": str(self.cooccur_nt_loss_type),
+                "cooccur_nt_logits_lambda": float(self.cooccur_nt_logits_lambda),
+                "cooccur_nt_min_clean_conf": float(self.cooccur_nt_min_clean_conf),
+                "cooccur_nt_drop_tolerance": float(self.cooccur_nt_drop_tolerance),
+                "cooccur_nt_hard_top_ratio": float(self.cooccur_nt_hard_top_ratio),
+                "cooccur_nt_min_hard_count": int(self.cooccur_nt_min_hard_count),
+                "cooccur_nt_use_positive_drop_only": bool(self.cooccur_nt_use_positive_drop_only),
+                "cooccur_nt_warmup_start_epoch": int(self.cooccur_nt_warmup_start_epoch),
+                "cooccur_nt_warmup_end_epoch": int(self.cooccur_nt_warmup_end_epoch),
+                "cooccur_nt_apply_after_freq_selection": bool(self.cooccur_nt_apply_after_freq_selection),
+                "cooccur_nt_do_not_use_for_freq_score": bool(self.cooccur_nt_do_not_use_for_freq_score),
+                "enable_late_nt_repair": bool(self.enable_late_nt_repair),
+                "late_repair_start_epoch": int(self.late_repair_start_epoch),
+                "late_repair_ramp_epochs": int(self.late_repair_ramp_epochs),
+                "late_attack_loss_scale_enabled": bool(self.late_attack_loss_scale_enabled),
+                "late_lambda_ent_scale": float(self.late_lambda_ent_scale),
+                "late_lambda_anchor_scale": float(self.late_lambda_anchor_scale),
+                "late_lambda_flat_scale": float(self.late_lambda_flat_scale),
+                "late_preserve_logits_scale": float(self.late_preserve_logits_scale),
+                "late_preserve_feat_scale": float(self.late_preserve_feat_scale),
+                "late_margin_scale": float(self.late_margin_scale),
+                "late_cooccur_lambda_scale": float(self.late_cooccur_lambda_scale),
+                "late_only_after_freq_selection": bool(self.late_only_after_freq_selection),
             }
             if self.enable_adaptive_freq_basis:
                 row.update(
@@ -1976,7 +2282,15 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 f"ALSI={row['alsi_score']:.2f} "
                 f"Purity={row['confounder_purity_ratio']:.2%} PAG={row['pag_positive_ratio']:.2%} "
                 f"Sat={row['saturation_ratio']:.2%} "
-                f"Max_D={row['max_abs_delta']:.4f}"
+                f"Late={row['late_repair_ratio']:.2f} EntS={row['ent_scale_cur']:.2f} "
+                f"AncS={row['anchor_scale_cur']:.2f} FlatS={row['flat_scale_cur']:.2f} "
+                f"LogitS={row['preserve_logits_scale_cur']:.2f} "
+                f"Max_D={row['max_abs_delta']:.4f} "
+                f"CNP={row['L_cooccur_nt_logits']:.4f} CNPw={row['effective_cooccur_lambda']:.3f} "
+                f"CNPcnt={row['cooccur_nt_fg_count']:.1f} CNPdrop={row['cooccur_nt_prob_drop']:.4f} "
+                f"CNPhinge={row['cooccur_nt_prob_drop_hinge_mean']:.4f} "
+                f"CNPhard={row['cooccur_nt_hard_loss_mean']:.4f} "
+                f"CNPhcnt={row['cooccur_nt_hard_count']:.1f}"
             )
             if self.enable_adaptive_freq_basis:
                 epoch_log += (
@@ -2015,6 +2329,119 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 print(f"  {key}={val:.6f} expected {expected_str} -> {status}")
                 if not ok:
                     p0_mismatch = True
+            extra_checks = [
+                (
+                    "cooccur_nt_fg_count",
+                    float(latest_diag.get("cooccur_nt_fg_count", float("nan"))),
+                    lambda v: (not math.isnan(v)) and (v > 0.0),
+                    "> 0",
+                ),
+                (
+                    "cooccur_nt_img_ratio",
+                    float(latest_diag.get("cooccur_nt_img_ratio", float("nan"))),
+                    lambda v: (not math.isnan(v)) and (v > 0.0),
+                    "> 0",
+                ),
+                (
+                    "cooccur_nt_clean_prob_mean",
+                    float(latest_diag.get("cooccur_nt_clean_prob_mean", float("nan"))),
+                    lambda v: not math.isnan(v),
+                    "non-NaN",
+                ),
+                (
+                    "cooccur_nt_adv_prob_mean",
+                    float(latest_diag.get("cooccur_nt_adv_prob_mean", float("nan"))),
+                    lambda v: not math.isnan(v),
+                    "non-NaN",
+                ),
+            ]
+            for key, val, fn_ok, expected_str in extra_checks:
+                ok = bool(fn_ok(val))
+                status = "OK" if ok else "Mismatch"
+                print(f"  {key}={val:.6f} expected {expected_str} -> {status}")
+                if not ok:
+                    p0_mismatch = True
+            metric_val = str(latest_diag.get("adaptive_freq_select_metric", ""))
+            metric_ok = metric_val == "attack_collateral_ratio"
+            print(
+                f"  adaptive_freq_select_metric={metric_val} expected attack_collateral_ratio -> "
+                f"{'OK' if metric_ok else 'Mismatch'}"
+            )
+            if not metric_ok:
+                p0_mismatch = True
+            quota_vals = (
+                int(latest_diag.get("freq_band_low_active_num", -1)),
+                int(latest_diag.get("freq_band_mid_active_num", -1)),
+                int(latest_diag.get("freq_band_high_active_num", -1)),
+            )
+            quota_ok = quota_vals == (1, 13, 2)
+            print(
+                f"  band_active_quota={list(quota_vals)} expected [1, 13, 2] -> "
+                f"{'OK' if quota_ok else 'Mismatch'}"
+            )
+            if not quota_ok:
+                p0_mismatch = True
+            expected_loss_type = str(self.cooccur_nt_loss_type)
+            loss_type_val = str(latest_diag.get("cooccur_nt_loss_type", ""))
+            loss_type_ok = loss_type_val == expected_loss_type
+            print(
+                f"  cooccur_nt_loss_type={loss_type_val} expected {expected_loss_type} -> "
+                f"{'OK' if loss_type_ok else 'Mismatch'}"
+            )
+            if not loss_type_ok:
+                p0_mismatch = True
+            expected_hard_top_ratio = float(self.cooccur_nt_hard_top_ratio)
+            hard_top_ratio_val = float(latest_diag.get("cooccur_nt_hard_top_ratio", float("nan")))
+            hard_top_ratio_ok = (not math.isnan(hard_top_ratio_val)) and abs(
+                hard_top_ratio_val - expected_hard_top_ratio
+            ) <= 1e-9
+            print(
+                f"  cooccur_nt_hard_top_ratio={hard_top_ratio_val:.6f} expected {expected_hard_top_ratio:.6f} -> "
+                f"{'OK' if hard_top_ratio_ok else 'Mismatch'}"
+            )
+            if not hard_top_ratio_ok:
+                p0_mismatch = True
+            expected_drop_tol = float(self.cooccur_nt_drop_tolerance)
+            drop_tol_val = float(latest_diag.get("cooccur_nt_drop_tolerance", float("nan")))
+            drop_tol_ok = (not math.isnan(drop_tol_val)) and abs(drop_tol_val - expected_drop_tol) <= 1e-9
+            print(
+                f"  cooccur_nt_drop_tolerance={drop_tol_val:.6f} expected {expected_drop_tol:.6f} -> "
+                f"{'OK' if drop_tol_ok else 'Mismatch'}"
+            )
+            if not drop_tol_ok:
+                p0_mismatch = True
+            late_ratio_val = float(latest_diag.get("late_repair_ratio", float("nan")))
+            late_ratio_ok = (not math.isnan(late_ratio_val)) and abs(late_ratio_val - 0.0) <= 1e-9
+            print(
+                f"  late_repair_ratio={late_ratio_val:.6f} expected 0.000000 -> "
+                f"{'OK' if late_ratio_ok else 'Mismatch'}"
+            )
+            if not late_ratio_ok:
+                p0_mismatch = True
+            ent_scale_val = float(latest_diag.get("ent_scale_cur", float("nan")))
+            anchor_scale_val = float(latest_diag.get("anchor_scale_cur", float("nan")))
+            flat_scale_val = float(latest_diag.get("flat_scale_cur", float("nan")))
+            ent_scale_ok = (not math.isnan(ent_scale_val)) and abs(ent_scale_val - 1.0) <= 1e-9
+            anchor_scale_ok = (not math.isnan(anchor_scale_val)) and abs(anchor_scale_val - 1.0) <= 1e-9
+            flat_scale_ok = (not math.isnan(flat_scale_val)) and abs(flat_scale_val - 1.0) <= 1e-9
+            print(
+                f"  ent_scale_cur={ent_scale_val:.6f} expected 1.000000 -> "
+                f"{'OK' if ent_scale_ok else 'Mismatch'}"
+            )
+            print(
+                f"  anchor_scale_cur={anchor_scale_val:.6f} expected 1.000000 -> "
+                f"{'OK' if anchor_scale_ok else 'Mismatch'}"
+            )
+            print(
+                f"  flat_scale_cur={flat_scale_val:.6f} expected 1.000000 -> "
+                f"{'OK' if flat_scale_ok else 'Mismatch'}"
+            )
+            if not ent_scale_ok:
+                p0_mismatch = True
+            if not anchor_scale_ok:
+                p0_mismatch = True
+            if not flat_scale_ok:
+                p0_mismatch = True
             if p0_mismatch:
                 print("[LegacyBestReproduce] P0 signature mismatch. Do not run full.")
             else:

@@ -2,8 +2,8 @@
   "method": "tausb_mask",
   "steps": 40,
   "seed": 0,
-  "created_at": "2026-05-29T07:41:00.930049Z",
-  "updated_at": "2026-05-29T12:38:02.271333Z",
+  "created_at": "2026-06-02T13:18:46.529787Z",
+  "updated_at": "2026-06-02T18:12:09.308729Z",
   "current_stage": "",
   "completed_stages": [
     "generate_poisoned_dataset",
@@ -14,17 +14,17 @@
   "stage_state": {
     "generate_poisoned_dataset": {
       "status": "completed",
-      "start_time": "2026-05-29T07:41:00.930917Z",
+      "start_time": "2026-06-02T13:18:46.530145Z",
       "tausb_global_params": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/noise/global_params.pt",
       "processed": 16551,
       "total": 16551,
-      "end_time": "2026-05-29T09:58:18.794993Z",
+      "end_time": "2026-06-02T15:33:43.383752Z",
       "manifest_csv": "/root/autodl-tmp/ue_project/runs/poisoned_datasets/tausb_mask/steps40/seed0/manifest.csv"
     },
     "train_victim": {
       "status": "completed",
-      "start_time": "2026-05-29T09:58:21.716625Z",
-      "end_time": "2026-05-29T12:36:27.010016Z",
+      "start_time": "2026-06-02T15:33:46.740769Z",
+      "end_time": "2026-06-02T18:10:52.899299Z",
       "deleted_cache_files": 1,
       "train_data_yaml": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/train_data.yaml",
       "latest_checkpoint": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/checkpoints/latest.pt",
@@ -38,16 +38,16 @@
     },
     "evaluate": {
       "status": "completed",
-      "start_time": "2026-05-29T12:36:40.289421Z",
-      "end_time": "2026-05-29T12:37:58.516240Z",
+      "start_time": "2026-06-02T18:11:05.995949Z",
+      "end_time": "2026-06-02T18:12:06.582120Z",
       "metrics_json": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/metrics/metrics.json",
       "metrics_csv": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/metrics/metrics.csv",
       "eval_log": "/root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/logs/eval_log.txt"
     },
     "aggregate": {
       "status": "completed",
-      "start_time": "2026-05-29T12:38:02.269382Z",
-      "end_time": "2026-05-29T12:38:02.271320Z",
+      "start_time": "2026-06-02T18:12:09.307474Z",
+      "end_time": "2026-06-02T18:12:09.308721Z",
       "summary_csv": "/root/autodl-tmp/ue_project/runs/summary.csv",
       "summary_grouped_csv": "/root/autodl-tmp/ue_project/runs/summary_grouped.csv",
       "pareto_summary_csv": "/root/autodl-tmp/ue_project/runs/pareto_summary.csv",
