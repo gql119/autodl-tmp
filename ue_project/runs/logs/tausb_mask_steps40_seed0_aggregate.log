@@ -1,9 +1,0 @@
-[launch_one] method= tausb_mask
-[launch_one] steps= 40
-[launch_one] seed= 0
-[launch_one] stage= aggregate
-[launch_one] run_root= /root/autodl-tmp/ue_project/runs
-[launch_one] artifact_root= /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0
-[launch_one] poisoned_root= /root/autodl-tmp/ue_project/runs/poisoned_datasets/tausb_mask/steps40/seed0
-[launch_one] resume= False
-[aggregate] done: summary=/root/autodl-tmp/ue_project/runs/summary.csv, pareto=/root/autodl-tmp/ue_project/runs/pareto_summary.csv, count=1
