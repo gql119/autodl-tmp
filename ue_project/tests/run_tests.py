@@ -34,6 +34,13 @@ TEST_MODULES = [
     "tests.test_j3_parameter_leak",
     "tests.test_j3_localized_support",
     "tests.test_trajectory_validity_filter",
+    "tests.test_robust_gain_scale",
+    "tests.test_gain_objective_v2",
+    "tests.test_online_trajectory_sampler",
+    "tests.test_trajectory_pool_separation",
+    "tests.test_outer_gradient_diagnostics",
+    "tests.test_heldout_early_stopping",
+    "tests.test_best_delta_restore",
 ]
 
 

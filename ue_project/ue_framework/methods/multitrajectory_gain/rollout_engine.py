@@ -10,7 +10,7 @@ from ue_framework.core.supervision_decomposer import SupervisionDecomposer
 from ue_framework.methods.learning_trajectory.virtual_update import parameter_leak_max_abs_diff, snapshot_parameters
 
 from .functional_optimizer import clone_parameter_dict, functional_sgd_step, init_functional_sgd_state
-from .learning_gain import LearningGainMetrics, compute_learning_gain_objective
+from .learning_gain import LearningGainMetrics, compute_learning_gain_objective, compute_learning_gain_objective_v2
 from .trajectory_state import FunctionalOptimizerState, TrajectoryBatchSequence
 
 
@@ -45,6 +45,13 @@ class J3RolloutEngine:
         lambda_authorized: float = 1.0,
         lambda_shared: float = 1.0,
         lambda_regularization: float = 1.0,
+        objective_version: str = "v1",
+        robust_scales: Dict[str, float] | None = None,
+        authorized_tolerance: float = 0.10,
+        shared_tolerance: float = 0.10,
+        authorized_clean_gain_min: float = 1.0e-4,
+        shared_clean_gain_min: float = 1.0e-4,
+        protected_support_min_batches: int = 2,
     ) -> None:
         self.adapter = adapter
         self.decomposer = decomposer
@@ -62,6 +69,13 @@ class J3RolloutEngine:
         self.lambda_authorized = float(lambda_authorized)
         self.lambda_shared = float(lambda_shared)
         self.lambda_regularization = float(lambda_regularization)
+        self.objective_version = str(objective_version)
+        self.robust_scales = robust_scales
+        self.authorized_tolerance = float(authorized_tolerance)
+        self.shared_tolerance = float(shared_tolerance)
+        self.authorized_clean_gain_min = float(authorized_clean_gain_min)
+        self.shared_clean_gain_min = float(shared_clean_gain_min)
+        self.protected_support_min_batches = int(protected_support_min_batches)
         self.selected_named_parameters = self.adapter.get_named_trainable_parameters(selected_parameter_scope)
 
     def initial_parameter_dict(self) -> Dict[str, torch.Tensor]:
@@ -81,6 +95,7 @@ class J3RolloutEngine:
         per_step: List[Dict[str, float]] = []
         support_ratios: List[float] = []
         outside_max_values: List[float] = []
+        support_counts = {"protected_support_batches": 0.0, "authorized_support_batches": 0.0, "shared_support_batches": 0.0}
 
         for step_idx in range(self.steps):
             support = sequence.support_batches[step_idx]
@@ -100,6 +115,12 @@ class J3RolloutEngine:
             )
             support_ratios.append(poison_diag["valid_support_ratio"])
             outside_max_values.append(poison_diag["outside_support_max_abs_delta"])
+            if clean_diag.get("protected_positive_count", 0.0) > 0.0:
+                support_counts["protected_support_batches"] += 1.0
+            if clean_diag.get("authorized_positive_count", 0.0) > 0.0:
+                support_counts["authorized_support_batches"] += 1.0
+            if clean_diag.get("shared_positive_count", 0.0) > 0.0:
+                support_counts["shared_support_batches"] += 1.0
             per_step.append(
                 {
                     "step": float(step_idx),
@@ -114,18 +135,40 @@ class J3RolloutEngine:
         clean_query = self._query_losses(sequence.query_batch, clean_params, grad_enabled=False)
         poison_query = self._query_losses(sequence.query_batch, poison_params, grad_enabled=create_graph)
         query_counts = poison_query["counts"]
-        metrics = compute_learning_gain_objective(
-            initial_query["losses"],
-            clean_query["losses"],
-            poison_query["losses"],
-            query_counts=query_counts,
-            protected_margin=self.protected_margin,
-            protected_clean_gain_min=self.protected_clean_gain_min,
-            gain_denominator_floor=self.gain_denominator_floor,
-            lambda_protected=self.lambda_protected,
-            lambda_authorized=self.lambda_authorized,
-            lambda_shared=self.lambda_shared,
-        )
+        if self.objective_version == "v2":
+            if self.robust_scales is None:
+                raise ValueError("objective_version='v2' requires robust_scales")
+            metrics = compute_learning_gain_objective_v2(
+                initial_query["losses"],
+                clean_query["losses"],
+                poison_query["losses"],
+                query_counts=query_counts,
+                support_counts=support_counts,
+                robust_scales=self.robust_scales,
+                protected_margin=self.protected_margin,
+                authorized_tolerance=self.authorized_tolerance,
+                shared_tolerance=self.shared_tolerance,
+                protected_clean_gain_min=self.protected_clean_gain_min,
+                authorized_clean_gain_min=self.authorized_clean_gain_min,
+                shared_clean_gain_min=self.shared_clean_gain_min,
+                lambda_protected=self.lambda_protected,
+                lambda_authorized=self.lambda_authorized,
+                lambda_shared=self.lambda_shared,
+                protected_support_min_batches=self.protected_support_min_batches,
+            )
+        else:
+            metrics = compute_learning_gain_objective(
+                initial_query["losses"],
+                clean_query["losses"],
+                poison_query["losses"],
+                query_counts=query_counts,
+                protected_margin=self.protected_margin,
+                protected_clean_gain_min=self.protected_clean_gain_min,
+                gain_denominator_floor=self.gain_denominator_floor,
+                lambda_protected=self.lambda_protected,
+                lambda_authorized=self.lambda_authorized,
+                lambda_shared=self.lambda_shared,
+            )
         regularization = delta.pow(2).mean()
         total = metrics.total_loss + self.lambda_regularization * regularization
         leak = parameter_leak_max_abs_diff(self.adapter.model, snapshot)
@@ -138,6 +181,7 @@ class J3RolloutEngine:
             "outside_support_max_abs_delta": float(max(outside_max_values) if outside_max_values else 0.0),
             "steps_executed": float(self.steps),
             "clean_poison_initial_parameter_max_abs_diff": 0.0,
+            **support_counts,
         }
         return RolloutOutput(
             loss=total,
