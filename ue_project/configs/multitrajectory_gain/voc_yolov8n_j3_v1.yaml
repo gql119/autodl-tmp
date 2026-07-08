@@ -1,0 +1,64 @@
+method: multitrajectory_gain_j3
+
+protected_class_id: 14
+authorized_class_ids: auto
+num_classes: 20
+
+paths:
+  voc_root: outputs/local_validation/voc_raw/VOCdevkit/VOC2007
+  checkpoint: checkpoints/voc20_surrogate.pt
+
+support:
+  use_p0_localized_support: true
+  exclude_authorized_core: true
+  exclude_ambiguous: true
+  enforce_zero_outside_support: true
+  dilation_pixels: 0
+  expansion_ratio: 0.0
+  authorized_core_scale: 1.0
+  ambiguous_iou_threshold: 0.5
+
+rollout:
+  steps: 3
+  parameter_scope: head
+  optimizer: functional_sgd
+  learning_rate: 1.0e-4
+  momentum: 0.9
+  weight_decay: 0.0005
+  nesterov: false
+  dynamic_assignment: true
+  clean_reference_detached: true
+
+learning_gain:
+  protected_margin: 0.10
+  protected_clean_gain_min: 1.0e-4
+  gain_denominator_floor: 1.0e-4
+  authorized_loss: smooth_l1
+  shared_loss: smooth_l1
+
+objective:
+  lambda_protected_gain: 1.0
+  lambda_authorized_gain: 1.0
+  lambda_shared_gain: 1.0
+  lambda_regularization: 1.0
+
+trajectory_sampling:
+  support_steps: 3
+  require_distinct_support_batches: true
+  exclude_support_query_overlap: true
+  trajectories_per_outer_step: 1
+  evaluation_trajectories: 30
+
+optimization:
+  outer_steps: 100
+  delta_learning_rate: 0.01
+  update_only_delta: true
+  eps: 0.062745098
+  imgsz: 160
+  batch_size: 1
+
+diagnostics:
+  log_gradient_cosine: true
+  log_assignment_overlap: true
+  log_per_step_loss: true
+  save_per_trajectory_json: true

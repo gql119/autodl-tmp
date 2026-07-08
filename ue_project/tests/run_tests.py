@@ -24,6 +24,16 @@ TEST_MODULES = [
     "tests.test_box_dfl_isolation",
     "tests.test_ambiguous_routing",
     "tests.test_gradient_leakage_diagnostics",
+    "tests.test_functional_sgd",
+    "tests.test_j3_rollout",
+    "tests.test_matched_trajectory_inputs",
+    "tests.test_dynamic_assignment_rollout",
+    "tests.test_learning_gain",
+    "tests.test_learning_gain_objective_sign",
+    "tests.test_j3_gradient_to_delta",
+    "tests.test_j3_parameter_leak",
+    "tests.test_j3_localized_support",
+    "tests.test_trajectory_validity_filter",
 ]
 
 
