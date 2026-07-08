@@ -1,0 +1,36 @@
+method: trajectory_p1
+seed: 0
+
+protected_class_id: 14
+authorized_class_ids: auto
+num_classes: 20
+assignment_topk: 1
+
+experiment:
+  dataset: voc
+  target_class_id: 14
+  eps: 0.062745098
+  steps: [1]
+  seeds: [0]
+
+trajectory:
+  parameter_scope: head
+  normalize_per_parameter: true
+  use_protected: true
+  use_authorized: true
+  lambda_protected: 1.0
+  lambda_authorized: 1.0
+  eps: 1.0e-8
+
+class_routing:
+  exclude_ambiguous: true
+  include_background_negatives: false
+
+perturbation:
+  type: universal_fourier
+  max_norm: 0.062745
+  update_only_delta: true
+
+diagnostics:
+  device: auto
+  output_path: outputs/p1_trajectory/diagnostics.json

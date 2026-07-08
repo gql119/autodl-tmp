@@ -1,0 +1,48 @@
+method: meta_p2
+seed: 0
+
+protected_class_id: 14
+authorized_class_ids: auto
+num_classes: 20
+assignment_topk: 1
+
+experiment:
+  dataset: voc
+  target_class_id: 14
+  eps: 0.062745098
+  steps: [1]
+  seeds: [0]
+
+trajectory:
+  parameter_scope: head
+  normalize_per_parameter: true
+  use_protected: true
+  use_authorized: true
+  lambda_protected: 1.0
+  lambda_authorized: 1.0
+  eps: 1.0e-8
+
+class_routing:
+  exclude_ambiguous: true
+  include_background_negatives: false
+
+virtual_update:
+  parameter_scope: head
+  steps: 1
+  lr: 0.001
+
+meta:
+  use_p1_regularizer: false
+  lambda_meta: 1.0
+  lambda_p1: 0.2
+  lambda_protected_query: 1.0
+  enable_clean_counterfactual: true
+
+perturbation:
+  type: universal_fourier
+  max_norm: 0.062745
+  update_only_delta: true
+
+diagnostics:
+  device: auto
+  output_path: outputs/p2_virtual_update/diagnostics.json

@@ -4,7 +4,24 @@ from typing import Any, Dict
 
 import yaml
 
-SUPPORTED_METHODS = ["em_bbox", "em_mask", "rem_mask", "tausb_mask", "ours_mask"]
+SUPPORTED_METHODS = [
+    "em_bbox",
+    "em_mask",
+    "rem_mask",
+    "tausb_mask",
+    "ours_mask",
+    "clean",
+    "random_fourier",
+    "adv_det",
+    "cs_em_cls",
+    "cs_em_det",
+    "assignment_disruption",
+    "alce_legacy",
+    "legacy_best",
+    "trajectory_p1",
+    "meta_p2",
+    "trajectory_meta_p2",
+]
 SUPPORTED_STAGES = [
     "generate_poisoned_dataset",
     "train_victim",
@@ -145,6 +162,99 @@ def _default_config() -> Dict[str, Any]:
                 "jnd_floor": 0.2,
                 "jnd_ceiling": 1.0,
                 "eot_samples": 4,
+            },
+            "trajectory_p1": {
+                "support_type": "mask",
+                "protected_class_id": 14,
+                "authorized_class_ids": "auto",
+                "trajectory": {
+                    "parameter_scope": "head",
+                    "normalize_per_parameter": True,
+                    "use_protected": True,
+                    "use_authorized": True,
+                    "lambda_protected": 1.0,
+                    "lambda_authorized": 1.0,
+                    "eps": 1.0e-8,
+                },
+                "class_routing": {
+                    "exclude_ambiguous": True,
+                    "include_background_negatives": False,
+                },
+                "perturbation": {
+                    "type": "universal_fourier",
+                    "max_norm": 16 / 255,
+                    "update_only_delta": True,
+                },
+            },
+            "meta_p2": {
+                "support_type": "mask",
+                "protected_class_id": 14,
+                "authorized_class_ids": "auto",
+                "trajectory": {
+                    "parameter_scope": "head",
+                    "normalize_per_parameter": True,
+                    "use_protected": True,
+                    "use_authorized": True,
+                    "lambda_protected": 1.0,
+                    "lambda_authorized": 1.0,
+                    "eps": 1.0e-8,
+                },
+                "class_routing": {
+                    "exclude_ambiguous": True,
+                    "include_background_negatives": False,
+                },
+                "virtual_update": {
+                    "parameter_scope": "head",
+                    "steps": 1,
+                    "lr": 0.001,
+                },
+                "meta": {
+                    "use_p1_regularizer": False,
+                    "lambda_meta": 1.0,
+                    "lambda_p1": 0.2,
+                    "lambda_protected_query": 1.0,
+                    "enable_clean_counterfactual": True,
+                },
+                "perturbation": {
+                    "type": "universal_fourier",
+                    "max_norm": 16 / 255,
+                    "update_only_delta": True,
+                },
+            },
+            "trajectory_meta_p2": {
+                "support_type": "mask",
+                "protected_class_id": 14,
+                "authorized_class_ids": "auto",
+                "trajectory": {
+                    "parameter_scope": "head",
+                    "normalize_per_parameter": True,
+                    "use_protected": True,
+                    "use_authorized": True,
+                    "lambda_protected": 1.0,
+                    "lambda_authorized": 1.0,
+                    "eps": 1.0e-8,
+                },
+                "class_routing": {
+                    "exclude_ambiguous": True,
+                    "include_background_negatives": False,
+                },
+                "virtual_update": {
+                    "parameter_scope": "head",
+                    "steps": 1,
+                    "lr": 0.001,
+                },
+                "meta": {
+                    "use_p1_regularizer": True,
+                    "lambda_meta": 1.0,
+                    "lambda_p1": 0.2,
+                    "lambda_protected_query": 1.0,
+                    "enable_clean_counterfactual": True,
+                },
+                "perturbation": {
+                    "type": "universal_fourier",
+                    "max_norm": 16 / 255,
+                    "update_only_delta": True,
+                },
             },
         },
     }
