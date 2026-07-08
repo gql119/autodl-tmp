@@ -1,0 +1,38 @@
+method: supervision_decomposition_p0
+
+protected_class_id: 14
+authorized_class_ids: auto
+num_classes: 20
+
+paths:
+  voc_root: outputs/local_validation/voc_raw/VOCdevkit/VOC2007
+  checkpoint: checkpoints/voc20_surrogate.pt
+
+support:
+  type: localized_protected
+  source: pseudo_fallback_or_gt
+  dilation_pixels: 0
+  expansion_ratio: 0.0
+  exclude_authorized_core: true
+  authorized_core_scale: 1.0
+  exclude_ambiguous: true
+  enforce_zero_outside_support: true
+
+supervision_decomposition:
+  assigned_class_only_positive: true
+  route_non_assigned_logits_to_shared: true
+  route_background_to_shared: true
+  route_ambiguous_to_shared: true
+  ambiguous_iou_threshold: 0.5
+  ambiguous_overlap_mode: gt_overlap
+  target_score_reliability_threshold: 0.0
+
+diagnostics:
+  parameter_scope: head
+  compute_gradient_leakage_matrix: true
+  save_per_batch_json: true
+  save_summary_csv: true
+  imgsz: 160
+  batch_size: 1
+  max_batches_per_group: 5
+  seed: 0

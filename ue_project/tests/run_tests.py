@@ -17,6 +17,13 @@ TEST_MODULES = [
     "tests.test_virtual_update",
     "tests.test_no_parameter_leak",
     "tests.test_p2_inner_full_loss",
+    "tests.test_localized_support",
+    "tests.test_supervision_decomposer",
+    "tests.test_supervision_interventions",
+    "tests.test_loss_reconstruction",
+    "tests.test_box_dfl_isolation",
+    "tests.test_ambiguous_routing",
+    "tests.test_gradient_leakage_diagnostics",
 ]
 
 
