@@ -41,6 +41,14 @@ TEST_MODULES = [
     "tests.test_outer_gradient_diagnostics",
     "tests.test_heldout_early_stopping",
     "tests.test_best_delta_restore",
+    "tests.test_checkpoint_screening",
+    "tests.test_clean_clean_calibration",
+    "tests.test_raw_counterfactual_gap",
+    "tests.test_dual_constraint_update",
+    "tests.test_constraint_thresholds",
+    "tests.test_delta_candidate_export",
+    "tests.test_proxy_ap_correlation",
+    "tests.test_victim_initialization_manifest",
 ]
 
 
