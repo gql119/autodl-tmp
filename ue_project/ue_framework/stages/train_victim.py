@@ -67,6 +67,7 @@ def _snapshot_train_state(ctx: RunContext, run_dir: str, latest_ckpt_ultra: str,
         "method": ctx.method,
         "steps": ctx.steps,
         "seed": ctx.seed,
+        "run_tag": ctx.run_tag,
         "latest_epoch": latest_epoch,
         "latest_checkpoint": latest_ckpt if os.path.isfile(latest_ckpt) else "",
         "best_checkpoint": best_ckpt if os.path.isfile(best_ckpt) else "",
@@ -184,6 +185,7 @@ def run_train_victim(ctx: RunContext) -> None:
     best_ckpt = os.path.join(ctx.paths.checkpoints_dir, "best.pt")
 
     stage_extra = {
+        "run_tag": ctx.run_tag,
         "deleted_cache_files": deleted_cache,
         "train_data_yaml": yaml_path,
         "latest_checkpoint": latest_ckpt if os.path.isfile(latest_ckpt) else "",

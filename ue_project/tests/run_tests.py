@@ -16,6 +16,7 @@ TEST_MODULES = [
     "tests.test_gradient_extractor",
     "tests.test_virtual_update",
     "tests.test_no_parameter_leak",
+    "tests.test_p2_inner_full_loss",
 ]
 
 

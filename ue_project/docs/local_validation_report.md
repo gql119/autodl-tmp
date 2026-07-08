@@ -2,7 +2,7 @@
 
 ## Git And Environment
 
-- HEAD: `e616b4ee10201d621266b7ac0bd756b938aabee8`
+- HEAD: `aacab4d2b42cb27c237c87e39dcfcfb363c58807`
 - Branch: `codex/det-crad-p1-p2`
 - Python: `F:\autodl-tmp\ue_project\.venv\Scripts\python.exe`
 - Torch: `2.11.0+cu128`, CUDA: `12.8`
@@ -11,7 +11,7 @@
 ## Architecture Check
 
 - New-method forbidden import hits: `{'alce': [], 'rlcp': [], 'context prototype': [], 'des-r': [], 'fdacb': [], 'weighted ring': [], 'tausb_universal': []}`
-- Functional scores max abs diff: `0.12082958221435547`
+- Functional scores max abs diff: `0.09679985046386719`
 - Functional parameter leak max abs diff: `0.0`
 
 ## Category Loss Isolation
@@ -40,43 +40,43 @@
     18,
     19
   ],
-  "authorized_loss": 14.020730972290039,
-  "authorized_loss_grad_on_authorized_assigned_class_max": 0.06258975714445114,
+  "authorized_loss": 15.977442741394043,
+  "authorized_loss_grad_on_authorized_assigned_class_max": 0.1446397751569748,
   "authorized_loss_grad_on_protected_assigned_class_max": 0.0,
   "authorized_positive_count": 20,
   "protected_class_id": 14,
-  "protected_loss": 15.921144485473633,
+  "protected_loss": 13.18771743774414,
   "protected_loss_grad_on_authorized_assigned_class_max": 0.0,
-  "protected_loss_grad_on_protected_assigned_class_max": 0.07880455255508423,
+  "protected_loss_grad_on_protected_assigned_class_max": 0.0901946946978569,
   "protected_positive_count": 20
 }
 ```
 
 ## P1 Gradient Validation
 
-- cos_protected_clean_poison: `0.9845537543296814`
-- cos_authorized_clean_poison: `0.7797325253486633`
-- p1_loss: `1.204821228981018`
-- delta_grad_norm: `4.610808372497559`
+- cos_protected_clean_poison: `0.986454963684082`
+- cos_authorized_clean_poison: `0.9785535931587219`
+- p1_loss: `1.0079014301300049`
+- delta_grad_norm: `0.3872668445110321`
 - surrogate_parameter_max_abs_diff: `0.0`
-- 20-step sequence saved in `F:\autodl-tmp\ue_project\outputs\local_validation\p1_20_step_sequence.json`
+- 20-step sequence saved in `F:\autodl-tmp\ue_project\outputs\local_validation_p1_20_final\p1_20_step_sequence.json`
 
 ## P2 Virtual Update Validation
 
-- virtual_parameter_update_norm: `0.013594443909823895`
+- virtual_parameter_update_norm: `0.0206398144364357`
 - parameter_leak_max_abs_diff: `0.0`
-- query loss before update: `8.274872779846191`
-- query loss after clean update: `8.275852680206299`
-- query loss after poisoned update: `8.276276588439941`
-- protected_learning_gap: `0.0005359649658203125`
-- authorized_learning_gap: `0.00011205673217773438`
-- meta_gradient_norm_to_delta: `0.02276652306318283`
+- query loss before update: `11.733359336853027`
+- query loss after clean update: `11.72040605545044`
+- query loss after poisoned update: `11.720501899719238`
+- protected_learning_gap: `0.00025463104248046875`
+- authorized_learning_gap: `0.00015878677368164062`
+- meta_gradient_norm_to_delta: `0.04824462905526161`
 
 ## Memory Stability
 
-- iterations: `50`
-- allocated first/last/max MB: `139.34033203125` / `139.34033203125` / `139.34033203125`
-- allocated slope MB/iter: `-3.816382384693336e-16`
+- iterations: `20`
+- allocated first/last/max MB: `108.93603515625` / `108.93603515625` / `108.93603515625`
+- allocated slope MB/iter: `-1.3347697174475514e-15`
 
 ## Legacy-Best Compatibility
 

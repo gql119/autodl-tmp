@@ -1,0 +1,5036 @@
+{
+  "filtering_rule": "VOC2007 trainval samples with at least one valid object annotation",
+  "manifest_hash": "00ed237929bd01bebdf17e8002896dbd95c6034e7694a4e7e298c92dc69ebedf",
+  "requested_train_size": 240,
+  "requested_val_size": 100,
+  "sampling_rule": "20% person-only, 50% cooccur split between low/high overlap, 30% authorized-only; deterministic shuffle within each bucket; no duplicate image IDs.",
+  "scale_note": "Using 240 train / 100 val / 3 epochs to keep four seed-0 victim runs feasible on local RTX 2070; all four methods share the exact same setting.",
+  "sorting_rule": "final manifests sorted by image_id",
+  "subset_seed": 0,
+  "train_ids": [
+    "000146",
+    "000174",
+    "000236",
+    "000282",
+    "000328",
+    "000374",
+    "000545",
+    "000599",
+    "000626",
+    "000702",
+    "000726",
+    "000733",
+    "000879",
+    "000895",
+    "000899",
+    "000903",
+    "000911",
+    "000926",
+    "000934",
+    "000982",
+    "000997",
+    "001147",
+    "001194",
+    "001200",
+    "001205",
+    "001266",
+    "001333",
+    "001371",
+    "001627",
+    "001723",
+    "001730",
+    "001756",
+    "001800",
+    "001918",
+    "001927",
+    "001963",
+    "001989",
+    "002012",
+    "002027",
+    "002042",
+    "002165",
+    "002176",
+    "002180",
+    "002293",
+    "002311",
+    "002445",
+    "002468",
+    "002472",
+    "002491",
+    "002520",
+    "002524",
+    "002563",
+    "002566",
+    "002634",
+    "002641",
+    "002730",
+    "002841",
+    "002867",
+    "002880",
+    "002914",
+    "002967",
+    "002988",
+    "002992",
+    "003042",
+    "003058",
+    "003078",
+    "003107",
+    "003121",
+    "003145",
+    "003146",
+    "003189",
+    "003218",
+    "003273",
+    "003303",
+    "003311",
+    "003386",
+    "003444",
+    "003455",
+    "003491",
+    "003529",
+    "003549",
+    "003639",
+    "003685",
+    "003695",
+    "003708",
+    "003711",
+    "003735",
+    "003760",
+    "003826",
+    "003834",
+    "003835",
+    "003849",
+    "003960",
+    "003961",
+    "003963",
+    "004009",
+    "004014",
+    "004093",
+    "004146",
+    "004221",
+    "004223",
+    "004255",
+    "004321",
+    "004329",
+    "004392",
+    "004424",
+    "004481",
+    "004495",
+    "004510",
+    "004686",
+    "004699",
+    "004770",
+    "004782",
+    "004783",
+    "004831",
+    "004859",
+    "004946",
+    "004995",
+    "005094",
+    "005121",
+    "005144",
+    "005159",
+    "005210",
+    "005229",
+    "005298",
+    "005373",
+    "005417",
+    "005471",
+    "005475",
+    "005530",
+    "005536",
+    "005630",
+    "005631",
+    "005657",
+    "005731",
+    "005742",
+    "005829",
+    "005885",
+    "005903",
+    "005990",
+    "006011",
+    "006029",
+    "006095",
+    "006175",
+    "006189",
+    "006209",
+    "006224",
+    "006250",
+    "006264",
+    "006282",
+    "006284",
+    "006285",
+    "006335",
+    "006369",
+    "006445",
+    "006458",
+    "006468",
+    "006506",
+    "006536",
+    "006609",
+    "006678",
+    "006682",
+    "006690",
+    "006703",
+    "006803",
+    "006836",
+    "006845",
+    "006855",
+    "006899",
+    "006939",
+    "007059",
+    "007104",
+    "007184",
+    "007263",
+    "007266",
+    "007270",
+    "007292",
+    "007365",
+    "007369",
+    "007372",
+    "007498",
+    "007506",
+    "007559",
+    "007603",
+    "007615",
+    "007657",
+    "007859",
+    "007902",
+    "007909",
+    "007923",
+    "007940",
+    "007971",
+    "007997",
+    "008040",
+    "008053",
+    "008103",
+    "008108",
+    "008248",
+    "008329",
+    "008368",
+    "008424",
+    "008462",
+    "008468",
+    "008485",
+    "008612",
+    "008644",
+    "008683",
+    "008698",
+    "008757",
+    "008810",
+    "008871",
+    "008872",
+    "009034",
+    "009036",
+    "009091",
+    "009153",
+    "009157",
+    "009193",
+    "009208",
+    "009224",
+    "009252",
+    "009271",
+    "009287",
+    "009289",
+    "009318",
+    "009330",
+    "009349",
+    "009377",
+    "009418",
+    "009518",
+    "009524",
+    "009613",
+    "009627",
+    "009703",
+    "009792",
+    "009828",
+    "009878",
+    "009879",
+    "009881",
+    "009949"
+  ],
+  "train_samples": [
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "000146",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.10374331474304199,
+      "protected_instance_count": 1,
+      "width": 374
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 333,
+      "image_id": "000174",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.557501494884491,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        2
+      ],
+      "group": "authorized_only",
+      "height": 381,
+      "image_id": "000236",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 374,
+      "image_id": "000282",
+      "max_person_authorized_iou": 0.1292072832584381,
+      "person_area_mean": 0.2564050853252411,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 332,
+      "image_id": "000328",
+      "max_person_authorized_iou": 0.34299445152282715,
+      "person_area_mean": 0.03459487855434418,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "000374",
+      "max_person_authorized_iou": 0.33838382363319397,
+      "person_area_mean": 0.05515022203326225,
+      "protected_instance_count": 9,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "000545",
+      "max_person_authorized_iou": 0.15472759306430817,
+      "person_area_mean": 0.04480533301830292,
+      "protected_instance_count": 6,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        8,
+        17
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "000599",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        14,
+        19
+      ],
+      "group": "cooccur",
+      "height": 400,
+      "image_id": "000626",
+      "max_person_authorized_iou": 0.10236837714910507,
+      "person_area_mean": 0.23650000989437103,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "000702",
+      "max_person_authorized_iou": 0.0243892353028059,
+      "person_area_mean": 0.005880000069737434,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        4,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "000726",
+      "max_person_authorized_iou": 0.13143056631088257,
+      "person_area_mean": 0.4370270371437073,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 435,
+      "image_id": "000733",
+      "max_person_authorized_iou": 0.23737919330596924,
+      "person_area_mean": 0.41149425506591797,
+      "protected_instance_count": 1,
+      "width": 450
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "000879",
+      "max_person_authorized_iou": 0.05761999264359474,
+      "person_area_mean": 0.08812800794839859,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "000895",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.19884800910949707,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        18
+      ],
+      "group": "authorized_only",
+      "height": 333,
+      "image_id": "000899",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "000903",
+      "max_person_authorized_iou": 0.42095351219177246,
+      "person_area_mean": 0.6000288128852844,
+      "protected_instance_count": 1,
+      "width": 416
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        1,
+        5,
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 324,
+      "image_id": "000911",
+      "max_person_authorized_iou": 0.22033491730690002,
+      "person_area_mean": 0.03750000149011612,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "000926",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.10483496636152267,
+      "protected_instance_count": 9,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        0
+      ],
+      "group": "authorized_only",
+      "height": 333,
+      "image_id": "000934",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        0,
+        14
+      ],
+      "group": "cooccur",
+      "height": 377,
+      "image_id": "000982",
+      "max_person_authorized_iou": 0.016895508393645287,
+      "person_area_mean": 0.01699204184114933,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        17,
+        19
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "000997",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 333,
+      "image_id": "001147",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.9502582550048828,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        1
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "001194",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        18
+      ],
+      "group": "authorized_only",
+      "height": 339,
+      "image_id": "001200",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        3
+      ],
+      "group": "authorized_only",
+      "height": 335,
+      "image_id": "001205",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 332,
+      "image_id": "001266",
+      "max_person_authorized_iou": 0.3551204204559326,
+      "person_area_mean": 0.3922891616821289,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "001333",
+      "max_person_authorized_iou": 0.18926125764846802,
+      "person_area_mean": 0.01199733279645443,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 5,
+      "classes": [
+        6
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "001371",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "001627",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.4392959773540497,
+      "protected_instance_count": 1,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "001723",
+      "max_person_authorized_iou": 0.3805602788925171,
+      "person_area_mean": 0.5008468627929688,
+      "protected_instance_count": 1,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "001730",
+      "max_person_authorized_iou": 0.1680976301431656,
+      "person_area_mean": 0.09037866443395615,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        4,
+        8,
+        10,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "001756",
+      "max_person_authorized_iou": 0.060277119278907776,
+      "person_area_mean": 0.3765786290168762,
+      "protected_instance_count": 2,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        17
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "001800",
+      "max_person_authorized_iou": 0.2225649058818817,
+      "person_area_mean": 0.25195732712745667,
+      "protected_instance_count": 1,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "001918",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0830666646361351,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 332,
+      "image_id": "001927",
+      "max_person_authorized_iou": 0.09792225807905197,
+      "person_area_mean": 0.08575301617383957,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 7,
+      "classes": [
+        4,
+        8,
+        10,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "001963",
+      "max_person_authorized_iou": 0.11489798873662949,
+      "person_area_mean": 0.16948801279067993,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "001989",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.11836693435907364,
+      "protected_instance_count": 5,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "002012",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.02404533326625824,
+      "protected_instance_count": 2,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        5
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "002027",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12
+      ],
+      "group": "authorized_only",
+      "height": 360,
+      "image_id": "002042",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 480
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        2
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "002165",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 331
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        14,
+        15,
+        17
+      ],
+      "group": "cooccur",
+      "height": 404,
+      "image_id": "002176",
+      "max_person_authorized_iou": 0.7088854908943176,
+      "person_area_mean": 0.6576237082481384,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        6,
+        14,
+        18
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "002180",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.00045333331217989326,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "002293",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.5797771215438843,
+      "protected_instance_count": 2,
+      "width": 332
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "002311",
+      "max_person_authorized_iou": 0.02186598628759384,
+      "person_area_mean": 0.011561333201825619,
+      "protected_instance_count": 16,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        7
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "002445",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 360
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        2
+      ],
+      "group": "authorized_only",
+      "height": 358,
+      "image_id": "002468",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        0,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "002472",
+      "max_person_authorized_iou": 0.0340571366250515,
+      "person_area_mean": 0.006884000264108181,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "002491",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.2216533124446869,
+      "protected_instance_count": 2,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 332,
+      "image_id": "002520",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.02689759060740471,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "002524",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.5428468585014343,
+      "protected_instance_count": 1,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 334,
+      "image_id": "002563",
+      "max_person_authorized_iou": 0.06313799321651459,
+      "person_area_mean": 0.004167664330452681,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        5,
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "002566",
+      "max_person_authorized_iou": 0.256742000579834,
+      "person_area_mean": 0.002099999925121665,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        9
+      ],
+      "group": "authorized_only",
+      "height": 339,
+      "image_id": "002634",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        4,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "002641",
+      "max_person_authorized_iou": 0.09063677489757538,
+      "person_area_mean": 0.2688266336917877,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "002730",
+      "max_person_authorized_iou": 0.06464360654354095,
+      "person_area_mean": 0.012858858332037926,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "002841",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.3030346632003784,
+      "protected_instance_count": 2,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        5,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "002867",
+      "max_person_authorized_iou": 0.13927291333675385,
+      "person_area_mean": 0.17454546689987183,
+      "protected_instance_count": 1,
+      "width": 374
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        11
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "002880",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 455
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        10,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "002914",
+      "max_person_authorized_iou": 0.10993078351020813,
+      "person_area_mean": 0.41009601950645447,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        15
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "002967",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 336
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "002988",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.5105813145637512,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        1,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "002992",
+      "max_person_authorized_iou": 0.3831036388874054,
+      "person_area_mean": 0.336408406496048,
+      "protected_instance_count": 1,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 7,
+      "classes": [
+        8,
+        10,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "003042",
+      "max_person_authorized_iou": 0.24820654094219208,
+      "person_area_mean": 0.14555378258228302,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "003058",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.9884545207023621,
+      "protected_instance_count": 1,
+      "width": 396
+    },
+    {
+      "authorized_instance_count": 6,
+      "classes": [
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "003078",
+      "max_person_authorized_iou": 0.7143568992614746,
+      "person_area_mean": 0.1990329921245575,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "003107",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.6068493723869324,
+      "protected_instance_count": 1,
+      "width": 332
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "003121",
+      "max_person_authorized_iou": 0.14017616212368011,
+      "person_area_mean": 0.17424826323986053,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "003145",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.47571200132369995,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        15
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "003146",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        12,
+        14,
+        15
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "003189",
+      "max_person_authorized_iou": 0.3239787518978119,
+      "person_area_mean": 0.12655022740364075,
+      "protected_instance_count": 1,
+      "width": 458
+    },
+    {
+      "authorized_instance_count": 6,
+      "classes": [
+        1,
+        14
+      ],
+      "group": "cooccur",
+      "height": 334,
+      "image_id": "003218",
+      "max_person_authorized_iou": 0.4546082317829132,
+      "person_area_mean": 0.015913473442196846,
+      "protected_instance_count": 20,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        2
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "003273",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "003303",
+      "max_person_authorized_iou": 0.3497002124786377,
+      "person_area_mean": 0.07126204669475555,
+      "protected_instance_count": 2,
+      "width": 332
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        5,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "003311",
+      "max_person_authorized_iou": 0.011136365123093128,
+      "person_area_mean": 0.0019306665053591132,
+      "protected_instance_count": 6,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        0,
+        14
+      ],
+      "group": "cooccur",
+      "height": 281,
+      "image_id": "003386",
+      "max_person_authorized_iou": 0.005311335902661085,
+      "person_area_mean": 0.007473309524357319,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        17
+      ],
+      "group": "authorized_only",
+      "height": 270,
+      "image_id": "003444",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 369
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        0,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "003455",
+      "max_person_authorized_iou": 0.0063567496836185455,
+      "person_area_mean": 0.005045045167207718,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        11
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "003491",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        10,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "003529",
+      "max_person_authorized_iou": 0.22581425309181213,
+      "person_area_mean": 0.3747747838497162,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        1
+      ],
+      "group": "authorized_only",
+      "height": 278,
+      "image_id": "003549",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 370
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        3
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "003639",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        18
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "003685",
+      "max_person_authorized_iou": 0.022757699713110924,
+      "person_area_mean": 0.01958400011062622,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        18
+      ],
+      "group": "authorized_only",
+      "height": 318,
+      "image_id": "003695",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 480
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        8,
+        10,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "003708",
+      "max_person_authorized_iou": 0.2379603087902069,
+      "person_area_mean": 0.7672000527381897,
+      "protected_instance_count": 1,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        5,
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 396,
+      "image_id": "003711",
+      "max_person_authorized_iou": 0.00852208398282528,
+      "person_area_mean": 0.002766835270449519,
+      "protected_instance_count": 6,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 345,
+      "image_id": "003735",
+      "max_person_authorized_iou": 0.27377891540527344,
+      "person_area_mean": 0.06942330300807953,
+      "protected_instance_count": 2,
+      "width": 480
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        11,
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "003760",
+      "max_person_authorized_iou": 0.601262092590332,
+      "person_area_mean": 0.014648999087512493,
+      "protected_instance_count": 16,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 331,
+      "image_id": "003826",
+      "max_person_authorized_iou": 0.33753445744514465,
+      "person_area_mean": 0.15337763726711273,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 5,
+      "classes": [
+        15
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "003834",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        5,
+        6
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "003835",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 332,
+      "image_id": "003849",
+      "max_person_authorized_iou": 0.41317933797836304,
+      "person_area_mean": 0.02118975855410099,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "003960",
+      "max_person_authorized_iou": 0.26198339462280273,
+      "person_area_mean": 0.04455600306391716,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "003961",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.8729173541069031,
+      "protected_instance_count": 1,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        14,
+        17,
+        19
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "003963",
+      "max_person_authorized_iou": 0.02386622689664364,
+      "person_area_mean": 0.002085333224385977,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        0
+      ],
+      "group": "authorized_only",
+      "height": 366,
+      "image_id": "004009",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "004014",
+      "max_person_authorized_iou": 0.7651912569999695,
+      "person_area_mean": 0.7232000231742859,
+      "protected_instance_count": 1,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        8
+      ],
+      "group": "authorized_only",
+      "height": 333,
+      "image_id": "004093",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "004146",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        2
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "004221",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 327,
+      "image_id": "004223",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.47266054153442383,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 6,
+      "classes": [
+        13
+      ],
+      "group": "authorized_only",
+      "height": 376,
+      "image_id": "004255",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "004321",
+      "max_person_authorized_iou": 0.254466712474823,
+      "person_area_mean": 0.2707267105579376,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "004329",
+      "max_person_authorized_iou": 0.3065643608570099,
+      "person_area_mean": 0.034591998904943466,
+      "protected_instance_count": 6,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        8,
+        14,
+        15
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "004392",
+      "max_person_authorized_iou": 0.014695167541503906,
+      "person_area_mean": 0.1611146628856659,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "004424",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.1784021407365799,
+      "protected_instance_count": 5,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 411,
+      "image_id": "004481",
+      "max_person_authorized_iou": 0.07834487408399582,
+      "person_area_mean": 0.06656934320926666,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        4,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "004495",
+      "max_person_authorized_iou": 0.010932933539152145,
+      "person_area_mean": 0.3091413378715515,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        8,
+        19
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "004510",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 14,
+      "classes": [
+        9,
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 322,
+      "image_id": "004686",
+      "max_person_authorized_iou": 0.15649378299713135,
+      "person_area_mean": 0.012493789196014404,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        15
+      ],
+      "group": "cooccur",
+      "height": 378,
+      "image_id": "004699",
+      "max_person_authorized_iou": 0.02260507270693779,
+      "person_area_mean": 0.006470143795013428,
+      "protected_instance_count": 7,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "004770",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.7492298483848572,
+      "protected_instance_count": 1,
+      "width": 335
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        1,
+        14
+      ],
+      "group": "cooccur",
+      "height": 334,
+      "image_id": "004782",
+      "max_person_authorized_iou": 0.40848612785339355,
+      "person_area_mean": 0.08973053842782974,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        2
+      ],
+      "group": "authorized_only",
+      "height": 334,
+      "image_id": "004783",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 333,
+      "image_id": "004831",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.43393394351005554,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "004859",
+      "max_person_authorized_iou": 0.3120236396789551,
+      "person_area_mean": 0.19869600236415863,
+      "protected_instance_count": 4,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "004946",
+      "max_person_authorized_iou": 0.023565534502267838,
+      "person_area_mean": 0.3485386371612549,
+      "protected_instance_count": 1,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "004995",
+      "max_person_authorized_iou": 0.3092974126338959,
+      "person_area_mean": 0.046921685338020325,
+      "protected_instance_count": 2,
+      "width": 332
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        12,
+        18
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "005094",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        11
+      ],
+      "group": "authorized_only",
+      "height": 333,
+      "image_id": "005121",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "005144",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.9701204895973206,
+      "protected_instance_count": 1,
+      "width": 332
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "005159",
+      "max_person_authorized_iou": 0.026119396090507507,
+      "person_area_mean": 0.0015999999595806003,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        19
+      ],
+      "group": "authorized_only",
+      "height": 281,
+      "image_id": "005210",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "005229",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.9953386783599854,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 333,
+      "image_id": "005298",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.21381381154060364,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        6
+      ],
+      "group": "authorized_only",
+      "height": 333,
+      "image_id": "005373",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "005417",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.7598719596862793,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        4,
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "005471",
+      "max_person_authorized_iou": 0.35289257764816284,
+      "person_area_mean": 0.421639621257782,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "005475",
+      "max_person_authorized_iou": 7.087353992574208e-08,
+      "person_area_mean": 0.0755651593208313,
+      "protected_instance_count": 5,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 5,
+      "classes": [
+        5
+      ],
+      "group": "authorized_only",
+      "height": 318,
+      "image_id": "005530",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 343,
+      "image_id": "005536",
+      "max_person_authorized_iou": 0.2937707006931305,
+      "person_area_mean": 0.1370495706796646,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        7
+      ],
+      "group": "authorized_only",
+      "height": 288,
+      "image_id": "005630",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 352
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        5,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "005631",
+      "max_person_authorized_iou": 0.0982288345694542,
+      "person_area_mean": 0.0188400000333786,
+      "protected_instance_count": 2,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 331,
+      "image_id": "005657",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.9366344213485718,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        5,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "005731",
+      "max_person_authorized_iou": 0.0262899287045002,
+      "person_area_mean": 0.016703998669981956,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        3
+      ],
+      "group": "authorized_only",
+      "height": 335,
+      "image_id": "005742",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 327,
+      "image_id": "005829",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.23427321016788483,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "005885",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.5072853565216064,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        18
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "005903",
+      "max_person_authorized_iou": 0.006614557467401028,
+      "person_area_mean": 0.007447999902069569,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "005990",
+      "max_person_authorized_iou": 0.034430909901857376,
+      "person_area_mean": 0.08848266303539276,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "006011",
+      "max_person_authorized_iou": 0.08744043111801147,
+      "person_area_mean": 0.00711200013756752,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 7,
+      "classes": [
+        8,
+        11,
+        14,
+        15,
+        17,
+        19
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "006029",
+      "max_person_authorized_iou": 0.44826504588127136,
+      "person_area_mean": 0.11441200226545334,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        9,
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 322,
+      "image_id": "006095",
+      "max_person_authorized_iou": 0.11800305545330048,
+      "person_area_mean": 0.025192545726895332,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 275,
+      "image_id": "006175",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.07103999704122543,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        4,
+        11,
+        15
+      ],
+      "group": "authorized_only",
+      "height": 333,
+      "image_id": "006189",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        19
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "006209",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.23074132204055786,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        6
+      ],
+      "group": "authorized_only",
+      "height": 333,
+      "image_id": "006224",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "006250",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        2
+      ],
+      "group": "authorized_only",
+      "height": 374,
+      "image_id": "006264",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 334,
+      "image_id": "006282",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.27274250984191895,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 333,
+      "image_id": "006284",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.5685645937919617,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 332,
+      "image_id": "006285",
+      "max_person_authorized_iou": 0.45404934883117676,
+      "person_area_mean": 0.08332830667495728,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        4
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "006335",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 5,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "006369",
+      "max_person_authorized_iou": 0.33784955739974976,
+      "person_area_mean": 0.003984556067734957,
+      "protected_instance_count": 7,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 480,
+      "image_id": "006445",
+      "max_person_authorized_iou": 0.13341554999351501,
+      "person_area_mean": 0.1005220040678978,
+      "protected_instance_count": 1,
+      "width": 443
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        6
+      ],
+      "group": "authorized_only",
+      "height": 314,
+      "image_id": "006458",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        18
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "006468",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 6,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 332,
+      "image_id": "006506",
+      "max_person_authorized_iou": 0.5114870667457581,
+      "person_area_mean": 0.035056222230196,
+      "protected_instance_count": 6,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "006536",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.5606946349143982,
+      "protected_instance_count": 1,
+      "width": 334
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        11,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "006609",
+      "max_person_authorized_iou": 0.34866398572921753,
+      "person_area_mean": 0.958079993724823,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        16
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "006678",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "006682",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.26531198620796204,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "006690",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.10590990632772446,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "006703",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.18856287002563477,
+      "protected_instance_count": 1,
+      "width": 334
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        18
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "006803",
+      "max_person_authorized_iou": 0.004106105305254459,
+      "person_area_mean": 0.011164999566972256,
+      "protected_instance_count": 2,
+      "width": 400
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 480,
+      "image_id": "006836",
+      "max_person_authorized_iou": 0.3159443140029907,
+      "person_area_mean": 0.15254086256027222,
+      "protected_instance_count": 1,
+      "width": 469
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        8
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "006845",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        1,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "006855",
+      "max_person_authorized_iou": 0.02268584445118904,
+      "person_area_mean": 0.02486538514494896,
+      "protected_instance_count": 2,
+      "width": 312
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        16
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "006899",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 496
+    },
+    {
+      "authorized_instance_count": 5,
+      "classes": [
+        4,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "006939",
+      "max_person_authorized_iou": 0.02393738552927971,
+      "person_area_mean": 0.49003463983535767,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "007059",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.019169066101312637,
+      "protected_instance_count": 10,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        4
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "007104",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "007184",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.052126746624708176,
+      "protected_instance_count": 6,
+      "width": 334
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        8,
+        17,
+        19
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "007263",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        8,
+        10,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "007266",
+      "max_person_authorized_iou": 0.18320974707603455,
+      "person_area_mean": 0.22815467417240143,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "007270",
+      "max_person_authorized_iou": 0.01088931504637003,
+      "person_area_mean": 0.014506667852401733,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        0,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "007292",
+      "max_person_authorized_iou": 0.003125876421108842,
+      "person_area_mean": 0.003306666621938348,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 5,
+      "classes": [
+        3
+      ],
+      "group": "authorized_only",
+      "height": 332,
+      "image_id": "007365",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "007369",
+      "max_person_authorized_iou": 0.36629554629325867,
+      "person_area_mean": 0.2112426608800888,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        0
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "007372",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        10,
+        14
+      ],
+      "group": "cooccur",
+      "height": 376,
+      "image_id": "007498",
+      "max_person_authorized_iou": 0.36999404430389404,
+      "person_area_mean": 0.7479999661445618,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        19
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "007506",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        19
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "007559",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.2818879783153534,
+      "protected_instance_count": 1,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "007603",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        2
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "007615",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 347,
+      "image_id": "007657",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.7993659973144531,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        16
+      ],
+      "group": "authorized_only",
+      "height": 337,
+      "image_id": "007859",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "007902",
+      "max_person_authorized_iou": 0.4767151176929474,
+      "person_area_mean": 0.10917066037654877,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 6,
+      "classes": [
+        8,
+        10,
+        15,
+        17
+      ],
+      "group": "authorized_only",
+      "height": 210,
+      "image_id": "007909",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 270
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        8,
+        17
+      ],
+      "group": "authorized_only",
+      "height": 235,
+      "image_id": "007923",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "007940",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.5609973669052124,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "007971",
+      "max_person_authorized_iou": 0.15471906960010529,
+      "person_area_mean": 0.1539459377527237,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "007997",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.4273679852485657,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 6,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 399,
+      "image_id": "008040",
+      "max_person_authorized_iou": 0.17583881318569183,
+      "person_area_mean": 0.025027012452483177,
+      "protected_instance_count": 9,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        2,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "008053",
+      "max_person_authorized_iou": 0.26462459564208984,
+      "person_area_mean": 0.4875245690345764,
+      "protected_instance_count": 1,
+      "width": 244
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        17
+      ],
+      "group": "cooccur",
+      "height": 374,
+      "image_id": "008103",
+      "max_person_authorized_iou": 0.22330430150032043,
+      "person_area_mean": 0.19218182563781738,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 6,
+      "classes": [
+        6,
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "008108",
+      "max_person_authorized_iou": 0.2014659196138382,
+      "person_area_mean": 0.010560888797044754,
+      "protected_instance_count": 6,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "008248",
+      "max_person_authorized_iou": 0.07996568828821182,
+      "person_area_mean": 0.14073601365089417,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6
+      ],
+      "group": "authorized_only",
+      "height": 333,
+      "image_id": "008329",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        17
+      ],
+      "group": "cooccur",
+      "height": 332,
+      "image_id": "008368",
+      "max_person_authorized_iou": 0.47550275921821594,
+      "person_area_mean": 0.4290662705898285,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 6,
+      "classes": [
+        15
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "008424",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 17,
+      "classes": [
+        8,
+        19
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "008462",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 6,
+      "classes": [
+        8,
+        15,
+        17
+      ],
+      "group": "authorized_only",
+      "height": 240,
+      "image_id": "008468",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 320
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        7,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "008485",
+      "max_person_authorized_iou": 0.4819590449333191,
+      "person_area_mean": 0.9800959825515747,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 300,
+      "image_id": "008612",
+      "max_person_authorized_iou": 0.21439127624034882,
+      "person_area_mean": 0.033000003546476364,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 350,
+      "image_id": "008644",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.1665382832288742,
+      "protected_instance_count": 5,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        0
+      ],
+      "group": "authorized_only",
+      "height": 333,
+      "image_id": "008683",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "008698",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.7520167827606201,
+      "protected_instance_count": 1,
+      "width": 357
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        1
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "008757",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "008810",
+      "max_person_authorized_iou": 0.005569088272750378,
+      "person_area_mean": 0.027165167033672333,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        16
+      ],
+      "group": "authorized_only",
+      "height": 409,
+      "image_id": "008871",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 270,
+      "image_id": "008872",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.1688888967037201,
+      "protected_instance_count": 1,
+      "width": 360
+    },
+    {
+      "authorized_instance_count": 7,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "009034",
+      "max_person_authorized_iou": 0.46808522939682007,
+      "person_area_mean": 0.06644732505083084,
+      "protected_instance_count": 8,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        1,
+        14
+      ],
+      "group": "cooccur",
+      "height": 405,
+      "image_id": "009036",
+      "max_person_authorized_iou": 0.5594990253448486,
+      "person_area_mean": 0.11273416131734848,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "009091",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.10888194292783737,
+      "protected_instance_count": 11,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "009153",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.7797120213508606,
+      "protected_instance_count": 1,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        8,
+        10
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "009157",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        17
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "009193",
+      "max_person_authorized_iou": 0.31986528635025024,
+      "person_area_mean": 0.22140444815158844,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "009208",
+      "max_person_authorized_iou": 0.037534743547439575,
+      "person_area_mean": 0.26220420002937317,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "009224",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.11608107388019562,
+      "protected_instance_count": 5,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        8,
+        15,
+        17
+      ],
+      "group": "authorized_only",
+      "height": 369,
+      "image_id": "009252",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        16
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "009271",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "009287",
+      "max_person_authorized_iou": 0.6273211240768433,
+      "person_area_mean": 0.11574775725603104,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        18
+      ],
+      "group": "authorized_only",
+      "height": 333,
+      "image_id": "009289",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 5,
+      "classes": [
+        6,
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 334,
+      "image_id": "009318",
+      "max_person_authorized_iou": 0.14511041343212128,
+      "person_area_mean": 0.12891016900539398,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "009330",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.4200613498687744,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        16
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "009349",
+      "max_person_authorized_iou": 0.02151069976389408,
+      "person_area_mean": 0.13323307037353516,
+      "protected_instance_count": 5,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        18
+      ],
+      "group": "cooccur",
+      "height": 338,
+      "image_id": "009377",
+      "max_person_authorized_iou": 0.004363152664154768,
+      "person_area_mean": 0.026207100600004196,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        11,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "009418",
+      "max_person_authorized_iou": 0.16011276841163635,
+      "person_area_mean": 0.4025585651397705,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        11,
+        14
+      ],
+      "group": "cooccur",
+      "height": 369,
+      "image_id": "009518",
+      "max_person_authorized_iou": 0.25750523805618286,
+      "person_area_mean": 0.15629269182682037,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 348,
+      "image_id": "009524",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.03758620470762253,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 11,
+      "classes": [
+        4,
+        8,
+        10,
+        14,
+        17
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "009613",
+      "max_person_authorized_iou": 0.36072999238967896,
+      "person_area_mean": 0.03763199597597122,
+      "protected_instance_count": 2,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        5
+      ],
+      "group": "authorized_only",
+      "height": 359,
+      "image_id": "009627",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        1,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "009703",
+      "max_person_authorized_iou": 0.40566346049308777,
+      "person_area_mean": 0.04185866937041283,
+      "protected_instance_count": 6,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "009792",
+      "max_person_authorized_iou": 0.3337196111679077,
+      "person_area_mean": 0.09523600339889526,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 9,
+      "classes": [
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "009828",
+      "max_person_authorized_iou": 0.011787297204136848,
+      "person_area_mean": 0.6154053807258606,
+      "protected_instance_count": 1,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        4,
+        14,
+        15,
+        17
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "009878",
+      "max_person_authorized_iou": 0.36034753918647766,
+      "person_area_mean": 0.12653601169586182,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "009879",
+      "max_person_authorized_iou": 0.027609756216406822,
+      "person_area_mean": 0.0289280004799366,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        19
+      ],
+      "group": "cooccur",
+      "height": 339,
+      "image_id": "009881",
+      "max_person_authorized_iou": 0.029661215841770172,
+      "person_area_mean": 0.2167758047580719,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        8,
+        14,
+        17
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "009949",
+      "max_person_authorized_iou": 0.4867672026157379,
+      "person_area_mean": 0.1931946724653244,
+      "protected_instance_count": 3,
+      "width": 500
+    }
+  ],
+  "train_summary": {
+    "authorized_only": 72,
+    "cooccur": 120,
+    "high_overlap_cooccur": 7,
+    "person_only": 48,
+    "total": 240
+  },
+  "val_ids": [
+    "000024",
+    "000218",
+    "000625",
+    "000677",
+    "000848",
+    "000892",
+    "001097",
+    "001529",
+    "001598",
+    "001777",
+    "001861",
+    "001937",
+    "001945",
+    "001977",
+    "002278",
+    "002321",
+    "002329",
+    "002359",
+    "002410",
+    "002441",
+    "002443",
+    "002879",
+    "003100",
+    "003261",
+    "003290",
+    "003292",
+    "003337",
+    "003376",
+    "003548",
+    "003550",
+    "003618",
+    "003688",
+    "003865",
+    "003887",
+    "003913",
+    "004269",
+    "004380",
+    "004389",
+    "004595",
+    "004630",
+    "004647",
+    "004776",
+    "004779",
+    "004897",
+    "004931",
+    "005020",
+    "005093",
+    "005185",
+    "005186",
+    "005208",
+    "005326",
+    "005344",
+    "005430",
+    "005511",
+    "005693",
+    "005760",
+    "005863",
+    "005873",
+    "005956",
+    "006043",
+    "006203",
+    "006395",
+    "006430",
+    "006442",
+    "006605",
+    "006645",
+    "006709",
+    "006847",
+    "006878",
+    "007166",
+    "007222",
+    "007398",
+    "007445",
+    "007629",
+    "007653",
+    "007694",
+    "007754",
+    "007768",
+    "007899",
+    "007953",
+    "008019",
+    "008082",
+    "008163",
+    "008253",
+    "008306",
+    "008390",
+    "008522",
+    "008699",
+    "008756",
+    "008911",
+    "008965",
+    "008999",
+    "009161",
+    "009236",
+    "009238",
+    "009424",
+    "009465",
+    "009543",
+    "009718",
+    "009789"
+  ],
+  "val_samples": [
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        18
+      ],
+      "group": "authorized_only",
+      "height": 335,
+      "image_id": "000024",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        8,
+        11,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "000218",
+      "max_person_authorized_iou": 0.2951051592826843,
+      "person_area_mean": 0.3344865143299103,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 20,
+      "classes": [
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "000625",
+      "max_person_authorized_iou": 0.5660716891288757,
+      "person_area_mean": 0.04170980304479599,
+      "protected_instance_count": 17,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "000677",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.6125766038894653,
+      "protected_instance_count": 1,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        8,
+        14,
+        17
+      ],
+      "group": "cooccur",
+      "height": 334,
+      "image_id": "000848",
+      "max_person_authorized_iou": 0.6988202333450317,
+      "person_area_mean": 0.22755388915538788,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "000892",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.07556266337633133,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 334,
+      "image_id": "001097",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.19040119647979736,
+      "protected_instance_count": 5,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        8,
+        17,
+        19
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "001529",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 15,
+      "classes": [
+        16
+      ],
+      "group": "authorized_only",
+      "height": 333,
+      "image_id": "001598",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 7,
+      "classes": [
+        4,
+        8,
+        10,
+        15
+      ],
+      "group": "authorized_only",
+      "height": 334,
+      "image_id": "001777",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        1,
+        14
+      ],
+      "group": "cooccur",
+      "height": 363,
+      "image_id": "001861",
+      "max_person_authorized_iou": 0.4281040132045746,
+      "person_area_mean": 0.8152727484703064,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "001937",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 480,
+      "image_id": "001945",
+      "max_person_authorized_iou": 0.3859867751598358,
+      "person_area_mean": 0.24690119922161102,
+      "protected_instance_count": 1,
+      "width": 318
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 310,
+      "image_id": "001977",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.3612000048160553,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        5
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "002278",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        18
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "002321",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 335
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "002329",
+      "max_person_authorized_iou": 0.37166324257850647,
+      "person_area_mean": 0.1383093297481537,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        11
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "002359",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "002410",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.4145066738128662,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        7,
+        19
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "002441",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        11,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "002443",
+      "max_person_authorized_iou": 0.4299282431602478,
+      "person_area_mean": 0.3161441385746002,
+      "protected_instance_count": 1,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "002879",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.8150933384895325,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        11,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "003100",
+      "max_person_authorized_iou": 0.1134108453989029,
+      "person_area_mean": 0.030506664887070656,
+      "protected_instance_count": 1,
+      "width": 400
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "003261",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.3362257778644562,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 332,
+      "image_id": "003290",
+      "max_person_authorized_iou": 0.327877938747406,
+      "person_area_mean": 0.04832128807902336,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 240,
+      "image_id": "003292",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.07916087657213211,
+      "protected_instance_count": 4,
+      "width": 360
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        3
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "003337",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        4,
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "003376",
+      "max_person_authorized_iou": 0.35656824707984924,
+      "person_area_mean": 0.10530667006969452,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "003548",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.8117920160293579,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "003550",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.398666650056839,
+      "protected_instance_count": 2,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 332,
+      "image_id": "003618",
+      "max_person_authorized_iou": 0.43590646982192993,
+      "person_area_mean": 0.017887553200125694,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 333,
+      "image_id": "003688",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.46401500701904297,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 5,
+      "classes": [
+        4,
+        8,
+        10,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "003865",
+      "max_person_authorized_iou": 0.22952410578727722,
+      "person_area_mean": 0.13701334595680237,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 5,
+      "classes": [
+        9
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "003887",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 361
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "003913",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.5469866991043091,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 332,
+      "image_id": "004269",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.40031325817108154,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "004380",
+      "max_person_authorized_iou": 0.7569717764854431,
+      "person_area_mean": 0.5539188981056213,
+      "protected_instance_count": 2,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "004389",
+      "max_person_authorized_iou": 0.12992316484451294,
+      "person_area_mean": 0.19728441536426544,
+      "protected_instance_count": 1,
+      "width": 327
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        11,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "004595",
+      "max_person_authorized_iou": 0.19587475061416626,
+      "person_area_mean": 0.4986666738986969,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        5,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "004630",
+      "max_person_authorized_iou": 0.17976129055023193,
+      "person_area_mean": 0.15174934267997742,
+      "protected_instance_count": 8,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "004647",
+      "max_person_authorized_iou": 0.17328791320323944,
+      "person_area_mean": 0.12060060352087021,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        18
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "004776",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "004779",
+      "max_person_authorized_iou": 0.22905302047729492,
+      "person_area_mean": 0.02598399855196476,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 333,
+      "image_id": "004897",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.032154154032468796,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        3,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "004931",
+      "max_person_authorized_iou": 0.04718770831823349,
+      "person_area_mean": 0.05836266651749611,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "005020",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        13,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "005093",
+      "max_person_authorized_iou": 0.32907634973526,
+      "person_area_mean": 0.10958859324455261,
+      "protected_instance_count": 2,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        11,
+        17
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "005185",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 5,
+      "classes": [
+        8,
+        15,
+        17
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "005186",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 333,
+      "image_id": "005208",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.12756755948066711,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 7,
+      "classes": [
+        9,
+        14
+      ],
+      "group": "cooccur",
+      "height": 376,
+      "image_id": "005326",
+      "max_person_authorized_iou": 0.09843052178621292,
+      "person_area_mean": 0.0054085105657577515,
+      "protected_instance_count": 5,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        1,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "005344",
+      "max_person_authorized_iou": 0.3109634518623352,
+      "person_area_mean": 0.4519999623298645,
+      "protected_instance_count": 2,
+      "width": 334
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        1,
+        4,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "005430",
+      "max_person_authorized_iou": 0.22508345544338226,
+      "person_area_mean": 0.1937173455953598,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 480,
+      "image_id": "005511",
+      "max_person_authorized_iou": 0.40434643626213074,
+      "person_area_mean": 0.1681603640317917,
+      "protected_instance_count": 1,
+      "width": 318
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        11,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "005693",
+      "max_person_authorized_iou": 0.11264693737030029,
+      "person_area_mean": 0.4148319959640503,
+      "protected_instance_count": 2,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        6
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "005760",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "005863",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0847662165760994,
+      "protected_instance_count": 12,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        11,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "005873",
+      "max_person_authorized_iou": 0.2668890953063965,
+      "person_area_mean": 0.2904684543609619,
+      "protected_instance_count": 1,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 363,
+      "image_id": "005956",
+      "max_person_authorized_iou": 0.011918679811060429,
+      "person_area_mean": 0.005294766277074814,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "006043",
+      "max_person_authorized_iou": 0.024960778653621674,
+      "person_area_mean": 0.013704000040888786,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        6
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "006203",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 327
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        8,
+        14,
+        19
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "006395",
+      "max_person_authorized_iou": 0.19472165405750275,
+      "person_area_mean": 0.22325333952903748,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        2
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "006430",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 500,
+      "image_id": "006442",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.4601321816444397,
+      "protected_instance_count": 2,
+      "width": 348
+    },
+    {
+      "authorized_instance_count": 8,
+      "classes": [
+        8,
+        15
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "006605",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "006645",
+      "max_person_authorized_iou": 0.17334496974945068,
+      "person_area_mean": 0.1766747087240219,
+      "protected_instance_count": 1,
+      "width": 332
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "006709",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.04800533130764961,
+      "protected_instance_count": 3,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 335,
+      "image_id": "006847",
+      "max_person_authorized_iou": 0.2696857750415802,
+      "person_area_mean": 0.05154626816511154,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        17
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "006878",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        11,
+        19
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "007166",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        18
+      ],
+      "group": "authorized_only",
+      "height": 339,
+      "image_id": "007222",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        5,
+        14
+      ],
+      "group": "cooccur",
+      "height": 283,
+      "image_id": "007398",
+      "max_person_authorized_iou": 0.13619737327098846,
+      "person_area_mean": 0.13738515973091125,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        14,
+        18
+      ],
+      "group": "cooccur",
+      "height": 334,
+      "image_id": "007445",
+      "max_person_authorized_iou": 0.028197897598147392,
+      "person_area_mean": 0.02371257357299328,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "007629",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.18773333728313446,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 332,
+      "image_id": "007653",
+      "max_person_authorized_iou": 0.016229920089244843,
+      "person_area_mean": 0.005204818677157164,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        11,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "007694",
+      "max_person_authorized_iou": 0.13201391696929932,
+      "person_area_mean": 0.2998186945915222,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 5,
+      "classes": [
+        8,
+        19
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "007754",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 375,
+      "image_id": "007768",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.5677039623260498,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        4
+      ],
+      "group": "authorized_only",
+      "height": 500,
+      "image_id": "007899",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 6,
+      "classes": [
+        1,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "007953",
+      "max_person_authorized_iou": 0.279467910528183,
+      "person_area_mean": 0.00866350531578064,
+      "protected_instance_count": 19,
+      "width": 333
+    },
+    {
+      "authorized_instance_count": 3,
+      "classes": [
+        6,
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 318,
+      "image_id": "008019",
+      "max_person_authorized_iou": 0.23294241726398468,
+      "person_area_mean": 0.15670859813690186,
+      "protected_instance_count": 1,
+      "width": 480
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        14,
+        15
+      ],
+      "group": "cooccur",
+      "height": 333,
+      "image_id": "008082",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.34067267179489136,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 5,
+      "classes": [
+        3,
+        14
+      ],
+      "group": "cooccur",
+      "height": 327,
+      "image_id": "008163",
+      "max_person_authorized_iou": 0.1257762461900711,
+      "person_area_mean": 0.03012232296168804,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        1,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "008253",
+      "max_person_authorized_iou": 0.058569520711898804,
+      "person_area_mean": 0.3479146659374237,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 2,
+      "classes": [
+        3
+      ],
+      "group": "authorized_only",
+      "height": 324,
+      "image_id": "008306",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        8,
+        14
+      ],
+      "group": "cooccur",
+      "height": 500,
+      "image_id": "008390",
+      "max_person_authorized_iou": 0.8119996190071106,
+      "person_area_mean": 0.4073893129825592,
+      "protected_instance_count": 2,
+      "width": 375
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        0
+      ],
+      "group": "authorized_only",
+      "height": 333,
+      "image_id": "008522",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "008699",
+      "max_person_authorized_iou": 0.13644243776798248,
+      "person_area_mean": 0.0756479948759079,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        7
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "008756",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 7,
+      "classes": [
+        5,
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "008911",
+      "max_person_authorized_iou": 0.10025357455015182,
+      "person_area_mean": 0.011787732131779194,
+      "protected_instance_count": 5,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 333,
+      "image_id": "008965",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.7594113945960999,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 7,
+      "classes": [
+        3
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "008999",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        5,
+        14
+      ],
+      "group": "cooccur",
+      "height": 379,
+      "image_id": "009161",
+      "max_person_authorized_iou": 0.06023888662457466,
+      "person_area_mean": 0.01912137307226658,
+      "protected_instance_count": 4,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12,
+        14
+      ],
+      "group": "cooccur",
+      "height": 318,
+      "image_id": "009236",
+      "max_person_authorized_iou": 0.16546295583248138,
+      "person_area_mean": 0.0639740526676178,
+      "protected_instance_count": 1,
+      "width": 480
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 333,
+      "image_id": "009238",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.6144504547119141,
+      "protected_instance_count": 2,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        6,
+        14
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "009424",
+      "max_person_authorized_iou": 0.24618734419345856,
+      "person_area_mean": 0.11903999745845795,
+      "protected_instance_count": 1,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 1,
+      "classes": [
+        12
+      ],
+      "group": "authorized_only",
+      "height": 346,
+      "image_id": "009465",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 393
+    },
+    {
+      "authorized_instance_count": 6,
+      "classes": [
+        8,
+        11
+      ],
+      "group": "authorized_only",
+      "height": 375,
+      "image_id": "009543",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.0,
+      "protected_instance_count": 0,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 4,
+      "classes": [
+        6,
+        14,
+        18
+      ],
+      "group": "cooccur",
+      "height": 375,
+      "image_id": "009718",
+      "max_person_authorized_iou": 0.07608693093061447,
+      "person_area_mean": 0.0013223333517089486,
+      "protected_instance_count": 16,
+      "width": 500
+    },
+    {
+      "authorized_instance_count": 0,
+      "classes": [
+        14
+      ],
+      "group": "person_only",
+      "height": 351,
+      "image_id": "009789",
+      "max_person_authorized_iou": 0.0,
+      "person_area_mean": 0.38228490948677063,
+      "protected_instance_count": 2,
+      "width": 500
+    }
+  ],
+  "val_summary": {
+    "authorized_only": 30,
+    "cooccur": 50,
+    "high_overlap_cooccur": 4,
+    "person_only": 20,
+    "total": 100
+  }
+}

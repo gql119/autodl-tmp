@@ -356,6 +356,7 @@ def run_evaluate(ctx: RunContext) -> None:
         "method": ctx.method,
         "steps": ctx.steps,
         "seed": ctx.seed,
+        "run_tag": ctx.run_tag,
         "mAP50_target": full_metrics["mAP50_target"],
         "mAP50_non_target": full_metrics["mAP50_non_target"],
         "mAP50_all": full_metrics["mAP50_all"],

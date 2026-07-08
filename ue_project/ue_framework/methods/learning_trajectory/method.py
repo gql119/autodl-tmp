@@ -144,12 +144,13 @@ class LearningTrajectoryMethod:
 
         support_poison = (support_images + delta).clamp(0.0, 1.0)
         support_predictions = self.adapter.forward(support_poison)
-        support_loss = self.adapter.compute_detection_loss(
+        support_full_components = self.adapter.compute_detection_loss(
             support_predictions,
             support_batch,
             class_filter=None,
-            return_components=False,
+            return_components=True,
         )
+        support_loss = support_full_components["total_loss"]
         virtual = make_virtual_parameters(
             self.adapter.model,
             selected,
@@ -191,6 +192,9 @@ class LearningTrajectoryMethod:
         leak = parameter_leak_max_abs_diff(self.adapter.model, snapshot)
         logs = {
             "support_total_loss": float(support_loss.detach().item()),
+            "support_full_cls_loss": float(support_full_components["cls_loss"].detach().item()),
+            "support_full_box_loss": float(support_full_components["box_loss"].detach().item()),
+            "support_full_dfl_loss": float(support_full_components["dfl_loss"].detach().item()),
             "support_protected_loss": float(support_class_losses["protected_total_loss"].detach().item()),
             "support_authorized_loss": float(support_class_losses["authorized_total_loss"].detach().item()),
             "query_protected_loss_before_update": float(before_losses["protected_total_loss"].detach().item()),

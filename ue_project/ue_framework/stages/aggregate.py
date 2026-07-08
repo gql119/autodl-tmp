@@ -115,19 +115,19 @@ def aggregate_root(run_root: str) -> Dict[str, str]:
 
     grouped = defaultdict(list)
     for r in rows:
-        key = (r.get("method"), r.get("steps"))
+        key = (r.get("method"), r.get("steps"), r.get("run_tag", ""))
         grouped[key].append(r)
 
     grouped_rows = []
-    for (method, steps), items in grouped.items():
-        row = {"method": method, "steps": steps, "runs": len(items)}
+    for (method, steps, run_tag), items in grouped.items():
+        row = {"method": method, "steps": steps, "run_tag": run_tag, "runs": len(items)}
         for nf in NUMERIC_FIELDS:
             vals = [_safe_float(i.get(nf)) for i in items]
             vals = [v for v in vals if not np.isnan(v)]
             row[nf] = float(np.mean(vals)) if vals else float("nan")
         grouped_rows.append(row)
 
-    g_fields = ["method", "steps", "runs"] + NUMERIC_FIELDS
+    g_fields = ["method", "steps", "run_tag", "runs"] + NUMERIC_FIELDS
     with open(out_grouped, "w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=g_fields)
         w.writeheader()

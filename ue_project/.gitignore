@@ -24,6 +24,17 @@ __pycache__/
 venv/
 env/
 .conda/
+.venv/
+
+# 排除实验输出和本地大目录
+outputs/
+runs/
+runs_formal/
+ImageShortcutSqueezing-master/
+figures/
 
 # 排除系统文件
 .DS_Store
+
+# 排除论文/临时二进制文档
+*.pdf

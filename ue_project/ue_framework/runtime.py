@@ -11,6 +11,7 @@ class RunContext:
     method: str
     steps: int
     seed: int
+    run_tag: str
     stage: str
     gpu_id: int
     platform_mode: str
