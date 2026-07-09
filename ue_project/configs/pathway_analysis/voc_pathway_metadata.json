@@ -1,0 +1,12 @@
+{
+  "calibration_count": 240,
+  "group_counts": {
+    "authorized_only": 240,
+    "high_overlap": 162,
+    "low_overlap": 240,
+    "person_only": 240
+  },
+  "overlap_count": 0,
+  "validation_count": 240,
+  "voc_root": "F:\\autodl-tmp\\ue_project\\outputs\\local_validation\\voc_raw\\VOCdevkit\\VOC2007"
+}

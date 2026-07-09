@@ -1,0 +1,59 @@
+method: mtepi_stage2
+
+protected_class_id: 14
+authorized_class_ids: auto
+num_classes: 20
+
+paths:
+  voc_root: outputs/local_validation/voc_raw/VOCdevkit/VOC2007
+  checkpoint_candidates:
+    - name: late_voc20_surrogate
+      role: late
+      path: checkpoints/voc20_surrogate.pt
+      epoch: unknown
+      training_run_id: ""
+      initialization_checksum: ""
+      class_space: VOC20
+      architecture: YOLOv8n-VOC20
+      manifest: ""
+    - name: skipped_yolo26n_unknown_class_space
+      role: skipped_non_voc20
+      path: yolo26n.pt
+      epoch: unknown
+      training_run_id: ""
+      initialization_checksum: ""
+      class_space: unknown
+      architecture: unknown
+      manifest: ""
+
+data_manifest:
+  calibration_count: 240
+  validation_count: 240
+  ambiguous_iou_threshold: 0.5
+  seed: 0
+
+layer_registry:
+  imgsz: 160
+  include_roles: [P3, P4, P5]
+  max_candidate_layers: 3
+
+channel_scoring:
+  d_t_min: 0.001
+  d_a_max: 0.001
+  d_s_max: 0.001
+  protected_positive_ratio_min: 0.60
+  min_samples: 8
+  clean_energy_min: 1.0e-6
+  beta_a: 1.0
+  beta_s: 1.0
+
+topk_ablation:
+  percents: [1, 5, 10, 20]
+  min_protected_ap_drop: 0.10
+  min_authorized_retention: 0.90
+
+transfer:
+  min_jaccard: 0.50
+
+stage2_gate:
+  min_target_selective_channels: 1

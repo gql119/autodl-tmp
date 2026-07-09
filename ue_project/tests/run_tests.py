@@ -49,6 +49,20 @@ TEST_MODULES = [
     "tests.test_delta_candidate_export",
     "tests.test_proxy_ap_correlation",
     "tests.test_victim_initialization_manifest",
+    "tests.test_channel_ablation_hook",
+    "tests.test_localized_channel_ablation",
+    "tests.test_pathway_roi_mapping",
+    "tests.test_pathway_roi_class_routing",
+    "tests.test_feature_space_instance_mask",
+    "tests.test_pathway_overlap_exclusion",
+    "tests.test_functional_channel_score",
+    "tests.test_constraint_first_ranking",
+    "tests.test_channel_ablation_ap",
+    "tests.test_checkpoint_pathway_overlap",
+    "tests.test_cross_checkpoint_functional_transfer",
+    "tests.test_consensus_pathway_selection",
+    "tests.test_ablation_bootstrap",
+    "tests.test_stage2_gate",
 ]
 
 

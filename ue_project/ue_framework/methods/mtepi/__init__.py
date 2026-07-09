@@ -1,0 +1,33 @@
+from .stage2 import (
+    CandidateLayer,
+    ChannelScoreThresholds,
+    ablation_delta,
+    bootstrap_mean_ci,
+    boxes_to_feature_mask,
+    build_checkpoint_manifest,
+    build_consensus_pathways,
+    channel_ablation_hook,
+    classify_channel,
+    constraint_first_rank,
+    cross_checkpoint_transfer_matrix,
+    jaccard_overlap,
+    localized_channel_ablation,
+    stage2_gate,
+)
+
+__all__ = [
+    "CandidateLayer",
+    "ChannelScoreThresholds",
+    "ablation_delta",
+    "bootstrap_mean_ci",
+    "boxes_to_feature_mask",
+    "build_checkpoint_manifest",
+    "build_consensus_pathways",
+    "channel_ablation_hook",
+    "classify_channel",
+    "constraint_first_rank",
+    "cross_checkpoint_transfer_matrix",
+    "jaccard_overlap",
+    "localized_channel_ablation",
+    "stage2_gate",
+]
