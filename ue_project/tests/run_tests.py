@@ -64,6 +64,7 @@ TEST_MODULES = [
     "tests.test_ablation_bootstrap",
     "tests.test_stage2_gate",
     "tests.test_mini_csdem_stage1",
+    "tests.test_mini_csdem_stage2",
 ]
 
 
