@@ -1,0 +1,2 @@
+stage,seed,clean_target_map50,target_map50,target_absolute_drop,target_relative_drop,non_target_map50,non_target_absolute_drop,worst_non_target_class,worst_non_target_drop,person_free_non_target_map50,person_cooccur_non_target_map50,poison_train_target_map50,clean_val_target_map50,perturbation_linf,perturbation_mean_abs,perturbed_area_ratio,status
+clean,0,0.3081944610953854,0.3081944610953854,0.0,0.0,0.08219791022393734,0.0,pottedplant,0.0,0.08225369605518211,0.13629428003877872,,0.3081944610953854,0.0,0.0,0.0,PASS
