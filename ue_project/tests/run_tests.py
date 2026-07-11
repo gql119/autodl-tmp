@@ -63,6 +63,7 @@ TEST_MODULES = [
     "tests.test_consensus_pathway_selection",
     "tests.test_ablation_bootstrap",
     "tests.test_stage2_gate",
+    "tests.test_mini_csdem_stage1",
 ]
 
 

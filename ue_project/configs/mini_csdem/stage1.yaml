@@ -1,0 +1,49 @@
+experiment:
+  name: mini_csdem_stage1
+  seed: 0
+  target_class_name: person
+
+data:
+  split_manifest: data_splits/mini_csdem_voc_seed0.json
+  clean_dataset_root: outputs/mini_csdem/clean_dataset
+
+model:
+  init: configs/voc_yolov8n_20cls.yaml
+  pretrained: false
+  resume: false
+
+poison:
+  enabled: true
+  object_size: 64
+  epsilon: 0.031372549
+  exclude_non_target_overlap: true
+  non_target_dilation: 2
+  generation_epochs: 10
+  batch: 8
+  surrogate_lr: 0.001
+  noise_lr: 0.01
+  minimum_target_positives: 16
+  fallback_min_per_level: 2
+
+victim:
+  epochs: 50
+  imgsz: 416
+  batch: 16
+  workers: 0
+  amp: true
+  seed: 0
+
+features:
+  enable_object_aligned_perturbation: true
+  enable_non_target_preservation: false
+  enable_classwise_constraints: false
+  enable_gradient_projection: false
+  enable_alce: false
+  enable_pag: false
+  enable_context_prototype: false
+  enable_fourier_perturbation: false
+
+paths:
+  output_root: outputs/mini_csdem/stage1_seed0
+  results_root: results/mini_csdem
+
