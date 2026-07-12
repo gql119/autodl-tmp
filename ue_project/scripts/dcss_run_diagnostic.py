@@ -42,6 +42,8 @@ def _metrics(experiment_id, source, margin_multiplier, leakage_multiplier, direc
     metrics = {
         "experiment_id": experiment_id,
         "Q_type": source,
+        "carrier": config["dcss"].get("carrier_mode", "legacy"),
+        "update": config["dcss"].get("update_mode", "weighted"),
         "energy_margin_multiplier": margin_multiplier,
         "leakage_weight_multiplier": leakage_multiplier,
         "target_projected_energy": target,
@@ -54,6 +56,16 @@ def _metrics(experiment_id, source, margin_multiplier, leakage_multiplier, direc
         "R_shift": target / (leakage + 1e-12),
         "target_unit_coverage": float(rows[-1]["target_unit_coverage_running"]),
         "target_assignment_overlap": _mean(rows, "target_assignment_overlap"),
+        "target_total_shift_energy": _mean(rows, "target_shift_total_energy"),
+        "projected_coefficient_pairwise_cosine": _mean(rows, "projected_coefficient_pairwise_cosine"),
+        "projected_coefficient_norm_cv": _mean(rows, "projected_coefficient_norm_cv"),
+        "projected_covariance_effective_rank": _mean(rows, "projected_covariance_effective_rank"),
+        "perturbation_mean_absolute": _mean(rows, "perturbation_mean_absolute"),
+        "saturation_ratio": _mean(rows, "saturation_ratio"),
+        "support_area_ratio": _mean(rows, "support_area_ratio"),
+        "valid_person_support_ratio": _mean(rows, "valid_person_support_ratio"),
+        "non_target_overlap_ratio": _mean(rows, "non_target_overlap_ratio"),
+        "PSNR": -10.0 * math.log10(max(_mean(rows, "perturbation_mse"), 1e-12)),
         "perturbation_area_ratio": _mean(rows, "perturbation_area_ratio"),
         "perturbation_max_amplitude": max_amplitude,
         "eps": eps,
@@ -67,19 +79,26 @@ def _metrics(experiment_id, source, margin_multiplier, leakage_multiplier, direc
 def main():
     parser = argparse.ArgumentParser(description="Run one isolated 1-epoch DCSS Stage 1R diagnostic")
     parser.add_argument("--base-config", required=True)
+    parser.add_argument("--output-root", default=os.path.join(ROOT, "artifacts", "dcss", "resume"))
     parser.add_argument("--experiment-id", required=True)
-    parser.add_argument("--source", choices=["dcss", "no_pt"], required=True)
+    parser.add_argument("--source", choices=["random", "target_only", "dcss", "no_pt"], required=True)
     parser.add_argument("--subspace-path", required=True)
     parser.add_argument("--energy-margin-multiplier", type=float, required=True)
     parser.add_argument("--leakage-weight-multiplier", type=float, required=True)
+    parser.add_argument("--carrier-mode", choices=["legacy", "object_aligned"], default="legacy")
+    parser.add_argument("--update-mode", choices=["weighted", "constrained"], default="weighted")
+    parser.add_argument("--gradient-geometry", action="store_true")
     args = parser.parse_args()
-    directory = build_resume_run_dir(os.path.join(ROOT, "artifacts", "dcss", "resume"), "diagnostic", args.experiment_id)
+    directory = build_resume_run_dir(args.output_root, "diagnostic", args.experiment_id)
     os.makedirs(directory, exist_ok=False)
     with open(args.base_config, encoding="utf-8") as file:
         config = yaml.safe_load(file)
     config = apply_relative_overrides(config, args.energy_margin_multiplier, args.leakage_weight_multiplier)
     config["dcss"]["poison_epochs"] = 1
     config["dcss"]["subspace_path"] = args.subspace_path
+    config["dcss"]["carrier_mode"] = args.carrier_mode
+    config["dcss"]["update_mode"] = args.update_mode
+    config["dcss"]["gradient_geometry"] = args.gradient_geometry
     with open(os.path.join(directory, "config.yaml"), "w", encoding="utf-8") as file:
         yaml.safe_dump(config, file, sort_keys=False, allow_unicode=True)
     with open(os.path.join(directory, "command.txt"), "w", encoding="utf-8") as file:

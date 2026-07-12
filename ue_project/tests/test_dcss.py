@@ -12,6 +12,7 @@ from dcss.losses import dcss_stage1_loss, non_target_leakage, subspace_energies
 from dcss.semantic_pca import fit_semantic_pca
 from dcss.statistics import RunningCovariance
 from dcss.subspace_io import load_subspaces, save_subspaces
+from dcss.stage15 import constrained_direction, gradient_component_stats, gradient_cosine, object_aligned_warp
 from dcss.unit_partition import partition_tal_units
 
 
@@ -248,3 +249,41 @@ def test_resume_run_directory_cannot_target_historical_stage1():
             pass
         else:
             raise AssertionError("path traversal must be rejected")
+
+
+def test_projected_coefficient_metrics():
+    from dcss.stage1 import projected_coefficient_metrics
+    shifts=torch.tensor([[1.,0.,0.],[2.,0.,0.],[0.,1.,0.]])
+    values=projected_coefficient_metrics(shifts,torch.eye(3)[:,:2])
+    assert set(values)=={"projected_coefficient_pairwise_cosine","projected_coefficient_norm_cv","projected_covariance_effective_rank"}
+    assert values["projected_covariance_effective_rank"] >= 1
+
+
+def test_gradient_component_norms_and_conflict_cosine():
+    first=torch.tensor([3.,4.]); second=-first
+    assert gradient_component_stats(first)=={"l2":5.0,"l1":7.0,"max_abs":4.0}
+    assert gradient_cosine(first,second) < -0.999
+
+
+def test_constrained_direction_synthetic_and_feasibility():
+    target=torch.tensor([1.,1.]); constraints=[torch.tensor([1.,0.]),torch.tensor([0.,1.])]
+    direction,status=constrained_direction(target,constraints)
+    assert status["status"]=="feasible"
+    assert all(float((g*direction).sum()) <= 1e-6 for g in constraints)
+
+
+def test_constrained_no_silent_fallback():
+    try:
+        constrained_direction(torch.tensor([1.]),[torch.tensor([1.])],max_iterations=0)
+    except (RuntimeError, UnboundLocalError):
+        pass
+    else:
+        raise AssertionError("solver failure must not silently return weighted update")
+
+
+def test_object_aligned_warp_and_non_target_overlap_exclusion():
+    delta=torch.ones(3,8,8)
+    annotations=[{"cls":14,"bbox":[0.5,0.5,0.5,0.5]},{"cls":7,"bbox":[0.5,0.5,0.1,0.1]}]
+    canvas,support,non_target,metrics=object_aligned_warp(delta,annotations,32,14,dilation=1)
+    assert canvas.shape==(3,32,32) and float((canvas*non_target).abs().max())==0
+    assert 0 < metrics["valid_support_area"] < 1 and metrics["non_target_overlap_ratio"]==0

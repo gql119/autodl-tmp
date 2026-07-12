@@ -28,6 +28,7 @@ from ue_framework.methods.tausb_universal import TAUSBMaskGenerator, TAUSBUniver
 from .losses import dcss_stage1_loss, symmetric_bernoulli_kl
 from .stage0_collection import _batch_from_annotations, _gather_vectors, _letterbox_with_annotations
 from .subspace_io import load_subspaces
+from .stage15 import constrained_direction, gradient_component_stats, gradient_cosine, object_aligned_warp
 from .unit_partition import partition_tal_units
 
 
@@ -80,6 +81,26 @@ def _shift_geometry(shifts: torch.Tensor) -> Tuple[float, float]:
     probabilities = energy / energy.sum().clamp_min(1e-12)
     effective_rank = float(torch.exp(-(probabilities * probabilities.clamp_min(1e-12).log()).sum()).detach().item())
     return pairwise, effective_rank
+
+
+def projected_coefficient_metrics(shifts: torch.Tensor, basis: torch.Tensor) -> Dict[str, float]:
+    coefficients = shifts @ basis
+    norms = coefficients.norm(dim=1)
+    valid = norms > 1e-8
+    if int(valid.sum()) < 2:
+        pairwise = 1.0
+    else:
+        normalized = coefficients[valid] / norms[valid, None]
+        cosine = normalized @ normalized.T
+        mask = ~torch.eye(cosine.shape[0], dtype=torch.bool, device=cosine.device)
+        pairwise = float(cosine[mask].mean().detach())
+    norm_cv = float((norms.std(unbiased=False) / norms.mean().clamp_min(1e-12)).detach())
+    centered = coefficients - coefficients.mean(dim=0, keepdim=True)
+    covariance = centered.T @ centered / max(1, coefficients.shape[0])
+    eigenvalues = torch.linalg.eigvalsh(covariance).clamp_min(0)
+    probabilities = eigenvalues / eigenvalues.sum().clamp_min(1e-12)
+    effective_rank = float(torch.exp(-(probabilities * probabilities.clamp_min(1e-12).log()).sum()).detach())
+    return {"projected_coefficient_pairwise_cosine": pairwise, "projected_coefficient_norm_cv": norm_cv, "projected_covariance_effective_rank": effective_rank}
 
 
 def _load_basis(subspace_path: str, layer: str, source: str, rank: int, device: torch.device) -> Tuple[torch.Tensor, Dict]:
@@ -139,8 +160,17 @@ def train_stage1_poison(
     if maximum_target_images > 0:
         target_images = target_images[:maximum_target_images]
 
-    optimizer = torch.optim.Adam([trainer.fourier_coeff], lr=float(cfg["dcss"]["learning_rate"]))
+    carrier_mode = str(cfg["dcss"].get("carrier_mode", "legacy"))
+    if carrier_mode == "object_aligned":
+        object_delta = torch.nn.Parameter(torch.zeros((3, int(cfg["dcss"].get("object_resolution", 32)), int(cfg["dcss"].get("object_resolution", 32))), device=device))
+        torch.nn.init.normal_(object_delta, std=1e-3)
+        carrier_parameter = object_delta
+    else:
+        carrier_parameter = trainer.fourier_coeff
+    optimizer = torch.optim.Adam([carrier_parameter], lr=float(cfg["dcss"]["learning_rate"]))
     diagnostics = []
+    gradient_diagnostics = []
+    optimizer_diagnostics = []
     class_accumulator = defaultdict(lambda: {"leakage_sum": 0.0, "logit_sum": 0.0, "batches": 0})
     global_step = 0
     selected_target_total = 0
@@ -173,9 +203,18 @@ def train_stage1_poison(
             active = trainer.freq_active_idx.long()
             coords = [tuple(trainer.freq_candidate_coords[int(i)]) for i in active.detach().cpu().tolist()]
             coefficients = trainer.fourier_coeff[active]
-            raw, perturbation, adv, _, _ = trainer._compose_delta_batched(
-                clean, inner_t, ring_t, coords, coefficients, trainer.suppress_small, current_epoch=epoch
-            )
+            carrier_extras = {}
+            if carrier_mode == "object_aligned":
+                warped=[]; valid_masks=[]; overlaps=[]
+                for annotations in adjusted_batch:
+                    canvas, valid_mask, _, extra = object_aligned_warp(object_delta, annotations, trainer.imgsz, int(cfg["experiment"]["target_class_id"]), int(cfg["dcss"].get("object_dilation", 4)))
+                    warped.append(canvas); valid_masks.append(valid_mask); overlaps.append(extra["non_target_overlap_ratio"])
+                raw=torch.stack(warped); perturbation=raw.clamp(-trainer.eps,trainer.eps); adv=(clean+perturbation).clamp(0,1)
+                carrier_extras={"valid_person_support_ratio":float(torch.stack(valid_masks).mean().detach()),"non_target_overlap_ratio":float(np.mean(overlaps))}
+            else:
+                raw, perturbation, adv, _, _ = trainer._compose_delta_batched(
+                    clean, inner_t, ring_t, coords, coefficients, trainer.suppress_small, current_epoch=epoch
+                )
 
             with torch.no_grad():
                 trainer._clear_multi_features()
@@ -234,18 +273,59 @@ def train_stage1_poison(
             total = total + float(cfg["dcss"]["lambda_logits"]) * nt_logit_loss
             if not torch.isfinite(total):
                 raise FloatingPointError("non-finite DCSS Stage 1 loss")
+            geometry_enabled = bool(cfg["dcss"].get("gradient_geometry", False))
+            update_mode = str(cfg["dcss"].get("update_mode", "weighted"))
+            need_components = geometry_enabled or update_mode == "constrained"
+            component_gradients = {}
+            class_gradients = {}
+            if need_components:
+                components = {
+                    "energy": float(cfg["dcss"]["lambda_energy"]) * mechanism["energy_loss"],
+                    "out": float(cfg["dcss"]["lambda_outside"]) * mechanism["target_outside_energy"],
+                    "leak": float(cfg["dcss"]["lambda_leakage"]) * mechanism["non_target_leakage"],
+                    "logit": float(cfg["dcss"]["lambda_logits"]) * nt_logit_loss,
+                }
+                for name, value in components.items():
+                    gradient = torch.autograd.grad(value, carrier_parameter, retain_graph=True, allow_unused=True)[0] if value.requires_grad else None
+                    component_gradients[name] = torch.zeros_like(carrier_parameter) if gradient is None else gradient
+                top_classes = sorted(class_batch_metrics, key=lambda key: float(class_batch_metrics[key][0].detach()), reverse=True)[:5]
+                for class_id in top_classes:
+                    projected_loss, logit_loss = class_batch_metrics[class_id]
+                    value = float(cfg["dcss"]["lambda_leakage"]) * projected_loss + float(cfg["dcss"]["lambda_logits"]) * logit_loss
+                    gradient = torch.autograd.grad(value, carrier_parameter, retain_graph=True, allow_unused=True)[0]
+                    class_gradients[class_id] = torch.zeros_like(carrier_parameter) if gradient is None else gradient
+                target_gradient = component_gradients["energy"] + component_gradients["out"]
+                target_direction = -target_gradient
+                feasible = all(float((gradient * target_direction).sum()) <= 0 for gradient in class_gradients.values())
+                row = {"epoch": epoch, "step": global_step, "feasible_direction": int(feasible), "update_mode": update_mode}
+                for name, gradient in component_gradients.items():
+                    row.update({f"g_{name}_{key}": value for key, value in gradient_component_stats(gradient).items()})
+                row.update({"cos_energy_out": gradient_cosine(component_gradients["energy"], component_gradients["out"]), "cos_energy_leak": gradient_cosine(component_gradients["energy"], component_gradients["leak"]), "cos_energy_logit": gradient_cosine(component_gradients["energy"], component_gradients["logit"]), "sign_overlap_energy_leak": float((component_gradients["energy"].sign()==component_gradients["leak"].sign()).float().mean())})
+                for class_id, gradient in class_gradients.items(): row[f"cos_energy_class_{class_id}"] = gradient_cosine(component_gradients["energy"], gradient)
+                gradient_diagnostics.append(row)
             optimizer.zero_grad(set_to_none=True)
-            total.backward()
-            if trainer.fourier_coeff.grad is None:
+            before_update = carrier_parameter.detach().clone()
+            if update_mode == "weighted":
+                total.backward()
+            elif update_mode == "constrained":
+                direction, solver = constrained_direction(-(component_gradients["energy"] + component_gradients["out"]), class_gradients.values())
+                with torch.no_grad(): carrier_parameter.add_(float(cfg["dcss"]["learning_rate"]) * direction)
+                optimizer_diagnostics.append({"epoch":epoch,"step":global_step,**solver,"zero_update":int(float(direction.norm())<=1e-12),"update_norm_ratio":float(direction.norm() / (target_direction.norm().clamp_min(1e-12)))})
+            else:
+                raise ValueError(f"unknown update_mode: {update_mode}")
+            if update_mode == "weighted" and carrier_parameter.grad is None:
                 raise RuntimeError(
                     "DCSS carrier gradient missing: "
                     f"total_requires_grad={total.requires_grad}, adv_requires_grad={adv.requires_grad}, "
                     f"perturbation_requires_grad={perturbation.requires_grad}, coefficients_requires_grad={coefficients.requires_grad}"
                 )
-            if not torch.isfinite(trainer.fourier_coeff.grad).all():
-                finite_ratio = float(torch.isfinite(trainer.fourier_coeff.grad).float().mean().item())
+            if update_mode == "weighted" and not torch.isfinite(carrier_parameter.grad).all():
+                finite_ratio = float(torch.isfinite(carrier_parameter.grad).float().mean().item())
                 raise RuntimeError(f"DCSS carrier gradient non-finite: finite_ratio={finite_ratio:.6f}")
-            optimizer.step()
+            if update_mode == "weighted": optimizer.step()
+            actual_update = carrier_parameter.detach() - before_update
+            if need_components and gradient_diagnostics:
+                gradient_diagnostics[-1]["actual_update_target_cosine"] = gradient_cosine(actual_update, target_direction)
 
             projected = (target_shift @ basis).square().sum(dim=1)
             projected_mean, projected_p10, projected_p90 = _quantiles(projected)
@@ -261,6 +341,7 @@ def train_stage1_poison(
             leakage_sorted = sorted(leakage_values.values())
             leakage_p95 = leakage_sorted[min(len(leakage_sorted) - 1, int(0.95 * len(leakage_sorted)))] if leakage_sorted else 0.0
             pairwise, effective_rank = _shift_geometry(target_shift)
+            coefficient_metrics = projected_coefficient_metrics(target_shift, basis)
             diagnostics.append({
                 "epoch": epoch,
                 "step": global_step,
@@ -289,6 +370,13 @@ def train_stage1_poison(
                 "target_shift_effective_rank": effective_rank,
                 "perturbation_area_ratio": float((perturbation.detach().abs().amax(dim=1) > (1.0 / 255.0)).float().mean().item()),
                 "perturbation_max_amplitude": float(perturbation.detach().abs().max().item()),
+                "perturbation_mean_absolute": float(perturbation.detach().abs().mean().item()),
+                "perturbation_mse": float(perturbation.detach().square().mean().item()),
+                "saturation_ratio": float((perturbation.detach().abs() >= trainer.eps - 1e-6).float().mean().item()),
+                "support_area_ratio": float(((inner_t + ring_t) > 0.5).float().mean().item()),
+                **coefficient_metrics,
+                "carrier_mode": carrier_mode,
+                **carrier_extras,
                 "subspace_source": source,
                 "subspace_checkpoint": subspace_payload["checkpoint"],
                 **{f"leakage_class_{class_id}": value for class_id, value in leakage_values.items()},
@@ -312,7 +400,9 @@ def train_stage1_poison(
         "dcss_rank": rank,
         "subspace_source": source,
         "subspace_checkpoint": subspace_payload["checkpoint"],
+        "carrier_mode": carrier_mode,
     }
+    if carrier_mode == "object_aligned": save_pack["object_delta"] = object_delta.detach().cpu()
     checkpoint_path = os.path.join(experiment_dir, "poison_checkpoint.pt")
     torch.save(save_pack, checkpoint_path)
     fieldnames = sorted({key for row in diagnostics for key in row})
@@ -325,6 +415,12 @@ def train_stage1_poison(
         class_rows.append({"class_id": class_id, "batches": state["batches"], "leakage": state["leakage_sum"] / denominator, "logit_drift": state["logit_sum"] / denominator})
     with open(os.path.join(experiment_dir, "classwise_metrics.csv"), "w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=list(class_rows[0])); writer.writeheader(); writer.writerows(class_rows)
+    if gradient_diagnostics:
+        fields=sorted({key for row in gradient_diagnostics for key in row})
+        with open(os.path.join(experiment_dir,"batch_gradient_metrics.csv"),"w",newline="",encoding="utf-8") as file:
+            writer=csv.DictWriter(file,fieldnames=fields); writer.writeheader(); writer.writerows(gradient_diagnostics)
+    if optimizer_diagnostics:
+        with open(os.path.join(experiment_dir,"optimizer_behavior.json"),"w",encoding="utf-8") as file: json.dump(optimizer_diagnostics,file,indent=2)
     return checkpoint_path
 
 
