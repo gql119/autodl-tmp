@@ -1,0 +1,18 @@
+seed: 0
+stage: L1
+artifact_root: artifacts/oa_lgc/local
+data:
+  dataset_root: F:/autodl-tmp/ue_project/outputs/mini_csdem/clean_dataset
+  train_images: images/train
+  train_labels: labels/train
+target_class_id: 14
+carrier:
+  object_resolution: 32
+  eps: 0.062745098
+  non_target_dilation: 4
+  min_valid_fraction: 0.01
+  interpolation: bilinear
+  soft_mask: true
+  soft_edge_pixels: 2.0
+  box_jitter: 0.0
+

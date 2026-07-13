@@ -7,8 +7,8 @@
 
 | 阶段 | 状态 | 起始commit | 结束commit | 证据路径 | 结论 |
 | --- | --- | --- | --- | --- | --- |
-| L0 仓库审计 | pass | `b72672a` | pending commit | `docs/oa_lgc/local/L0_REPOSITORY_AUDIT.md` | 历史基线 39 tests passed；可复用组件与缺口已识别 |
-| L1 Object-Aligned Carrier | pending | | | | |
+| L0 仓库审计 | pass | `b72672a` | `f1f3d0f` | `docs/oa_lgc/local/L0_REPOSITORY_AUDIT.md` | 历史基线 39 tests passed；可复用组件与缺口已识别 |
+| L1 Object-Aligned Carrier | pass | `f1f3d0f` | pending commit | `artifacts/oa_lgc/local/20260713_220255_751416_L1_seed0/` | 14/14 L1 tests；真实 mini VOC carrier 与 delta-only gradient 通过 |
 | L2 Disjoint Support–Query | pending | | | | |
 | L3 Virtual Update | pending | | | | |
 | L4 Learning Gain Metrics | pending | | | | |
@@ -25,4 +25,3 @@
 - 本任务新文档限定于 `docs/oa_lgc/local/`。
 - 本任务新配置限定于 `configs/oa_lgc/local/`。
 - 本任务新产物限定于 `artifacts/oa_lgc/local/`，每次使用唯一 run id。
-
