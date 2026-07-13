@@ -26,6 +26,7 @@ from .carrier import CarrierConfig, apply_object_aligned_carrier
 from .episodes import DisjointEpisodeSampler, load_records
 from .model import ObjectCropDetector, class_loss
 from .virtual_update import functional_forward, model_state_unchanged, virtual_update
+from .gains import ClassGainInput, authorized_learning_gain, carrier_query_loss, target_learning_gain
 
 
 def _git_commit() -> str:
@@ -293,6 +294,92 @@ def run_virtual(config_path: str, run_id: str | None = None) -> Path:
     return run_dir
 
 
+def run_gain(config_path: str, run_id: str | None = None) -> Path:
+    config = _load_config(config_path)
+    seed = int(config["seed"])
+    run_id = run_id or unique_run_id("L4", seed)
+    run_dir = create_run_dir(config["artifact_root"], run_id)
+    command = f'"{sys.executable}" -m oa_lgc.cli gain --config "{config_path}" --run-id "{run_id}"'
+    try:
+        gain_cfg = config["gain"]
+        delta = torch.tensor(0.1, requires_grad=True)
+        target = target_learning_gain(
+            torch.tensor(1.0), torch.tensor(0.5), 0.9 + delta.square(),
+            rho_t=float(gain_cfg["rho_t"]),
+            min_valid_clean_gain=float(gain_cfg["min_valid_clean_gain"]),
+            eps=float(gain_cfg["eps"]),
+        )
+        class_inputs = {
+            1: ClassGainInput(torch.tensor(1.0), torch.tensor(0.6), torch.tensor(0.6), 2, 2),
+            2: ClassGainInput(torch.tensor(1.0), torch.tensor(0.5), torch.tensor(0.5), 0, 0),
+            3: ClassGainInput(torch.tensor(1.0), torch.tensor(1.5), torch.tensor(1.4), 1, 1),
+        }
+        authorized = authorized_learning_gain(
+            class_inputs,
+            target_class_id=int(config["target_class_id"]),
+            rho_k=float(gain_cfg["rho_k"]),
+            min_valid_class_gain=float(gain_cfg["min_valid_class_gain"]),
+            minimum_class_samples=int(gain_cfg["minimum_class_samples"]),
+            eps=float(gain_cfg["eps"]),
+        )
+        carrier = carrier_query_loss(0.7 + delta.square())
+        outer = target.protect_loss + carrier + authorized.loss
+        gradient = torch.autograd.grad(outer, delta)[0]
+        invalid_target = target_learning_gain(
+            torch.tensor(1.0), torch.tensor(1.0), torch.tensor(0.9),
+            rho_t=float(gain_cfg["rho_t"]),
+            min_valid_clean_gain=float(gain_cfg["min_valid_clean_gain"]),
+            eps=float(gain_cfg["eps"]),
+        )
+        metrics = {
+            "G_t_clean": float(target.clean_gain.detach()),
+            "G_t_poison": float(target.poison_gain.detach()),
+            "target_gain_ratio": None if target.ratio is None else float(target.ratio.detach()),
+            "L_protect": float(target.protect_loss.detach()),
+            "L_carrier": float(carrier.detach()),
+            "L_auth": float(authorized.loss.detach()),
+            "valid_target": target.valid,
+            "invalid_clean_gain_example_reason": invalid_target.invalid_reason,
+            "valid_authorized_classes": list(authorized.valid_class_ids),
+            "invalid_authorized_classes": list(authorized.invalid_class_ids),
+        }
+        class_rows = []
+        invalid_rows = [{"scope": "target_example", "id": 14, "reason": invalid_target.invalid_reason}]
+        for class_id, result in authorized.classes.items():
+            class_rows.append({
+                "class_id": class_id,
+                "G_k_clean": float(result.clean_gain.detach()),
+                "G_k_poison": float(result.poison_gain.detach()),
+                "authorized_gain_gap": None if result.normalized_gap is None else float(result.normalized_gap.detach()),
+                "valid": int(result.valid),
+                "invalid_reason": result.invalid_reason,
+                "support_count": result.support_count,
+                "query_count": result.query_count,
+            })
+            if not result.valid:
+                invalid_rows.append({"scope": "class", "id": class_id, "reason": result.invalid_reason})
+        gradient_flow = {"outer_gradient_to_delta": float(gradient.detach()), "finite": bool(torch.isfinite(gradient))}
+        (run_dir / "config.yaml").write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+        (run_dir / "command.txt").write_text(command + "\n", encoding="utf-8")
+        (run_dir / "environment.txt").write_text(_environment(), encoding="utf-8")
+        (run_dir / "git_commit.txt").write_text(_git_commit() + "\n", encoding="utf-8")
+        (run_dir / "gain_metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+        (run_dir / "gradient_flow.json").write_text(json.dumps(gradient_flow, indent=2), encoding="utf-8")
+        for filename, rows in (("classwise_gain_metrics.csv", class_rows), ("invalid_episode_metrics.csv", invalid_rows)):
+            with (run_dir / filename).open("w", newline="", encoding="utf-8") as file:
+                writer = csv.DictWriter(file, fieldnames=list(rows[0]))
+                writer.writeheader()
+                writer.writerows(rows)
+        (run_dir / "run.log").write_text(
+            f"status=pass\nG_t_clean={metrics['G_t_clean']}\nG_t_poison={metrics['G_t_poison']}\ngradient={gradient_flow['outer_gradient_to_delta']}\n",
+            encoding="utf-8",
+        )
+    except Exception as error:
+        (run_dir / "run.log").write_text(f"status=fail\nerror={error!r}\n", encoding="utf-8")
+        raise
+    return run_dir
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="OA-LGC local engineering validation")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -305,6 +392,9 @@ def main() -> None:
     virtual = subparsers.add_parser("virtual")
     virtual.add_argument("--config", required=True)
     virtual.add_argument("--run-id")
+    gain = subparsers.add_parser("gain")
+    gain.add_argument("--config", required=True)
+    gain.add_argument("--run-id")
     args = parser.parse_args()
     if args.command == "carrier":
         print(run_carrier(args.config, args.run_id))
@@ -312,6 +402,8 @@ def main() -> None:
         print(run_episode(args.config, args.run_id))
     elif args.command == "virtual":
         print(run_virtual(args.config, args.run_id))
+    elif args.command == "gain":
+        print(run_gain(args.config, args.run_id))
 
 
 if __name__ == "__main__":

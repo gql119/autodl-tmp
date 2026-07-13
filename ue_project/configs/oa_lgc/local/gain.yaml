@@ -1,0 +1,12 @@
+seed: 0
+stage: L4
+artifact_root: artifacts/oa_lgc/local
+target_class_id: 14
+gain:
+  rho_t: 0.1
+  rho_k: 0.05
+  eps: 1.0e-8
+  min_valid_clean_gain: 0.001
+  min_valid_class_gain: 0.001
+  minimum_class_samples: 1
+
