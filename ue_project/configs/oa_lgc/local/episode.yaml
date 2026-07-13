@@ -1,0 +1,16 @@
+seed: 0
+stage: L2
+artifact_root: artifacts/oa_lgc/local
+data:
+  dataset_root: F:/autodl-tmp/ue_project/outputs/mini_csdem/clean_dataset
+  train_images: images/train
+  train_labels: labels/train
+target_class_id: 14
+num_classes: 20
+episode:
+  support_size: 4
+  query_size: 4
+  minimum_class_samples: 1
+  episode_index: 0
+  worker_id: 0
+
