@@ -1,5 +1,7 @@
 # OA-LGC 本地工程链路最终报告
 
+Overall status：**local engineering chain partial pass**。detector-proxy 核心链通过；真实 YOLO functional adapter、TAL 与 DFL 未验证。
+
 ## 1. 工作区
 
 - start branch：`codex/dcss-stage0-stage1`
@@ -17,10 +19,10 @@
 | L0 | pass | `L0_REPOSITORY_AUDIT.md`；历史 39 tests | `f1f3d0f` |
 | L1 | pass | `artifacts/oa_lgc/local/20260713_220255_751416_L1_seed0/` | `37c3c24` |
 | L2 | pass | `artifacts/oa_lgc/local/20260713_220613_368856_L2_seed0/` | `ecdeda1` |
-| L3 | pass | `artifacts/oa_lgc/local/20260713_221051_396241_L3_seed0/` | `6a9f47d` |
+| L3 | partial pass | `artifacts/oa_lgc/local/20260713_221051_396241_L3_seed0/` | `6a9f47d` |
 | L4 | pass | `artifacts/oa_lgc/local/20260713_221448_428352_L4_seed0/` | `22034a3` |
 | L5 | pass | `artifacts/oa_lgc/local/20260713_221939_077652_L5_seed0/` | `161e529` |
-| L6 | pass | `artifacts/oa_lgc/local/20260713_222449_255485_L6_seed0/` | `1a54572` |
+| L6 | partial pass | `artifacts/oa_lgc/local/20260713_223253_761596_L6_seed0/` | `1a54572` + final correction |
 | L7 | pass | `L7_CLEANUP_REPORT.md`；91 tests | L7 finalization commit |
 
 ## 3. 工程结果

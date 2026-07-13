@@ -1,6 +1,6 @@
 # L6 End-to-End Local Smoke 报告
 
-状态：**local engineering chain pass**。证据：`artifacts/oa_lgc/local/20260713_222449_255485_L6_seed0/`。
+状态：**local engineering chain partial pass**。detector-proxy 子链通过；真实 YOLO adapter 未验证。证据：`artifacts/oa_lgc/local/20260713_223253_761596_L6_seed0/`。
 
 ## 已完成链路
 
@@ -17,7 +17,7 @@
 - target gain ratio：1.000007、0.998028。此数值只验证可计算性，不表示 target learning 已被抑制。
 - target assignment coverage proxy：0.6667、0.7586；未覆盖实例是 overlap 后 valid support 太小而按协议跳过。
 - non-target logits/assignment/box drift proxy：该 run 为 0；只反映 object-crop proxy 的直接 non-target 区域排除，不外推到 YOLO。
-- peak Python traced memory：5,441,308 bytes；主链 runtime 0.583 s（CPU proxy）。
+- peak Python traced memory：5,441,811 bytes；主链 runtime 0.479 s（CPU proxy）。
 
 ## J 与复现 Gate
 
@@ -30,5 +30,4 @@
 
 ## 结论边界
 
-这只证明 engineering chain pass。未使用真实 YOLO TAL/DFL；`target_dfl_available=false`，值 0 是 unavailable 占位而非真实 DFL=0。未训练 victim、未计算 mAP，不能声称 person AP 会下降、non-target AP 会保持或 learning gain 能预测完整 victim。
-
+这只证明 detector-proxy engineering subchain pass。未使用真实 YOLO TAL/DFL；`target_dfl_available=false`，值 0 是 unavailable 占位而非真实 DFL=0。因为缺少真实 YOLO functional detection-head 集成，整体严格标为 partial pass。未训练 victim、未计算 mAP，不能声称 person AP 会下降、non-target AP 会保持或 learning gain 能预测完整 victim。

@@ -1,6 +1,6 @@
 # L3 Multi-step Virtual Update 报告
 
-状态：**pass（本地 detector proxy）**。证据：`artifacts/oa_lgc/local/20260713_221051_396241_L3_seed0/`。
+状态：**partial pass（本地 detector proxy pass；真实 YOLO adapter 未验证）**。证据：`artifacts/oa_lgc/local/20260713_221051_396241_L3_seed0/`。
 
 ## 结果
 
@@ -19,4 +19,3 @@
 ## Gate 边界
 
 本地 Gate 对轻量 object-crop detector proxy 为 pass；J=1/3/5、双轨独立、base 不变和 delta gradient 均通过。完整 YOLOv8 `selected_modules/full_model` mixed-derivative 未在本机验证，因此不能称为完整二阶元学习或 YOLO full-model pass。
-

@@ -504,7 +504,7 @@ def run_smoke(config_path: str, run_id: str | None = None) -> Path:
             and result.summary["finite"]
         ) for result in all_runs}
         summary = {
-            "status": "local engineering chain pass",
+            "status": "local detector-proxy engineering chain pass",
             "run_id": run_id,
             "main": primary.summary,
             "validation_steps_pass": steps_pass,

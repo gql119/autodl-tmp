@@ -7,6 +7,5 @@ No blocking failure was triggered.
 - 配置：`configs/oa_lgc/local/smoke.yaml`。
 - 数据：`F:/autodl-tmp/ue_project/outputs/mini_csdem/clean_dataset`；checkpoint 未用于 proxy virtual update。
 - 未验证项：真实 YOLO TAL/DFL 和 full-model virtual update，分类为 `blocked by local resources` 的云端 handoff，不影响本地 proxy engineering Gate。
-- 指标证据：`artifacts/oa_lgc/local/20260713_222449_255485_L6_seed0/`。
+- 指标证据：`artifacts/oa_lgc/local/20260713_223253_761596_L6_seed0/`。
 - 历史代码/实验影响：无；所有输出使用唯一目录。
-
