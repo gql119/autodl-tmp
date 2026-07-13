@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tracemalloc
 
 import numpy as np
 import torch
@@ -23,6 +24,8 @@ from ue_framework.data_utils import (
 from .artifacts import create_run_dir, unique_run_id, write_png
 from .carrier import CarrierConfig, apply_object_aligned_carrier
 from .episodes import DisjointEpisodeSampler, load_records
+from .model import ObjectCropDetector, class_loss
+from .virtual_update import functional_forward, model_state_unchanged, virtual_update
 
 
 def _git_commit() -> str:
@@ -182,6 +185,114 @@ def run_episode(config_path: str, run_id: str | None = None) -> Path:
     return run_dir
 
 
+def _synthetic_detector_batch() -> tuple[torch.Tensor, tuple[tuple[dict, ...], ...]]:
+    images = torch.rand(2, 3, 24, 24)
+    annotations = (
+        ({"cls": 14, "bbox": [0.4, 0.5, 0.4, 0.5]}, {"cls": 1, "bbox": [0.8, 0.2, 0.2, 0.2]}),
+        ({"cls": 14, "bbox": [0.6, 0.5, 0.3, 0.4]}, {"cls": 1, "bbox": [0.2, 0.8, 0.2, 0.2]}),
+    )
+    return images, annotations
+
+
+def run_virtual(config_path: str, run_id: str | None = None) -> Path:
+    config = _load_config(config_path)
+    seed = int(config["seed"])
+    torch.manual_seed(seed)
+    run_id = run_id or unique_run_id("L3", seed)
+    run_dir = create_run_dir(config["artifact_root"], run_id)
+    command = f'"{sys.executable}" -m oa_lgc.cli virtual --config "{config_path}" --run-id "{run_id}"'
+    try:
+        model = ObjectCropDetector(num_classes=int(config["num_classes"]), **config["model"])
+        model.requires_grad_(False)
+        base_state = {name: value.detach().clone() for name, value in model.state_dict().items()}
+        images, annotations = _synthetic_detector_batch()
+        specifications = [
+            ("head_only", steps, None) for steps in config["virtual_update"]["steps"]
+        ] + [
+            ("detection_head", 3, None),
+            ("selected_modules", 1, config["virtual_update"]["selected_modules"]),
+        ]
+        inner_rows = []
+        delta_rows = []
+        trajectories = {}
+        tracemalloc.start()
+        for mode, steps, selected_modules in specifications:
+            trajectory = virtual_update(
+                model,
+                images,
+                annotations,
+                steps=int(steps),
+                learning_rate=float(config["virtual_update"]["learning_rate"]),
+                mode=mode,
+                selected_modules=selected_modules,
+                first_order=bool(config["virtual_update"]["first_order"]),
+            )
+            key = f"{mode}_j{steps}"
+            trajectories[key] = trajectory
+            for step_index, (loss, delta_norm, elapsed) in enumerate(
+                zip(trajectory.step_losses, trajectory.parameter_delta_norms, trajectory.step_times_seconds), start=1
+            ):
+                inner_rows.append({"run": key, "step": step_index, "loss": loss, "seconds": elapsed})
+                delta_rows.append({"run": key, "step": step_index, "parameter_delta_norm": delta_norm})
+        current_bytes, peak_bytes = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+
+        delta = torch.full_like(images, 0.01, requires_grad=True)
+        poison_trajectory = virtual_update(
+            model,
+            (images + delta).clamp(0, 1),
+            annotations,
+            steps=3,
+            learning_rate=float(config["virtual_update"]["learning_rate"]),
+            mode="head_only",
+            first_order=True,
+        )
+        query_outputs = functional_forward(
+            model, poison_trajectory.parameters, poison_trajectory.buffers, images, annotations
+        )
+        outer_loss, _ = class_loss(query_outputs, 14)
+        gradient = torch.autograd.grad(outer_loss, delta)[0]
+        gradient_norm = float(gradient.norm().item())
+        clean_trajectory = trajectories["head_only_j3"]
+        clean_poison_difference = float(sum(
+            (clean_trajectory.parameters[name] - poison_trajectory.parameters[name]).square().sum()
+            for name in clean_trajectory.selected_names
+        ).sqrt().detach().item())
+        gradient_flow = {
+            "base_model_unchanged": model_state_unchanged(model, base_state),
+            "outer_gradient_to_delta": gradient_norm,
+            "gradient_finite": bool(torch.isfinite(gradient).all()),
+            "clean_poison_parameter_difference": clean_poison_difference,
+            "first_order": True,
+            "full_second_order_claimed": False,
+        }
+        memory = {
+            "device": "cpu",
+            "python_tracemalloc_current_bytes": current_bytes,
+            "python_tracemalloc_peak_bytes": peak_bytes,
+            "cuda_peak_bytes": 0,
+        }
+        (run_dir / "config.yaml").write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+        (run_dir / "command.txt").write_text(command + "\n", encoding="utf-8")
+        (run_dir / "environment.txt").write_text(_environment(), encoding="utf-8")
+        (run_dir / "git_commit.txt").write_text(_git_commit() + "\n", encoding="utf-8")
+        for filename, rows in (("inner_step_metrics.csv", inner_rows), ("parameter_delta_metrics.csv", delta_rows)):
+            with (run_dir / filename).open("w", newline="", encoding="utf-8") as file:
+                writer = csv.DictWriter(file, fieldnames=list(rows[0]))
+                writer.writeheader()
+                writer.writerows(rows)
+        (run_dir / "gradient_flow.json").write_text(json.dumps(gradient_flow, indent=2), encoding="utf-8")
+        (run_dir / "memory_profile.json").write_text(json.dumps(memory, indent=2), encoding="utf-8")
+        (run_dir / "run.log").write_text(
+            f"status=pass\nouter_gradient_to_delta={gradient_norm:.9g}\nbase_model_unchanged={gradient_flow['base_model_unchanged']}\n",
+            encoding="utf-8",
+        )
+    except Exception as error:
+        (run_dir / "run.log").write_text(f"status=fail\nerror={error!r}\n", encoding="utf-8")
+        raise
+    return run_dir
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="OA-LGC local engineering validation")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -191,11 +302,16 @@ def main() -> None:
     episode = subparsers.add_parser("episode")
     episode.add_argument("--config", required=True)
     episode.add_argument("--run-id")
+    virtual = subparsers.add_parser("virtual")
+    virtual.add_argument("--config", required=True)
+    virtual.add_argument("--run-id")
     args = parser.parse_args()
     if args.command == "carrier":
         print(run_carrier(args.config, args.run_id))
     elif args.command == "episode":
         print(run_episode(args.config, args.run_id))
+    elif args.command == "virtual":
+        print(run_virtual(args.config, args.run_id))
 
 
 if __name__ == "__main__":

@@ -9,8 +9,8 @@
 | --- | --- | --- | --- | --- | --- |
 | L0 仓库审计 | pass | `b72672a` | `f1f3d0f` | `docs/oa_lgc/local/L0_REPOSITORY_AUDIT.md` | 历史基线 39 tests passed；可复用组件与缺口已识别 |
 | L1 Object-Aligned Carrier | pass | `f1f3d0f` | `37c3c24` | `artifacts/oa_lgc/local/20260713_220255_751416_L1_seed0/` | 14/14 L1 tests；真实 mini VOC carrier 与 delta-only gradient 通过 |
-| L2 Disjoint Support–Query | pass | `37c3c24` | pending commit | `artifacts/oa_lgc/local/20260713_220613_368856_L2_seed0/` | 8/8 L2 tests；真实 episode overlap=0，class 6 有效 |
-| L3 Virtual Update | pending | | | | |
+| L2 Disjoint Support–Query | pass | `37c3c24` | `ecdeda1` | `artifacts/oa_lgc/local/20260713_220613_368856_L2_seed0/` | 8/8 L2 tests；真实 episode overlap=0，class 6 有效 |
+| L3 Virtual Update | pass | `ecdeda1` | pending commit | `artifacts/oa_lgc/local/20260713_221051_396241_L3_seed0/` | proxy J=1/3/5、双轨、base immutable、delta gradient 通过；完整 YOLO adapter 未验证 |
 | L4 Learning Gain Metrics | pending | | | | |
 | L5 Core Objective | pending | | | | |
 | L6 End-to-End Smoke | pending | | | | |
