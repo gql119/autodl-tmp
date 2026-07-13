@@ -35,6 +35,7 @@ from .objective import (
     save_delta_checkpoint,
     update_delta,
 )
+from .smoke import run_smoke_chain
 
 
 def _git_commit() -> str:
@@ -459,6 +460,112 @@ def run_objective(config_path: str, run_id: str | None = None) -> Path:
     return run_dir
 
 
+def _write_rows(path: Path, rows: list[dict]) -> None:
+    fieldnames = sorted({key for row in rows for key in row})
+    with path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def run_smoke(config_path: str, run_id: str | None = None) -> Path:
+    config = _load_config(config_path)
+    seed = int(config["seed"])
+    run_id = run_id or unique_run_id("L6", seed)
+    run_dir = create_run_dir(config["artifact_root"], run_id)
+    command = f'"{sys.executable}" -m oa_lgc.cli smoke --config "{config_path}" --run-id "{run_id}"'
+    try:
+        records = load_records(
+            config["data"]["dataset_root"], config["data"]["train_images"], config["data"]["train_labels"]
+        )
+        main_steps = int(config["virtual_update"]["steps"])
+        outer_steps = int(config["episode"]["outer_steps"])
+        primary = run_smoke_chain(records, config, main_steps, outer_steps, seed)
+        repeat = run_smoke_chain(records, config, main_steps, outer_steps, seed)
+        reproducible = (
+            primary.loss_rows == repeat.loss_rows
+            and primary.episode_manifests == repeat.episode_manifests
+            and torch.equal(primary.delta_obj, repeat.delta_obj)
+        )
+        validations = [
+            run_smoke_chain(records, config, int(steps), 1, seed)
+            for steps in config["virtual_update"]["validation_steps"]
+        ]
+        all_runs = [primary, *validations]
+        loss_rows = [row for result in all_runs for row in result.loss_rows]
+        class_rows = [row for result in all_runs for row in result.class_rows]
+        carrier_rows = [row for result in all_runs for row in result.carrier_rows]
+        gradient_rows = [row for result in all_runs for row in result.gradient_rows]
+        manifests = [row for result in all_runs for row in result.episode_manifests]
+        steps_pass = {str(result.summary["virtual_steps"]): bool(
+            result.summary["forward_complete"]
+            and result.summary["backward_complete"]
+            and result.summary["delta_updated"]
+            and result.summary["finite"]
+        ) for result in all_runs}
+        summary = {
+            "status": "local engineering chain pass",
+            "run_id": run_id,
+            "main": primary.summary,
+            "validation_steps_pass": steps_pass,
+            "reproducible_same_seed": reproducible,
+            "historical_artifacts_overwritten": False,
+            "real_yolo_tal_used": False,
+            "target_dfl_available": False,
+            "effectiveness_claimed": False,
+        }
+        if not reproducible:
+            raise RuntimeError("same-seed smoke reproducibility failure")
+        if primary.summary["support_query_overlap_max"] != 0:
+            raise RuntimeError("support/query overlap in main smoke")
+        if primary.summary["target_gain_computable_count"] < 1:
+            raise RuntimeError("no computable target learning gain in main smoke")
+        if primary.summary["valid_authorized_class_total"] < 1:
+            raise RuntimeError("no computable authorized class in main smoke")
+        if not all(steps_pass.values()):
+            raise RuntimeError(f"J validation failure: {steps_pass}")
+
+        objective_cfg = CoreObjectiveConfig(**config["objective"])
+        save_delta_checkpoint(
+            run_dir / "delta_checkpoint.pt", primary.delta_obj, objective_cfg,
+            {"run_id": run_id, "virtual_steps": main_steps, "outer_steps": outer_steps},
+        )
+        restored = load_delta_checkpoint(run_dir / "delta_checkpoint.pt")
+        summary["checkpoint_restored_equal"] = bool(torch.equal(restored["delta_obj"], primary.delta_obj))
+        (run_dir / "config.yaml").write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+        (run_dir / "command.txt").write_text(command + "\n", encoding="utf-8")
+        (run_dir / "environment.txt").write_text(_environment(), encoding="utf-8")
+        (run_dir / "git_commit.txt").write_text(_git_commit() + "\n", encoding="utf-8")
+        (run_dir / "episode_manifest.json").write_text(json.dumps(manifests, indent=2), encoding="utf-8")
+        _write_rows(run_dir / "loss_metrics.csv", loss_rows)
+        _write_rows(run_dir / "classwise_gain_metrics.csv", class_rows)
+        _write_rows(run_dir / "carrier_metrics.csv", carrier_rows)
+        _write_rows(run_dir / "gradient_metrics.csv", gradient_rows)
+        runtime = {
+            "main": primary.runtime_metrics,
+            "same_seed_repeat": repeat.runtime_metrics,
+            "validations": [result.runtime_metrics for result in validations],
+        }
+        (run_dir / "runtime_metrics.json").write_text(json.dumps(runtime, indent=2), encoding="utf-8")
+        required = {
+            "config.yaml", "command.txt", "environment.txt", "git_commit.txt", "episode_manifest.json",
+            "loss_metrics.csv", "classwise_gain_metrics.csv", "carrier_metrics.csv", "gradient_metrics.csv",
+            "runtime_metrics.json", "delta_checkpoint.pt",
+        }
+        missing = sorted(name for name in required if not (run_dir / name).is_file())
+        summary["artifact_complete"] = not missing
+        summary["missing_artifacts"] = missing
+        (run_dir / "smoke_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+        (run_dir / "run.log").write_text(
+            f"status=pass\nreproducible_same_seed={reproducible}\nvalidation_steps={steps_pass}\nartifact_complete={not missing}\n",
+            encoding="utf-8",
+        )
+    except Exception as error:
+        (run_dir / "run.log").write_text(f"status=fail\nerror={error!r}\n", encoding="utf-8")
+        raise
+    return run_dir
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="OA-LGC local engineering validation")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -477,6 +584,9 @@ def main() -> None:
     objective = subparsers.add_parser("objective")
     objective.add_argument("--config", required=True)
     objective.add_argument("--run-id")
+    smoke = subparsers.add_parser("smoke")
+    smoke.add_argument("--config", required=True)
+    smoke.add_argument("--run-id")
     args = parser.parse_args()
     if args.command == "carrier":
         print(run_carrier(args.config, args.run_id))
@@ -488,6 +598,8 @@ def main() -> None:
         print(run_gain(args.config, args.run_id))
     elif args.command == "objective":
         print(run_objective(args.config, args.run_id))
+    elif args.command == "smoke":
+        print(run_smoke(args.config, args.run_id))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,49 @@
+seed: 0
+stage: L6
+artifact_root: artifacts/oa_lgc/local
+target_class_id: 14
+num_classes: 20
+data:
+  dataset_root: F:/autodl-tmp/ue_project/outputs/mini_csdem/clean_dataset
+  train_images: images/train
+  train_labels: labels/train
+  image_size: 96
+episode:
+  support_size: 4
+  query_size: 4
+  outer_steps: 2
+model:
+  pool_size: 4
+  hidden_dim: 16
+carrier:
+  object_resolution: 32
+  eps: 0.062745098
+  non_target_dilation: 2
+  min_valid_fraction: 0.01
+  interpolation: bilinear
+  soft_mask: true
+  soft_edge_pixels: 2.0
+  box_jitter: 0.0
+virtual_update:
+  steps: 3
+  validation_steps: [1, 5]
+  learning_rate: 0.1
+  mode: head_only
+  first_order: true
+  selected_modules: []
+gain:
+  rho_t: 0.8
+  rho_k: 0.2
+  eps: 1.0e-8
+  min_valid_clean_gain: 1.0e-6
+  min_valid_class_gain: 1.0e-6
+  minimum_class_samples: 1
+objective:
+  lambda_carrier: 1.0
+  lambda_auth: 1.0
+  lambda_reg: 0.001
+  gradient_clip_norm: 1.0
+  eps: 0.062745098
+optimization:
+  outer_learning_rate: 0.01
+
