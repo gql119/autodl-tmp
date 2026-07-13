@@ -5,10 +5,10 @@
 - start branch：`codex/dcss-stage0-stage1`
 - final branch：`codex/oa-lgc-local-chain`
 - start commit：`b72672a1505a6ea76acbbedca4f404b38ab4b021`
-- final commit：本报告所在的 L7 finalization commit（最终回复给出解析后的 HEAD）
+- final implementation/report commit：`fdb921e`；最终元数据 checkpoint 见最终回复中的 HEAD
 - historical dirty files：6 个 `ue_framework` tracked 修改及原有 untracked 目录/文件，均保留
 - historical artifacts overwritten：no
-- GitHub push status：L0–L6 commits 已成功 push；L7 finalization 在提交后 push
+- GitHub push status：L0–L7 commits 已成功 push 到 `origin/codex/oa-lgc-local-chain`
 
 ## 2. Stage 状态
 
@@ -89,4 +89,3 @@
 & 'F:\autodl-tmp\ue_project\.venv\Scripts\python.exe' -m oa_lgc.cli smoke --config configs\oa_lgc\local\smoke.yaml
 & 'F:\autodl-tmp\ue_project\.venv\Scripts\python.exe' -m pytest tests\test_dcss.py tests\test_dcss_stage15.py tests\test_oa_lgc_carrier.py tests\test_oa_lgc_episode.py tests\test_oa_lgc_virtual_update.py tests\test_oa_lgc_gain.py tests\test_oa_lgc_objective.py tests\test_oa_lgc_smoke.py -q
 ```
-
