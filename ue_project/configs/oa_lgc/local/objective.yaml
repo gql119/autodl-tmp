@@ -1,0 +1,13 @@
+seed: 0
+stage: L5
+artifact_root: artifacts/oa_lgc/local
+objective:
+  lambda_carrier: 1.0
+  lambda_auth: 1.0
+  lambda_reg: 0.001
+  gradient_clip_norm: 1.0
+  eps: 0.062745098
+optimization:
+  learning_rate: 0.05
+  steps: 3
+

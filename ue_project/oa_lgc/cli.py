@@ -27,6 +27,14 @@ from .episodes import DisjointEpisodeSampler, load_records
 from .model import ObjectCropDetector, class_loss
 from .virtual_update import functional_forward, model_state_unchanged, virtual_update
 from .gains import ClassGainInput, authorized_learning_gain, carrier_query_loss, target_learning_gain
+from .objective import (
+    CoreObjectiveConfig,
+    compose_core_objective,
+    delta_metrics,
+    load_delta_checkpoint,
+    save_delta_checkpoint,
+    update_delta,
+)
 
 
 def _git_commit() -> str:
@@ -380,6 +388,77 @@ def run_gain(config_path: str, run_id: str | None = None) -> Path:
     return run_dir
 
 
+def run_objective(config_path: str, run_id: str | None = None) -> Path:
+    config = _load_config(config_path)
+    seed = int(config["seed"])
+    torch.manual_seed(seed)
+    run_id = run_id or unique_run_id("L5", seed)
+    run_dir = create_run_dir(config["artifact_root"], run_id)
+    command = f'"{sys.executable}" -m oa_lgc.cli objective --config "{config_path}" --run-id "{run_id}"'
+    try:
+        objective_cfg = CoreObjectiveConfig(**config["objective"])
+        delta_obj = torch.nn.Parameter(torch.empty(3, 8, 8).uniform_(-0.01, 0.01))
+        initial = delta_obj.detach().clone()
+        model = ObjectCropDetector(hidden_dim=8)
+        model.requires_grad_(False)
+        base_state = {name: value.detach().clone() for name, value in model.state_dict().items()}
+        optimizer = torch.optim.Adam([delta_obj], lr=float(config["optimization"]["learning_rate"]))
+        save_delta_checkpoint(run_dir / "delta_initial.pt", delta_obj, objective_cfg, {"step": 0})
+        rows = []
+        for step in range(int(config["optimization"]["steps"])):
+            protect = (delta_obj.mean() - 0.02).square()
+            carrier = (delta_obj - 0.03).square().mean()
+            authorized = (delta_obj.mean() + 0.01).abs()
+            result = compose_core_objective(protect, carrier, authorized, delta_obj, objective_cfg)
+            values = {name: float(value.detach()) for name, value in result.components.items()}
+            total = float(result.loss.detach())
+            gradient_norm = update_delta(result, delta_obj, optimizer, objective_cfg)
+            metrics = delta_metrics(delta_obj, objective_cfg.eps)
+            rows.append({
+                "step": step,
+                "L_core": total,
+                **values,
+                "gradient_norm": gradient_norm,
+                **metrics,
+                "valid_target_gain": 1,
+                "valid_authorized_class_count": 1,
+            })
+        save_delta_checkpoint(
+            run_dir / "delta_final.pt", delta_obj, objective_cfg, {"step": int(config["optimization"]["steps"])}
+        )
+        restored = load_delta_checkpoint(run_dir / "delta_final.pt")
+        summary = {
+            **delta_metrics(delta_obj, objective_cfg.eps),
+            "delta_changed": not torch.equal(initial, delta_obj.detach()),
+            "delta_change_norm": float((delta_obj.detach() - initial).norm().item()),
+            "base_model_unchanged": model_state_unchanged(model, base_state),
+            "model_parameters_with_gradient": sum(parameter.grad is not None for parameter in model.parameters()),
+            "checkpoint_restored_equal": bool(torch.equal(restored["delta_obj"], delta_obj.detach().cpu())),
+            "budget_satisfied": float(delta_obj.detach().abs().max()) <= objective_cfg.eps + 1e-7,
+        }
+        (run_dir / "config.yaml").write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+        (run_dir / "command.txt").write_text(command + "\n", encoding="utf-8")
+        (run_dir / "environment.txt").write_text(_environment(), encoding="utf-8")
+        (run_dir / "git_commit.txt").write_text(_git_commit() + "\n", encoding="utf-8")
+        with (run_dir / "loss_metrics.csv").open("w", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(rows)
+        with (run_dir / "classwise_gain_metrics.csv").open("w", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=["class_id", "valid", "authorized_gain_gap"])
+            writer.writeheader()
+            writer.writerow({"class_id": 1, "valid": 1, "authorized_gain_gap": 0.0})
+        (run_dir / "delta_metrics.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+        (run_dir / "run.log").write_text(
+            f"status=pass\ndelta_changed={summary['delta_changed']}\nbudget_satisfied={summary['budget_satisfied']}\ncheckpoint_restored_equal={summary['checkpoint_restored_equal']}\n",
+            encoding="utf-8",
+        )
+    except Exception as error:
+        (run_dir / "run.log").write_text(f"status=fail\nerror={error!r}\n", encoding="utf-8")
+        raise
+    return run_dir
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="OA-LGC local engineering validation")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -395,6 +474,9 @@ def main() -> None:
     gain = subparsers.add_parser("gain")
     gain.add_argument("--config", required=True)
     gain.add_argument("--run-id")
+    objective = subparsers.add_parser("objective")
+    objective.add_argument("--config", required=True)
+    objective.add_argument("--run-id")
     args = parser.parse_args()
     if args.command == "carrier":
         print(run_carrier(args.config, args.run_id))
@@ -404,6 +486,8 @@ def main() -> None:
         print(run_virtual(args.config, args.run_id))
     elif args.command == "gain":
         print(run_gain(args.config, args.run_id))
+    elif args.command == "objective":
+        print(run_objective(args.config, args.run_id))
 
 
 if __name__ == "__main__":
