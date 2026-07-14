@@ -1,0 +1,87 @@
+seed: 0
+device: cuda:0
+deterministic: true
+data:
+  dataset_root: F:/autodl-tmp/ue_project/outputs/mini_csdem/clean_dataset
+  train_images: images/train
+  train_labels: labels/train
+surrogate:
+  checkpoint: F:/autodl-tmp/ue_project/checkpoints/voc20_surrogate.pt
+  num_classes: 20
+  imgsz: 320
+experiment:
+  target_class_id: 14
+  minimum_target_coverage: 0.5
+  query_assignment_mode: fixed_clean_reference
+  episode_pairs:
+  - - 000009
+    - '000435'
+  - - '000023'
+    - '000337'
+  - - '000021'
+    - '000171'
+runs:
+- name: A
+  virtual_steps: 1
+  virtual_mode: classification_head_only
+  outer_steps: 3
+  episodes: 3
+- name: B
+  virtual_steps: 1
+  virtual_mode: detection_head
+  outer_steps: 3
+  episodes: 3
+- name: C
+  virtual_steps: 3
+  virtual_mode: classification_head_only
+  outer_steps: 2
+  episodes: 2
+- name: D
+  virtual_steps: 3
+  virtual_mode: detection_head
+  outer_steps: 2
+  episodes: 2
+- name: E
+  virtual_steps: 5
+  virtual_mode: classification_head_only
+  outer_steps: 1
+  episodes: 1
+carrier:
+  object_resolution: 32
+  eps: 0.062745098
+  non_target_dilation: 4
+  min_valid_fraction: 0.01
+  interpolation: bilinear
+  soft_mask: true
+  soft_edge_pixels: 2.0
+virtual_update:
+  learning_rate: 0.0001
+  inner_optimizer: sgd
+  inner_momentum: 0.0
+  inner_weight_decay: 0.0
+  create_graph: true
+gain:
+  rho_t: 0.5
+  rho_k: 0.5
+  eps: 1.0e-08
+  min_valid_clean_gain: -1000000000.0
+  min_valid_class_gain: 0.0
+  minimum_class_samples: 1
+objective:
+  lambda_carrier: 1.0
+  lambda_auth: 1.0
+  lambda_reg: 0.001
+  gradient_clip_norm: 1.0
+  eps: 0.062745098
+optimization:
+  outer_optimizer: adam
+  outer_learning_rate: 0.001
+reproducibility:
+  repeat_run: A
+  gain_tolerance: 1.0e-06
+  delta_tolerance: 1.0e-07
+disabled_modules:
+  use_rcds: false
+  use_qp: false
+  use_alce_context: false
+  use_feature_collision: false

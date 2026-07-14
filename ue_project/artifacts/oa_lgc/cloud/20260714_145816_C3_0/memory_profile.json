@@ -1,0 +1,17 @@
+{
+  "A": {
+    "peak_memory_bytes": 270190080
+  },
+  "B": {
+    "peak_memory_bytes": 340786688
+  },
+  "C": {
+    "peak_memory_bytes": 404455424
+  },
+  "D": {
+    "peak_memory_bytes": 589785088
+  },
+  "E": {
+    "peak_memory_bytes": 589785088
+  }
+}

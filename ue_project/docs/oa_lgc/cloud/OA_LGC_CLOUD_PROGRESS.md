@@ -13,7 +13,7 @@
 | C0 云端预检 | pass | `04448a3` | `c713756` | `artifacts/oa_lgc/cloud/20260714_141729_C0_0/` | CUDA、mini VOC、真实 YOLO forward、原生 box/cls/DFL loss 与真实 TAL 诊断均可用 |
 | C1 Real YOLO functional adapter | pass | `c713756` | `7cd65bc` | `artifacts/oa_lgc/cloud/20260714_143121_C1_0/` | Mode A/B J=1、Mode C runnability、mixed derivative、cloned buffers 与 base hash 全部通过 |
 | C2 TAL/Box/DFL diagnostics | pass | `7cd65bc` | 待本阶段提交 | `artifacts/oa_lgc/cloud/20260714_144529_C2_0/` | coverage median 1.0、low coverage 0、box/DFL 可用、3 个 non-target 类有效 |
-| C3 Real YOLO end-to-end smoke | pending | | | | |
+| C3 Real YOLO end-to-end smoke | pass | `8145a1a` | 待本阶段提交 | `artifacts/oa_lgc/cloud/20260714_145816_C3_0/` | real-detector engineering chain pass；A-E 与同 seed 复现全部通过 |
 | C4 数据协议与 clean baseline | pending | | | | |
 | C5 Learning-gain pilot | pending | | | | |
 | C6 决策与云端交接 | pending | | | | |

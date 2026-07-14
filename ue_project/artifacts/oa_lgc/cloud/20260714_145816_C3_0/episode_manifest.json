@@ -1,0 +1,212 @@
+[
+  {
+    "run": "A",
+    "outer_step": 0,
+    "support_ids": [
+      "000009"
+    ],
+    "query_ids": [
+      "000435"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 10,
+    "valid_authorized_class_ids": [
+      12
+    ]
+  },
+  {
+    "run": "A",
+    "outer_step": 1,
+    "support_ids": [
+      "000023"
+    ],
+    "query_ids": [
+      "000337"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 80,
+    "valid_authorized_class_ids": [
+      1
+    ]
+  },
+  {
+    "run": "A",
+    "outer_step": 2,
+    "support_ids": [
+      "000021"
+    ],
+    "query_ids": [
+      "000171"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 10,
+    "valid_authorized_class_ids": [
+      11
+    ]
+  },
+  {
+    "run": "B",
+    "outer_step": 0,
+    "support_ids": [
+      "000009"
+    ],
+    "query_ids": [
+      "000435"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 10,
+    "valid_authorized_class_ids": [
+      12
+    ]
+  },
+  {
+    "run": "B",
+    "outer_step": 1,
+    "support_ids": [
+      "000023"
+    ],
+    "query_ids": [
+      "000337"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 80,
+    "valid_authorized_class_ids": [
+      1
+    ]
+  },
+  {
+    "run": "B",
+    "outer_step": 2,
+    "support_ids": [
+      "000021"
+    ],
+    "query_ids": [
+      "000171"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 10,
+    "valid_authorized_class_ids": [
+      11
+    ]
+  },
+  {
+    "run": "C",
+    "outer_step": 0,
+    "support_ids": [
+      "000009"
+    ],
+    "query_ids": [
+      "000435"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 10,
+    "valid_authorized_class_ids": [
+      12
+    ]
+  },
+  {
+    "run": "C",
+    "outer_step": 1,
+    "support_ids": [
+      "000023"
+    ],
+    "query_ids": [
+      "000337"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 80,
+    "valid_authorized_class_ids": [
+      1
+    ]
+  },
+  {
+    "run": "D",
+    "outer_step": 0,
+    "support_ids": [
+      "000009"
+    ],
+    "query_ids": [
+      "000435"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 10,
+    "valid_authorized_class_ids": [
+      12
+    ]
+  },
+  {
+    "run": "D",
+    "outer_step": 1,
+    "support_ids": [
+      "000023"
+    ],
+    "query_ids": [
+      "000337"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 80,
+    "valid_authorized_class_ids": [
+      1
+    ]
+  },
+  {
+    "run": "E",
+    "outer_step": 0,
+    "support_ids": [
+      "000009"
+    ],
+    "query_ids": [
+      "000435"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 10,
+    "valid_authorized_class_ids": [
+      12
+    ]
+  },
+  {
+    "run": "A_repeat",
+    "outer_step": 0,
+    "support_ids": [
+      "000009"
+    ],
+    "query_ids": [
+      "000435"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 10,
+    "valid_authorized_class_ids": [
+      12
+    ]
+  },
+  {
+    "run": "A_repeat",
+    "outer_step": 1,
+    "support_ids": [
+      "000023"
+    ],
+    "query_ids": [
+      "000337"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 80,
+    "valid_authorized_class_ids": [
+      1
+    ]
+  },
+  {
+    "run": "A_repeat",
+    "outer_step": 2,
+    "support_ids": [
+      "000021"
+    ],
+    "query_ids": [
+      "000171"
+    ],
+    "overlap_count": 0,
+    "reference_target_positive_count": 10,
+    "valid_authorized_class_ids": [
+      11
+    ]
+  }
+]

@@ -1,0 +1,1 @@
+F:\autodl-tmp - 副本\ue_project\oa_lgc\real_yolo_smoke.py --config configs/oa_lgc/cloud/c3_real_yolo_smoke.yaml --output artifacts/oa_lgc/cloud/20260714_145816_C3_0
