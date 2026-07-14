@@ -14,9 +14,9 @@
 | C1 Real YOLO functional adapter | pass | `c713756` | `7cd65bc` | `artifacts/oa_lgc/cloud/20260714_143121_C1_0/` | Mode A/B J=1、Mode C runnability、mixed derivative、cloned buffers 与 base hash 全部通过 |
 | C2 TAL/Box/DFL diagnostics | pass | `7cd65bc` | 待本阶段提交 | `artifacts/oa_lgc/cloud/20260714_144529_C2_0/` | coverage median 1.0、low coverage 0、box/DFL 可用、3 个 non-target 类有效 |
 | C3 Real YOLO end-to-end smoke | pass | `8145a1a` | `7c0d8ba` | `artifacts/oa_lgc/cloud/20260714_145816_C3_0/` | real-detector engineering chain pass；A-E 与同 seed 复现全部通过 |
-| C4 数据协议与 clean baseline | blocked | `7c0d8ba` | 待本阶段提交 | `artifacts/oa_lgc/cloud/20260714_151949_C4_0/` | 缺 VOC2012 trainval 与 VOC2007 test，且无法从历史曲线确定 E_pilot |
+| C4 数据协议与 clean baseline | blocked | `7c0d8ba` | `de0ae5d` | `artifacts/oa_lgc/cloud/20260714_151949_C4_0/` | 缺 VOC2012 trainval 与 VOC2007 test，且无法从历史曲线确定 E_pilot |
 | C5 Learning-gain pilot | blocked | | | `docs/oa_lgc/cloud/C4_FAILURE_ANALYSIS.md` | C4 Gate 未通过，按协议未启动 |
-| C6 决策与云端交接 | pending | | | | |
+| C6 决策与云端交接 | pass | `de0ae5d` | 本报告所在最终 commit | `docs/oa_lgc/cloud/OA_LGC_REAL_YOLO_FINAL_REPORT.md` | real YOLO engineering pass, pilot blocked |
 
 状态只使用：`pending`、`running`、`pass`、`partial pass`、`fail`、`blocked`、`interrupted`。
 
