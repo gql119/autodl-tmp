@@ -1,0 +1,12 @@
+C0 preflight completed
+sample=F:\autodl-tmp\ue_project\outputs\mini_csdem\clean_dataset\images\train\000009.jpg
+sample_gt_count=4
+forward_shape=(1, 24, 2100)
+loss_components_box_cls_dfl=[2.026055097579956, 1.0762845277786255, 1.5439307689666748]
+loss_total=4.646270275115967
+gradient_norm=26.973413467407227
+tal_interface=ue_framework.ultra.hijacked_loss.HijackedV8Loss.last_real_assign
+tal_interface_role=diagnostics_only; native model.loss supplies training TAL/box/DFL
+tal_foreground_count=40
+tal_target_score_mass=23.360126495361328
+runtime_seconds=1.328

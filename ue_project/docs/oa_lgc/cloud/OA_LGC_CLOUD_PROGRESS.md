@@ -1,0 +1,23 @@
+# OA-LGC Real-YOLO / Pilot 进度
+
+最后更新：2026-07-14
+
+起始分支：`codex/oa-lgc-local-chain`
+
+当前分支：`codex/oa-lgc-real-yolo-pilot`
+
+起始 commit：`04448a338239863d71a12198ede2fb08980be3a0`
+
+| 阶段 | 状态 | 起始commit | 结束commit | 证据路径 | 结论 |
+| --- | --- | --- | --- | --- | --- |
+| C0 云端预检 | pass | `04448a3` | 待本阶段提交 | `artifacts/oa_lgc/cloud/20260714_141729_C0_0/` | CUDA、mini VOC、真实 YOLO forward、原生 box/cls/DFL loss 与真实 TAL 诊断均可用 |
+| C1 Real YOLO functional adapter | pending | | | | |
+| C2 TAL/Box/DFL diagnostics | pending | | | | |
+| C3 Real YOLO end-to-end smoke | pending | | | | |
+| C4 数据协议与 clean baseline | pending | | | | |
+| C5 Learning-gain pilot | pending | | | | |
+| C6 决策与云端交接 | pending | | | | |
+
+状态只使用：`pending`、`running`、`pass`、`partial pass`、`fail`、`blocked`、`interrupted`。
+
+历史 OA-LGC/DCSS/TAUSB 文件、artifact、checkpoint 与 6 个既有 dirty `ue_framework` 文件均纳入保护，不覆盖、不删除。C0 使用唯一 run 目录；失败和被后续审计取代的 run 也原样保留。

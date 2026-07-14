@@ -1,0 +1,24 @@
+platform: Windows-11-10.0.26200-SP0
+python: 3.12.13 (main, Mar  3 2026, 15:01:35) [MSC v.1944 64 bit (AMD64)]
+python_executable: F:\autodl-tmp\ue_project\.venv\Scripts\python.exe
+torch: 2.11.0+cu128
+torch_cuda_runtime: 12.8
+ultralytics: 8.4.90
+cuda_available: True
+gpu_name: NVIDIA GeForce RTX 2070
+gpu_total_bytes: 8589606912
+gpu_free_bytes_after_smoke: 7361003520
+gpu_runtime_total_bytes: 8589606912
+gpu_peak_allocated_bytes: 98359296
+disk_free_bytes: 10233749504
+device: cuda:0
+model_parameter_tensors: 184
+model_parameter_count: 3014748
+model_buffer_tensors: 171
+model_buffer_count: 10457
+batchnorm_module_count: 57
+detect_head_index: 22
+detect_head_type: ultralytics.nn.modules.head.Detect
+classification_parameter_tensors: 24
+box_distribution_parameter_tensors: 24
+dfl_module_parameter_tensors: 1

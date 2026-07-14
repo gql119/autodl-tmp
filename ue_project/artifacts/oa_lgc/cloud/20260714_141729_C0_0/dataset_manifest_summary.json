@@ -1,0 +1,15 @@
+{
+  "dataset_root": "F:\\autodl-tmp\\ue_project\\outputs\\mini_csdem\\clean_dataset",
+  "train_image_count": 800,
+  "train_label_count": 800,
+  "val_image_count": 200,
+  "val_label_count": 200,
+  "train_manifest_path": "F:\\autodl-tmp\\ue_project\\outputs\\mini_csdem\\clean_dataset\\train.txt",
+  "train_manifest_entries": 800,
+  "val_manifest_path": "F:\\autodl-tmp\\ue_project\\outputs\\mini_csdem\\clean_dataset\\val.txt",
+  "val_manifest_entries": 200,
+  "test_manifest_path": null,
+  "test_manifest_entries": null,
+  "train_val_stem_overlap_count": 0,
+  "dataset_yaml": "F:\\autodl-tmp\\ue_project\\outputs\\mini_csdem\\clean_dataset\\dataset.yaml"
+}

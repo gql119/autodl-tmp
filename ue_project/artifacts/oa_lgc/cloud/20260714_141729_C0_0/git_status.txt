@@ -1,0 +1,56 @@
+branch:
+codex/oa-lgc-real-yolo-pilot
+
+head:
+04448a338239863d71a12198ede2fb08980be3a0
+
+status:
+## codex/oa-lgc-real-yolo-pilot
+ M ue_framework/launch_one.py
+ M ue_framework/paths.py
+ M ue_framework/runtime.py
+ M ue_framework/stages/aggregate.py
+ M ue_framework/stages/evaluate.py
+ M ue_framework/stages/train_victim.py
+?? .venv/
+?? AGENTS.md
+?? "Towards_Effective_and_Robust_Unlearnable_Examples_Against_Object_Detection (1).pdf"
+?? artifacts/
+?? configs/dcss/
+?? docs/dcss/DCSS_CURRENT_WORK_REPORT.md
+?? docs/dcss/DCSS_PROGRESS.md
+?? docs/dcss/stage0/
+?? docs/dcss/stage1/
+?? docs/oa_lgc/cloud/
+?? figures/
+?? oa_lgc/cloud_preflight.py
+?? runs/detect/artifacts/
+?? runs/detect/val-10/
+?? runs/detect/val-11/
+?? runs/detect/val-12/
+?? runs/detect/val-13/
+?? runs/detect/val-14/
+?? runs/detect/val-15/
+?? runs/detect/val-16/
+?? runs/detect/val-2/
+?? runs/detect/val-3/
+?? runs/detect/val-4/
+?? runs/detect/val-5/
+?? runs/detect/val-6/
+?? runs/detect/val-7/
+?? runs/detect/val-8/
+?? runs/detect/val-9/
+?? scripts/dcss_analyze_stage0.py
+?? scripts/dcss_collect_stage0.py
+?? scripts/dcss_compare_stage0.py
+?? scripts/dcss_finalize_stage1.py
+?? scripts/dcss_prepare_stage1_baselines.py
+?? scripts/dcss_run_stage1.py
+?? scripts/draw_tausb_camera_ready.py
+?? scripts/draw_tausb_cvpr_flowchart.py
+?? scripts/draw_tausb_framework.py
+?? scripts/draw_tausb_paper_method.py
+?? scripts/run_robust_eval_modular.sh
+?? ue_framework/tools/
+?? ue_framework/utils/robust_transforms.py
+?? "\345\210\235\347\250\277/"
