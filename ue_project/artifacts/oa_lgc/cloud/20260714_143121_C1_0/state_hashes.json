@@ -1,0 +1,13 @@
+{
+  "base_before": "25c0ad56b9e08454c21502fa3900fbde805278a2b31f59e505f710d3b1eec28c",
+  "base_after": "25c0ad56b9e08454c21502fa3900fbde805278a2b31f59e505f710d3b1eec28c",
+  "base_unchanged": true,
+  "clean_poison_states_independent": true,
+  "classification_selected_hash": "5edc34f7fc045fcafbb2e9bc6986b7524a410a353637508885569690a8b2701e",
+  "detection_selected_hash": "2eb9f78d4566f731152e654a79b7a77e621cb666f40b4c0aa2df72539d0fa5a4",
+  "selected_neck_head_hash": "bd119ec4ad19eaa06178c5a8ef465d7699dab336395ba2aa8ec9c2dfb5c6b8f4",
+  "full_model_interface_hash": "369244ac6f922406959271d9ab5be26a6892b74d66f7d8fcadda08bdf1616629",
+  "reproducibility_max_abs_difference": 0.0,
+  "reproducibility_tolerance": 1e-07,
+  "reproducible_within_tolerance": true
+}

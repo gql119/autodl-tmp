@@ -1,0 +1,53 @@
+seed: 0
+device: cuda:0
+deterministic: true
+
+data:
+  dataset_root: F:/autodl-tmp/ue_project/outputs/mini_csdem/clean_dataset
+  train_images: images/train
+  train_labels: labels/train
+
+surrogate:
+  checkpoint: F:/autodl-tmp/ue_project/checkpoints/voc20_surrogate.pt
+  num_classes: 20
+  imgsz: 320
+
+experiment:
+  target_class_id: 14
+  support_size: 1
+  query_size: 1
+  query_assignment_mode: fixed_clean_reference
+
+carrier:
+  object_resolution: 32
+  eps: 0.062745098
+  non_target_dilation: 4
+  soft_mask: true
+  soft_edge_pixels: 2.0
+
+virtual_update:
+  steps: 1
+  learning_rate: 0.0001
+  inner_optimizer: sgd
+  inner_momentum: 0.0
+  inner_weight_decay: 0.0
+  create_graph: true
+  required_modes:
+    - classification_head_only
+    - detection_head
+  runnable_check_mode: selected_neck_and_head
+  interface_only_mode: full_model
+  virtual_buffer_mode: cloned
+
+objective:
+  rho_t: 0.5
+  rho_k: 0.5
+  lambda_carrier: 1.0
+  lambda_auth: 1.0
+  lambda_reg: 0.001
+
+disabled_modules:
+  use_rcds: false
+  use_qp: false
+  use_alce_context: false
+  use_feature_collision: false

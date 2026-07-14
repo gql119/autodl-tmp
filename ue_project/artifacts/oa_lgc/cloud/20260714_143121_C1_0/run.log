@@ -1,0 +1,17 @@
+C1 real-YOLO adapter smoke pass
+{
+  "status": "pass",
+  "backend": "real_ultralytics_yolo",
+  "classification_head_j1": true,
+  "detection_head_j1": true,
+  "selected_neck_head_j1": true,
+  "full_model_interface": true,
+  "native_detection_loss": true,
+  "protect_only_mixed_gradient": 12.078218460083008,
+  "base_state_unchanged": true,
+  "reproducible_within_tolerance": true,
+  "target_clean_gain": 0.0002187490463256836,
+  "target_poison_gain": 0.00021958351135253906,
+  "target_gain_ratio": 1.003768801689148,
+  "authorized_valid_class_ids": []
+}

@@ -1,0 +1,9 @@
+{
+  "protect_only_grad_norm": 12.078218460083008,
+  "carrier_only_grad_norm": 9.969158172607422,
+  "auth_only_grad_norm": 0.0,
+  "regularizer_only_grad_norm": 3.5718028811970726e-05,
+  "total_grad_norm": 15.90428638458252,
+  "protect_query_uses_poison_pixels": false,
+  "protect_path": "clean query -> poison fast parameters -> poison support carrier -> delta_obj"
+}

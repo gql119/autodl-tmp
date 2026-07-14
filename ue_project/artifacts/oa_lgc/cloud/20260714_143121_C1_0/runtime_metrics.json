@@ -1,0 +1,6 @@
+{
+  "total_seconds": 5.396023100009188,
+  "classification_head_j1_seconds": 0.6775040000211447,
+  "detection_head_j1_seconds": 0.14963340002577752,
+  "selected_neck_head_j1_seconds": 0.1343514999607578
+}

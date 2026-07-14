@@ -1,0 +1,12 @@
+{
+  "query_assignment_mode": "fixed_clean_reference",
+  "reference_assignment_detached": true,
+  "tal_topk_gradient": false,
+  "scores_outside_assignment_retain_gradient": true,
+  "target_reference_positive_count": 26,
+  "target_score_mass": 12.885307312011719,
+  "foreground_count": 33,
+  "support_id": "000009",
+  "query_id": "000021",
+  "support_query_overlap": 0
+}

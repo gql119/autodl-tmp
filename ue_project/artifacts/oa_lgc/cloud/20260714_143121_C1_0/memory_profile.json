@@ -1,0 +1,6 @@
+{
+  "device": "cuda:0",
+  "peak_allocated_bytes": 284306432,
+  "peak_reserved_bytes": 297795584,
+  "gpu_total_bytes": 8589606912
+}

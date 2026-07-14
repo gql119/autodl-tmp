@@ -1,0 +1,9 @@
+platform: Windows-11-10.0.26200-SP0
+python: 3.12.13 (main, Mar  3 2026, 15:01:35) [MSC v.1944 64 bit (AMD64)]
+torch: 2.11.0+cu128
+ultralytics: 8.4.90
+cuda: 12.8
+gpu: NVIDIA GeForce RTX 2070
+backend: real_ultralytics_yolo
+functional_call_backend: torch.func.functional_call
+virtual_buffer_mode: cloned
