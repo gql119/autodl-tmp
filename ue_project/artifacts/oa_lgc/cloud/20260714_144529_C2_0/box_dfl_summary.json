@@ -1,0 +1,13 @@
+{
+  "target_box_loss_available": true,
+  "target_dfl_loss_available": true,
+  "target_box_loss_median": 1.544334888458252,
+  "target_dfl_loss_median": 1.2283762693405151,
+  "valid_non_target_class_ids": [
+    1,
+    11,
+    12
+  ],
+  "valid_non_target_class_count": 3,
+  "fixed_reference_box_dfl": true
+}

@@ -1,0 +1,12 @@
+{
+  "episode_count": 3,
+  "target_coverage_definition": "poison target positive units / max(reference target positive units, 1)",
+  "target_coverage_median": 1.0,
+  "target_coverage_min": 1.0,
+  "target_assignment_overlap_definition": "Jaccard(reference target units, poison target units)",
+  "target_assignment_overlap_median": 1.0,
+  "low_coverage_episode_count": 0,
+  "low_coverage_episode_ratio": 0.0,
+  "real_tal": true,
+  "proxy_fallback": false
+}

@@ -1,0 +1,48 @@
+seed: 0
+device: cuda:0
+
+data:
+  dataset_root: F:/autodl-tmp/ue_project/outputs/mini_csdem/clean_dataset
+  train_images: images/train
+  train_labels: labels/train
+
+surrogate:
+  checkpoint: F:/autodl-tmp/ue_project/checkpoints/voc20_surrogate.pt
+  num_classes: 20
+  imgsz: 320
+
+experiment:
+  target_class_id: 14
+  minimum_target_coverage: 0.5
+  query_assignment_mode: fixed_clean_reference
+  episodes:
+    - support_id: "000009"
+      query_id: "000435"
+      expected_shared_non_target: 12
+    - support_id: "000021"
+      query_id: "000171"
+      expected_shared_non_target: 11
+    - support_id: "000023"
+      query_id: "000337"
+      expected_shared_non_target: 1
+
+carrier:
+  object_resolution: 32
+  eps: 0.062745098
+  non_target_dilation: 4
+  soft_mask: true
+  soft_edge_pixels: 2.0
+
+virtual_update:
+  steps: 1
+  learning_rate: 0.0001
+  mode: classification_head_only
+  inner_optimizer: sgd
+  inner_momentum: 0.0
+  inner_weight_decay: 0.0
+
+disabled_modules:
+  use_rcds: false
+  use_qp: false
+  use_alce_context: false
+  use_feature_collision: false

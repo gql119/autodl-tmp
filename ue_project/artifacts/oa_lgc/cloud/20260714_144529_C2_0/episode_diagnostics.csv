@@ -1,0 +1,4 @@
+episode,support_id,query_id,target_gt_count,target_reference_positive_count,target_clean_positive_count,target_poison_positive_count,target_positive_coverage,target_assignment_overlap,target_cls_loss,target_box_loss,target_dfl_loss,target_matched_score,target_localization_recall,target_valid_reason,valid
+0,000009,000435,1,10,10,10,1.0,1.0,1.5909165143966675,3.1070189476013184,2.323702335357666,0.49535083770751953,1.0,,True
+1,000021,000171,1,10,10,10,1.0,1.0,0.4989718794822693,0.6014164090156555,0.9166190028190613,0.8638209700584412,1.0,,True
+2,000023,000337,8,80,80,80,1.0,1.0,2.4293010234832764,1.544334888458252,1.2283762693405151,0.4124161899089813,1.0,,True
