@@ -1,0 +1,64 @@
+status: blocked
+required_protocol:
+  train:
+  - VOC2007 trainval
+  - VOC2012 trainval
+  test:
+  - VOC2007 test
+  forbid_test_optimization: true
+historical_mini_config:
+  experiment:
+    name: mini_csdem_clean_baseline
+    seed: 0
+    target_class_name: person
+    train_size: 800
+    val_size: 200
+  data:
+    voc_root: outputs/local_validation/voc_raw/VOCdevkit/VOC2007
+    split: trainval
+    names:
+    - aeroplane
+    - bicycle
+    - bird
+    - boat
+    - bottle
+    - bus
+    - car
+    - cat
+    - chair
+    - cow
+    - diningtable
+    - dog
+    - horse
+    - motorbike
+    - person
+    - pottedplant
+    - sheep
+    - sofa
+    - train
+    - tvmonitor
+  model:
+    init: configs/voc_yolov8n_20cls.yaml
+    pretrained: false
+    resume: false
+  training:
+    epochs: 50
+    imgsz: 416
+    batch: 16
+    workers: 0
+    cache: false
+    amp: true
+    optimizer: auto
+    seed: 0
+  features:
+    enable_mini_csdem: false
+    enable_object_aligned_perturbation: false
+    enable_non_target_preservation: false
+    enable_classwise_constraints: false
+    enable_gradient_projection: false
+    enable_legacy_hooks: false
+  paths:
+    output_root: outputs/mini_csdem
+    split_manifest: data_splits/mini_csdem_voc_seed0.json
+    results_root: results/mini_csdem
+historical_baseline_protocol_eligible: false

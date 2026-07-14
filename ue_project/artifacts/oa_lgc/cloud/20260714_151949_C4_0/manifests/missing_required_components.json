@@ -1,0 +1,10 @@
+{
+  "status": "blocked",
+  "exact_train_manifest_generated": false,
+  "exact_test_manifest_generated": false,
+  "missing_required_components": [
+    "VOC2012 trainval",
+    "VOC2007 test"
+  ],
+  "reason": "The required protocol cannot be reconstructed without guessing or downloading data."
+}

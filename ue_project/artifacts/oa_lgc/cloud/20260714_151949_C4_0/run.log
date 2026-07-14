@@ -1,0 +1,22 @@
+{
+  "status": "blocked",
+  "gate": {
+    "protocol_auditable": false,
+    "train_test_overlap_zero": null,
+    "clean_baseline_reproducible": false,
+    "clean_target_non_target_converged": false,
+    "E_pilot_selected_from_curve": false,
+    "source_clear_checkpoint_is_not_sole_baseline": true
+  },
+  "missing_required_components": [
+    "VOC2012 trainval",
+    "VOC2007 test"
+  ],
+  "available_voc2007_trainval": 5011,
+  "historical_mini_train": 800,
+  "historical_mini_val": 200,
+  "historical_checkpoint_hash_verified": true,
+  "C5_allowed": false,
+  "silent_download_performed": false,
+  "test_data_used_for_optimization": false
+}

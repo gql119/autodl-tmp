@@ -1,0 +1,8 @@
+{
+  "exact_protocol_train_test_overlap": null,
+  "exact_protocol_overlap_auditable": false,
+  "historical_mini_train_val_overlap_count": 0,
+  "historical_mini_train_count": 800,
+  "historical_mini_val_count": 200,
+  "available_voc2007_trainval_count": 5011
+}

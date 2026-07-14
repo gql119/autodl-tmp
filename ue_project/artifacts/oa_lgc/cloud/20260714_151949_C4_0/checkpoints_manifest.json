@@ -1,0 +1,11 @@
+{
+  "historical_mini_best": {
+    "path": "F:\\autodl-tmp\\ue_project\\outputs\\mini_csdem\\train_runs\\clean_baseline_seed0\\weights\\best.pt",
+    "exists": true,
+    "sha256": "c5a731edd3ed75bca676e365bb5eb175ea404fb439bec3f9872b40999119ece7",
+    "recorded_sha256": "c5a731edd3ed75bca676e365bb5eb175ea404fb439bec3f9872b40999119ece7",
+    "hash_matches_record": true,
+    "protocol_eligible": false,
+    "reason": "Checkpoint belongs to the historical mini split, not the required C4 protocol."
+  }
+}

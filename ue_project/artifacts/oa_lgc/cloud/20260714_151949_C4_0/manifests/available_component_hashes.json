@@ -1,0 +1,5 @@
+{
+  "voc2007_trainval_split_sha256": "15a0c17dd13dd526194ed09fe773fd3000e951570a041c509078c634a63761e0",
+  "mini_split_manifest_sha256": "bc1ffad0d4a6167bb6882e1d137ab615dbf64e4f9c7589361bfb7518332216cd",
+  "note": "These hashes cover available components only; they are not hashes of the required C4 protocol."
+}

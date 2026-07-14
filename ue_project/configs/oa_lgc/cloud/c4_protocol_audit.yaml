@@ -1,0 +1,24 @@
+seed: 0
+
+required_protocol:
+  train:
+    - VOC2007 trainval
+    - VOC2012 trainval
+  test:
+    - VOC2007 test
+  forbid_test_optimization: true
+
+paths:
+  voc2007_root: F:/autodl-tmp/ue_project/outputs/local_validation/voc_raw/VOCdevkit/VOC2007
+  voc2012_root: F:/autodl-tmp/ue_project/outputs/local_validation/voc_raw/VOCdevkit/VOC2012
+  mini_split_manifest: F:/autodl-tmp/ue_project/data_splits/mini_csdem_voc_seed0.json
+  mini_dataset_root: F:/autodl-tmp/ue_project/outputs/mini_csdem/clean_dataset
+  historical_clean_config: F:/autodl-tmp/ue_project/configs/mini_csdem/clean_baseline.yaml
+  historical_training_args: F:/autodl-tmp/ue_project/outputs/mini_csdem/train_runs/clean_baseline_seed0/args.yaml
+  historical_training_metrics: F:/autodl-tmp/ue_project/outputs/mini_csdem/train_runs/clean_baseline_seed0/results.csv
+  historical_eval_metrics: F:/autodl-tmp/ue_project/results/mini_csdem/clean_baseline_metrics.json
+  historical_classwise_ap: F:/autodl-tmp/ue_project/results/mini_csdem/clean_baseline_per_class.csv
+  historical_best_checkpoint: F:/autodl-tmp/ue_project/outputs/mini_csdem/train_runs/clean_baseline_seed0/weights/best.pt
+
+pilot_epoch_candidates: [20, 40, 60, 80, 100]
+pilot_convergence_fraction: 0.8
