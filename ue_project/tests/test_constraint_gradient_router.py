@@ -1,0 +1,142 @@
+from __future__ import annotations
+
+import pytest
+import torch
+
+from ue_framework.methods.constraint_gradient_router import (
+    ConstraintTerm,
+    backtracking_candidate,
+    route_coefficient_gradient,
+)
+
+
+def test_no_constraints_uses_target_gradient() -> None:
+    parameter = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+    result = route_coefficient_gradient(
+        parameter=parameter,
+        target_loss=parameter.sum(),
+        constraints=[],
+    )
+    assert result.mode == "target"
+    assert torch.equal(result.gradient, torch.ones_like(parameter))
+    assert result.rank == 0
+    assert result.null_dimension == 3
+    assert result.attack_retention == pytest.approx(1.0)
+
+
+def test_near_boundary_projects_target_into_nullspace() -> None:
+    parameter = torch.tensor([0.0, 0.0, 0.0], requires_grad=True)
+    result = route_coefficient_gradient(
+        parameter=parameter,
+        target_loss=parameter.sum(),
+        constraints=[
+            ConstraintTerm("class_7_cls", parameter[0], tolerance=0.0),
+        ],
+    )
+    assert result.mode == "projected_target"
+    assert result.rank == 1
+    assert result.null_dimension == 2
+    assert result.gradient[0] == pytest.approx(0.0, abs=1e-7)
+    assert result.max_projected_row_dot <= 1e-6
+
+
+def test_full_rank_projection_and_near_singular_rank() -> None:
+    full = torch.zeros(3, requires_grad=True)
+    full_result = route_coefficient_gradient(
+        parameter=full,
+        target_loss=full.sum(),
+        constraints=[
+            ConstraintTerm(f"row_{index}", full[index], tolerance=0.0)
+            for index in range(3)
+        ],
+    )
+    assert full_result.rank == 3
+    assert full_result.null_dimension == 0
+    assert full_result.attack_retention == pytest.approx(0.0, abs=1e-6)
+
+    near = torch.zeros(2, requires_grad=True)
+    near_result = route_coefficient_gradient(
+        parameter=near,
+        target_loss=near.sum(),
+        constraints=[
+            ConstraintTerm("row_a", near[0], tolerance=0.0),
+            ConstraintTerm("row_b", near[0] + 1e-8 * near[1], tolerance=0.0),
+        ],
+        svd_relative_tolerance=1e-4,
+    )
+    assert near_result.rank == 1
+    assert near_result.null_dimension == 1
+
+
+def test_zero_rank_constraint_skips() -> None:
+    parameter = torch.zeros(2, requires_grad=True)
+    result = route_coefficient_gradient(
+        parameter=parameter,
+        target_loss=parameter.sum(),
+        constraints=[
+            ConstraintTerm("zero", parameter.sum() * 0.0, tolerance=0.0),
+        ],
+    )
+    assert result.mode == "skip"
+    assert torch.equal(result.gradient, torch.zeros_like(parameter))
+
+
+def test_violated_constraint_switches_to_repair_only() -> None:
+    parameter = torch.tensor([0.5, 0.0], requires_grad=True)
+    result = route_coefficient_gradient(
+        parameter=parameter,
+        target_loss=-parameter[1],
+        constraints=[
+            ConstraintTerm("class_3_cls", parameter[0], tolerance=0.1),
+        ],
+    )
+    assert result.mode == "repair_only"
+    assert result.violated_constraints == ("class_3_cls",)
+    assert torch.equal(result.gradient, torch.tensor([1.0, 0.0]))
+    assert result.projected_target_gradient[0] == pytest.approx(0.0, abs=1e-7)
+
+
+def test_backtracking_accepts_feasible_smaller_step_and_skips_failure() -> None:
+    parameter = torch.tensor([0.0])
+    accepted = backtracking_candidate(
+        parameter=parameter,
+        gradient=torch.tensor([-1.0]),
+        step_size=1.0,
+        evaluate_constraints=lambda candidate: {
+            "quadratic": float(candidate[0].square())
+        },
+        limits={"quadratic": 0.1},
+        mode="feasible",
+        max_backtracks=5,
+    )
+    assert accepted.accepted
+    assert accepted.attempts == 3
+    assert accepted.candidate[0] == pytest.approx(0.25)
+
+    failed = backtracking_candidate(
+        parameter=parameter,
+        gradient=torch.tensor([-1.0]),
+        step_size=1.0,
+        evaluate_constraints=lambda _candidate: {"fixed": 1.0},
+        limits={"fixed": 0.0},
+        mode="feasible",
+        max_backtracks=2,
+    )
+    assert not failed.accepted
+    assert failed.status == "skip"
+    assert torch.equal(failed.candidate, parameter)
+
+
+def test_repair_backtracking_requires_actual_improvement() -> None:
+    parameter = torch.tensor([1.0])
+    result = backtracking_candidate(
+        parameter=parameter,
+        gradient=torch.tensor([1.0]),
+        step_size=0.5,
+        evaluate_constraints=lambda candidate: {"margin": float(candidate[0])},
+        limits={"margin": 0.0},
+        mode="repair",
+        baseline_values={"margin": 1.0},
+    )
+    assert result.accepted
+    assert result.values["margin"] == pytest.approx(0.5)

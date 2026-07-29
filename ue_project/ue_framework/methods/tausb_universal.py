@@ -14,6 +14,7 @@ from ..data_utils import image_has_target, label_path_for_image, list_images, lo
 from ..io_utils import atomic_write_json
 from ..ultra.hijacked_loss import HijackedV8Loss
 from .base import BasePoisonGenerator, PoisonResult
+from .background_spectral_basis import spectrum_energy_ratios
 from .fourier import build_fourier_pattern, sample_bandfreq_coords, sample_midfreq_coords, spectrum_to_numpy
 from .shadow_tal import DifferentiableShadowTAL
 from .alce_acgt import (
@@ -89,8 +90,26 @@ class _TAUSBCommon(BasePoisonGenerator):
         super().__init__(cfg, method_cfg, device, surrogate)
 
         self.ring_width = int(method_cfg.get("ring_width", 4))
-        self.shortcut_num_bases = int(method_cfg.get("shortcut_num_bases", 16)) 
+        self.shortcut_num_bases = int(method_cfg.get("shortcut_num_bases", 16))
         self.suppress_small_size = int(method_cfg.get("suppress_small_size", 32))
+        self.carrier_basis_mode = str(
+            method_cfg.get("carrier_basis_mode", "synthetic_fourier")
+        )
+        allowed_carrier_modes = {
+            "synthetic_fourier",
+            "background_raw_low",
+            "background_scrambled_low",
+            "background_scrambled_low_mid",
+        }
+        if self.carrier_basis_mode not in allowed_carrier_modes:
+            raise ValueError(
+                f"Unsupported carrier_basis_mode: {self.carrier_basis_mode}"
+            )
+        self.background_basis_path = str(
+            method_cfg.get("background_basis_path", "") or ""
+        )
+        self.background_bases = None
+        self.background_basis_meta: Dict[str, Any] = {}
 
         self.align_alpha = float(method_cfg.get("align_alpha", 0.5))
         self.align_beta = float(method_cfg.get("align_beta", 6.0))
@@ -347,6 +366,33 @@ class _TAUSBCommon(BasePoisonGenerator):
         return dx + dy
 
     def _build_global_freq_pattern(self, h: int, w: int, coords: List[Tuple[int, int]], coeff: torch.Tensor) -> torch.Tensor:
+        if self.carrier_basis_mode != "synthetic_fourier":
+            if self.background_bases is None:
+                raise RuntimeError(
+                    "Background carrier mode requires loaded background_bases."
+                )
+            if coeff.ndim != 2 or coeff.shape[1] != 3:
+                raise ValueError("Background carrier coefficients must have shape [K,3].")
+            if coeff.shape[0] != self.background_bases.shape[0]:
+                raise ValueError(
+                    "Background basis and coefficient counts must match."
+                )
+            resized = F.interpolate(
+                self.background_bases.unsqueeze(1),
+                size=(h, w),
+                mode="bilinear",
+                align_corners=False,
+            ).squeeze(1)
+            ch_patterns = []
+            for c in range(3):
+                amps = torch.tanh(coeff[:, c] / self.tanh_temp) * (
+                    self.eps * self.freq_amp_buffer
+                )
+                pattern = (resized * amps.view(-1, 1, 1)).sum(dim=0)
+                pattern = pattern / pattern.abs().amax().clamp_min(1e-6)
+                ch_patterns.append(pattern.unsqueeze(0).unsqueeze(0))
+            return torch.cat(ch_patterns, dim=1)
+
         ch_patterns = []
         for c in range(3):
             amps = torch.tanh(coeff[:, c] / self.tanh_temp) * (self.eps * self.freq_amp_buffer)
@@ -354,6 +400,38 @@ class _TAUSBCommon(BasePoisonGenerator):
             cur = F.interpolate(base, size=(h, w), mode="bilinear", align_corners=False)
             ch_patterns.append(cur)
         return torch.cat(ch_patterns, dim=1)
+
+    def _load_background_basis_pack(self, pack: Dict[str, Any]) -> None:
+        bases = pack.get("bases", pack.get("background_bases"))
+        if not torch.is_tensor(bases):
+            raise ValueError("Background basis pack must contain a tensor named 'bases'.")
+        bases = bases.detach().to(device=self.device, dtype=torch.float32)
+        if bases.ndim != 3:
+            raise ValueError("Background bases must have shape [K,H,W].")
+        if bases.shape[0] != self.shortcut_num_bases:
+            raise ValueError(
+                f"Expected {self.shortcut_num_bases} background bases, got {bases.shape[0]}."
+            )
+        if not torch.isfinite(bases).all():
+            raise ValueError("Background bases contain non-finite values.")
+        means = bases.mean(dim=(-2, -1))
+        norms = bases.flatten(1).norm(dim=1)
+        if float(means.abs().max().item()) > 1e-5:
+            raise ValueError("Background bases must be zero-mean.")
+        if not torch.allclose(norms, torch.ones_like(norms), atol=1e-4, rtol=1e-4):
+            raise ValueError("Background bases must have unit L2 norm.")
+
+        meta = pack.get("metadata", pack.get("background_basis_meta", {}))
+        if not isinstance(meta, dict):
+            raise ValueError("Background basis metadata must be a dictionary.")
+        packed_mode = str(meta.get("carrier_basis_mode", self.carrier_basis_mode))
+        if packed_mode != self.carrier_basis_mode:
+            raise ValueError(
+                f"Background basis mode mismatch: config={self.carrier_basis_mode} "
+                f"pack={packed_mode}."
+            )
+        self.background_bases = bases
+        self.background_basis_meta = dict(meta)
 
     def _compose_delta(self, img_t: torch.Tensor, inner_np: np.ndarray, ring_np: np.ndarray, coords: List[Tuple[int, int]], fourier_coeff: torch.Tensor, suppress_small: torch.Tensor):
         inner = torch.from_numpy(inner_np).float().unsqueeze(0).unsqueeze(0).to(self.device)
@@ -407,6 +485,13 @@ class TAUSBMaskGenerator(_TAUSBCommon):
         if not os.path.isfile(global_params_path):
             raise FileNotFoundError(f"global params not found: {global_params_path}")
         pack = torch.load(global_params_path, map_location=device)
+        packed_mode = str(pack.get("carrier_basis_mode", "synthetic_fourier"))
+        if packed_mode != self.carrier_basis_mode:
+            raise ValueError(
+                f"Carrier mode mismatch: config={self.carrier_basis_mode} pack={packed_mode}."
+            )
+        if self.carrier_basis_mode != "synthetic_fourier":
+            self._load_background_basis_pack(pack)
         self.coords = [tuple(x) for x in pack["coords"]]
         self.fourier_coeff = pack["fourier_coeff"].to(device)
         self.suppress_small = pack["suppress_small"].to(device)
@@ -460,6 +545,16 @@ class TAUSBMaskGenerator(_TAUSBCommon):
                 torch.tanh(self.fourier_coeff[:, 0] / self.tanh_temp).detach().cpu().numpy(),
             )
             pattern_vis = self._build_global_freq_pattern(h, w, self.coords, self.fourier_coeff).mean(dim=1)
+            if self.carrier_basis_mode != "synthetic_fourier":
+                spatial = pattern_vis.squeeze(0).detach().cpu().numpy()
+                spectrum = np.log1p(np.abs(np.fft.fftshift(np.fft.fft2(spatial))))
+                spectrum = spectrum - spectrum.min()
+                if spectrum.max() > 1e-8:
+                    spectrum = spectrum / spectrum.max()
+                spectrum = spectrum.astype(np.float32)
+            materialized_energy = spectrum_energy_ratios(
+                perturb.squeeze(0).detach().cpu()
+            )
 
         return PoisonResult(
             poisoned_image=self._to_numpy(adv),
@@ -478,6 +573,8 @@ class TAUSBMaskGenerator(_TAUSBCommon):
                 "jnd_gain": jnd.squeeze(0).squeeze(0).detach().cpu().numpy(),
                 "spectrum": spectrum,
                 "pattern": pattern_vis.squeeze(0).detach().cpu().numpy(),
+                "carrier_basis_mode": self.carrier_basis_mode,
+                "materialized_spectrum_energy": materialized_energy,
                 "support_source": support_source,
                 "mask_path": self._resolve_instance_mask_path(image_path) or "",
             },
@@ -571,7 +668,45 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
         self.freq_band_to_indices: Dict[str, List[int]] = {}
         self._freq_band_radius_mean: Dict[str, float] = {}
 
-        if self.enable_adaptive_freq_basis:
+        if self.carrier_basis_mode != "synthetic_fourier":
+            if self.enable_adaptive_freq_basis:
+                raise ValueError(
+                    "Background carrier modes require enable_adaptive_freq_basis=false."
+                )
+            if not self.background_basis_path:
+                raise ValueError(
+                    "Background carrier modes require background_basis_path."
+                )
+            if not os.path.isfile(self.background_basis_path):
+                raise FileNotFoundError(
+                    f"Background basis pack not found: {self.background_basis_path}"
+                )
+            basis_pack = torch.load(self.background_basis_path, map_location="cpu")
+            if not isinstance(basis_pack, dict):
+                raise ValueError("Background basis pack must be a dictionary.")
+            self._load_background_basis_pack(basis_pack)
+            self.coords = []
+            self.fourier_coeff = torch.nn.Parameter(
+                torch.zeros((self.shortcut_num_bases, 3), device=self.device)
+            )
+            self.freq_candidate_coords = []
+            self.freq_candidate_num_bases = self.shortcut_num_bases
+            self.freq_active_num_bases = self.shortcut_num_bases
+            self.freq_active_idx = torch.arange(
+                self.shortcut_num_bases,
+                device=self.device,
+                dtype=torch.long,
+            )
+            self.freq_score = torch.zeros(
+                (self.shortcut_num_bases,), device=self.device, dtype=torch.float32
+            )
+            self.freq_usage = torch.zeros_like(self.freq_score)
+            self._adaptive_freq_grad_warned = False
+            self._adaptive_freq_score_top_mean = float("nan")
+            self._adaptive_freq_mode_warned = False
+            self._adaptive_freq_metric_warned = False
+            self.enable_band_aware_freq_basis = False
+        elif self.enable_adaptive_freq_basis:
             if self.freq_active_num_bases != self.shortcut_num_bases:
                 raise ValueError(
                     f"freq_active_num_bases ({self.freq_active_num_bases}) must equal "
@@ -2464,7 +2599,15 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
             "suppress_small": self.suppress_small.detach().cpu(),
             "method": "tausb_mask",
             "target_class_id": self.target_class_id,
+            "carrier_basis_mode": self.carrier_basis_mode,
         }
+        if self.carrier_basis_mode != "synthetic_fourier":
+            save_pack.update(
+                {
+                    "background_bases": self.background_bases.detach().cpu(),
+                    "background_basis_meta": self.background_basis_meta,
+                }
+            )
         if self.enable_adaptive_freq_basis and self.enable_band_aware_freq_basis:
             save_pack.update(
                 {
@@ -2487,6 +2630,8 @@ class TAUSBUniversalTrainer(_TAUSBCommon):
                 "latest": latest_diag,
                 "global_params_path": global_params_path,
                 "coords": [[int(y), int(x)] for y, x in save_coords],
+                "carrier_basis_mode": self.carrier_basis_mode,
+                "background_basis_meta": self.background_basis_meta,
             },
         )
 

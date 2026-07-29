@@ -95,6 +95,8 @@ def _default_config() -> Dict[str, Any]:
                 "support_type": "mask",
                 "ring_width": 4,
                 "shortcut_num_bases": 2,
+                "carrier_basis_mode": "synthetic_fourier",
+                "background_basis_path": "",
                 "suppress_small_size": 32,
                 "align_alpha": 0.5,
                 "align_beta": 6.0,
@@ -185,6 +187,8 @@ def _ensure_method_defaults(cfg: Dict[str, Any]) -> None:
         tausb_required = {
             "support_type": "mask",
             "shortcut_num_bases": 2,
+            "carrier_basis_mode": "synthetic_fourier",
+            "background_basis_path": "",
             "suppress_small_size": 32,
             "align_alpha": 0.5,
             "align_beta": 6.0,

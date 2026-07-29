@@ -1,0 +1,67 @@
+spec:
+  spec_id: TAUSB-BSC-RC-GR-v1
+  exp_id: TAUSB-BSC-RC-GR-MECH-S0
+  seed: 0
+
+dataset:
+  root: /root/autodl-tmp/ue_project/VOC_0712_Kaggle_Ready
+  train_images: images/train
+  train_labels: labels/train
+  target_class_id: 14
+
+model:
+  surrogate_checkpoint: /root/autodl-tmp/ue_project/checkpoints/voc20_surrogate.pt
+  num_classes: 20
+  image_size: 640
+
+background:
+  # Repository manifest contains IDs, hashes, dimensions and license notes only.
+  source_manifest: /root/autodl-tmp/research_workspace/sources/bsc_background_manifest.json
+  # Local-only JSON maps source IDs to absolute image paths and is never committed.
+  source_local_map: /root/.local/share/tausb/bsc_background_local_map.json
+
+carrier:
+  epsilon: 0.062745098
+  resolution: 640
+  num_bases: 16
+  seed: 0
+  frozen_coefficient_scale: 0.25
+  synthetic_global_params_path: /root/autodl-tmp/ue_project/runs/artifacts/tausb_mask/steps40/seed0/noise/global_params.pt
+
+split:
+  manifest: /root/autodl-tmp/ue_project/runs_research/shared_splits/TAUSB-ALCE-CTX-AUDIT-v1.json
+  required_protocol_prefix: TAUSB-ALCE-CTX-AUDIT-v1
+
+phase_a:
+  enabled: true
+  prototype_momentum: 0.90
+  eot_gain: 0.95
+
+phase_b:
+  enabled: true
+  warmup_steps: 4
+  optimization_steps: 20
+  learning_rate: 0.01
+  prototype_momentum: 0.90
+  lambda_cicr: 1.0
+  lambda_route: 1.0
+  box_teacher_weight: 1.0
+  tau_cls: 0.005
+  tau_box: 0.02
+  near_boundary: 0.005
+  align_alpha: 0.5
+  align_beta: 6.0
+  assignment_topk: 100
+  pag_layer_ratios: [0.7, 0.6, 0.4]
+  pag_min_pos: [8, 6, 4]
+
+phase_c:
+  enabled: true
+  optimization_steps: 10
+  learning_rate: 0.005
+  max_backtracks: 5
+
+runtime:
+  artifact_root: /root/autodl-tmp/ue_project/runs_research/TAUSB-BSC-RC-GR-v1
+  device: "0"
+  batch_size: 4
