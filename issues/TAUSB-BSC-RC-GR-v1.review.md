@@ -33,7 +33,7 @@
   `TAUSB-ALCE-CTX-AUDIT-v1` 冻结协议生成一个 shared manifest，并让 ALCE/BSC
   复用其 immutable hash。生成器不得覆盖既有 manifest。
 - Background authorization: 用户声明“本人持有并授权本研究使用”。
-- Intake result: 已收到并核验 `7/8` 张 person-free 背景图；均可解码且 SHA256
+- Intake result: 已收到并核验 `8/8` 张 person-free 背景图；均可解码且 SHA256
   互不重复。
 
 | Stable source id | Dimensions | SHA256 |
@@ -45,6 +45,68 @@
 | `bg-landscape-05` | 960×641 | `55f4e32732d4f1c17ea794433694e090a251ec901fdb61fb2f95cd410f091830` |
 | `bg-windmills-06` | 1920×1280 | `92ca0356776751506088728ae624d40c791c93ef7a035083091b45e82939c878` |
 | `bg-cliff-beach-07` | 1920×1440 | `5faf6e55afe212a008e3d621fefffc37f67792941d681340dd9c446594ca546b` |
+| `bg-tree-08` | 960×638 | `dc8ffacadaa07cae3aa38658099574f81787b8803a56b1962c6ccc68a332f310` |
 
-- Remaining input blocker: 缺少第 8 张不同的授权 person-free 背景图，因此正式
-  8-source repository manifest、本地 map、C1/C2 basis rank/hash 仍不能冻结。
+- Repository manifest:
+  `research_workspace/sources/bsc_background_manifest.json`；不含本机路径，
+  canonical hash
+  `3a13b0f38b06006fd7f68ae03c7206b4b047d4b6129ee7357b05b966641d47af`。
+- Local-only map:
+  `C:/Users/20272/.local/share/tausb/bsc_background_local_map.json`；保持仓库外。
+- Basis validation: `640×640`、16 bases、seed 0 下三组 basis 均 rank 16、
+  finite、近似正交。basis hashes：
+  - C1-L：`6b88ea983ff292e51571c1ca13f9383c46df9abca5b0d2e14760fe758dbaf267`；
+  - C2-L：`5755233f16d00684987d40307b35e792bdd9b67b8267969899d89fdfc8fad636`；
+  - C2-LM：`0395c41541d6bcb51ce81805a96271cd099253eee20c94945968d6e1b0f881c1`。
+- Shared split:
+  `research_workspace/sources/TAUSB-ALCE-CTX-AUDIT-v1.json`；split hash
+  `e2542517af00830147117582d69ff15a62fbeae1f8583bf0c9d01fbff120cae1`；
+  label hash
+  `0c8b6f6424061bc31b84ddf42b7370dcbd074f26805433d0ba275c24815e3248`；
+  calibration 为 32 person-only + 32 cooccur，held-out 为 32 + 64，
+  无重叠且 `validation_gaps=[]`。
+- Local checkpoint:
+  `voc20_surrogate.pt` SHA256
+  `8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89`。
+- Remaining input blocker: 远程路径与远程同源 hash 尚未只读核验；由于本地真实
+  VOC Phase A 已触发科学 failure signal，当前不再推进远程 pre-run。
+
+## LOCAL-PHASE-A-FEASIBILITY-01
+
+- Scope: 用户要求先直接验证方案可行性；使用本地完整 VOC train、真实
+  `voc20_surrogate.pt`、批准的 shared split、8-source basis 和 seed 0，执行
+  frozen-carrier Phase A。未运行 Phase B/C、未生成 poisoned dataset、未训练 victim。
+- Command:
+  `python -u -m ue_framework.tools.probe_tausb_bsc_rc_gr --config ue_framework/configs/exp_voc_person_tausb_bsc_rc_gr_probe.local.yaml --phase A --device cpu`。
+- Artifact root:
+  `ue_project/runs_research_local/TAUSB-BSC-RC-GR-v1-local-phaseA-20260729`。
+- Result: `FAIL`；`status.json` 为 `state=stopped`，
+  `stop_reason=phase_a_failure_signal`，符合 approved Spec 的停止条件。
+- Core evidence:
+
+| Carrier | held-out CICR median | Q25 | non-target/target energy | box residual | source correlation |
+|---|---:|---:|---:|---:|---:|
+| C0 | 0.575505 | 0.389817 | 0.404013 | 3.089932 | 0.015123 |
+| C1-L | 0.390414 | 0.219753 | 0.430254 | 2.471952 | 0.571231 |
+| C2-L | 0.353652 | 0.111970 | 0.403262 | 2.487122 | 0.191186 |
+| C2-LM | 0.523650 | 0.302853 | 0.354418 | 3.136600 | 0.213312 |
+
+- Gate diagnosis:
+  - C2-LM 的 finite、Q25、non-target ratio、box leakage、intended-band、
+    protocol hash 与 zero-norm 检查均 PASS；
+  - 唯一主失败是 `cicr_improvement`：C2-LM 相对 C0 为 `-0.051855`，
+    而冻结阈值要求 `>=+0.10`；
+  - C2-L 相对 C0 为 `-0.221853`，且 intended-band 为 `0.691128`，
+    略低于 `0.70`；
+  - `semantic_dependence=false`、`low_only_unstable=false`，因此失败不是
+    raw 背景语义依赖或数值不稳定，而是背景 basis 未产生更一致的目标 residual。
+- Paired held-out audit:
+  - C2-LM vs C0：`n=89`，paired median delta `-0.050573`，
+    bootstrap 95% CI `[-0.069847,-0.027142]`，win rate `0.3483`；
+  - C2-L vs C0：`n=93`，paired median delta `-0.195101`，
+    bootstrap 95% CI `[-0.238114,-0.163345]`，win rate `0.1505`。
+- Scientific verdict:
+  当前冻结 carrier 假设不成立，不能进入 R+/R−、gradient routing 或 victim
+  阶段。C2-LM 降低 non-target leakage 是可保留信号，但不足以支持“比 C0
+  更稳定的统一 residual”声明。若继续，应另立 Spec 检验 matched
+  coefficient optimization 后的 C0 vs C2-LM，而不是查看结果后放宽 Phase A 阈值。

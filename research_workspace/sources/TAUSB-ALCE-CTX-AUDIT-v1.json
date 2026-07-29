@@ -1,0 +1,1001 @@
+{
+  "protocol_id": "TAUSB-ALCE-CTX-AUDIT-v1-shared-v1",
+  "seed": 2028,
+  "group_seeds": {
+    "person_only": 2028,
+    "person_cooccur": 2029,
+    "calibration_order": 2030,
+    "heldout_order": 2031
+  },
+  "target_class_id": 14,
+  "selection": "stable image-id sort; independent group shuffle; calibration prefix then disjoint heldout prefix; independent split-order shuffle",
+  "caps": {
+    "calibration": {
+      "person_only": 32,
+      "person_cooccur": 32
+    },
+    "heldout": {
+      "person_only": 32,
+      "person_cooccur": 64
+    }
+  },
+  "calibration": [
+    "2008_000141",
+    "2011_000642",
+    "2008_003706",
+    "2010_000865",
+    "004902",
+    "2008_002023",
+    "2009_004205",
+    "2011_001649",
+    "2008_005500",
+    "2009_005247",
+    "2008_001652",
+    "003320",
+    "2011_001201",
+    "009638",
+    "002142",
+    "003058",
+    "2008_001052",
+    "2009_001140",
+    "2010_002263",
+    "000428",
+    "2008_001609",
+    "2010_002363",
+    "004831",
+    "2008_004533",
+    "000545",
+    "2011_002343",
+    "001809",
+    "2008_002512",
+    "009524",
+    "2010_005199",
+    "2009_004710",
+    "2008_002312",
+    "2009_000476",
+    "008576",
+    "003732",
+    "2008_005374",
+    "003436",
+    "2009_001237",
+    "006233",
+    "2008_002576",
+    "001229",
+    "009064",
+    "006103",
+    "2008_003766",
+    "2009_003739",
+    "2008_000514",
+    "2009_000902",
+    "2009_000282",
+    "2011_002144",
+    "2009_002425",
+    "2008_003075",
+    "2008_005957",
+    "2008_000881",
+    "2009_001120",
+    "000918",
+    "2009_002222",
+    "2009_001319",
+    "2008_000510",
+    "2008_001722",
+    "2008_006424",
+    "2011_000344",
+    "006033",
+    "2008_003476",
+    "004438"
+  ],
+  "heldout": [
+    "2008_003662",
+    "008327",
+    "002714",
+    "2010_004722",
+    "2009_000322",
+    "2008_002280",
+    "002633",
+    "2011_001618",
+    "2008_007222",
+    "2011_000600",
+    "2008_000775",
+    "003960",
+    "008550",
+    "2010_000648",
+    "2008_001648",
+    "2010_004282",
+    "001450",
+    "2008_002603",
+    "004727",
+    "008739",
+    "004686",
+    "2008_000496",
+    "2010_003628",
+    "001608",
+    "000518",
+    "2008_003635",
+    "2009_001909",
+    "004931",
+    "2009_004619",
+    "2010_002704",
+    "2010_002006",
+    "2010_003618",
+    "2009_002711",
+    "2011_000692",
+    "2010_004877",
+    "007330",
+    "000911",
+    "005421",
+    "2010_003239",
+    "009734",
+    "2010_001245",
+    "2008_007923",
+    "2008_007593",
+    "006243",
+    "2009_002317",
+    "006455",
+    "2010_004637",
+    "002290",
+    "2011_000416",
+    "001690",
+    "005693",
+    "2010_003212",
+    "2008_000740",
+    "2010_004161",
+    "006682",
+    "2010_004838",
+    "003877",
+    "2008_007171",
+    "2008_007882",
+    "2009_000930",
+    "004321",
+    "2008_001063",
+    "005298",
+    "2009_000257",
+    "2008_007827",
+    "2010_003409",
+    "003064",
+    "2008_006410",
+    "2009_003519",
+    "2008_002013",
+    "2009_005103",
+    "2011_000146",
+    "2010_005489",
+    "2008_005549",
+    "2008_002311",
+    "008876",
+    "2010_003040",
+    "001649",
+    "2009_000060",
+    "2008_001765",
+    "2008_001947",
+    "2009_000727",
+    "2008_001325",
+    "2008_007692",
+    "2010_000573",
+    "002858",
+    "2009_002381",
+    "005664",
+    "004868",
+    "2008_006519",
+    "004287",
+    "2008_005869",
+    "2011_000003",
+    "008596",
+    "003003",
+    "008573"
+  ],
+  "group_counts": {
+    "calibration": {
+      "person_only": 32,
+      "person_cooccur": 32
+    },
+    "heldout": {
+      "person_only": 32,
+      "person_cooccur": 64
+    }
+  },
+  "image_metadata": {
+    "000428": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "825606279c485a79436fefbb7e8ac2166811d78aa27b2abe33b01b226ddf5120"
+    },
+    "000518": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "8ad350455956871584bba39dd785172b2b0a81c4df57e2a333a5977111cb8646"
+    },
+    "000545": {
+      "group": "person_only",
+      "person_scale_group": "small",
+      "label_sha256": "3988d750c8c764c810084b66027e101e06008b11650ec66a56f4ec1b1a24a5b5"
+    },
+    "000911": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "b9c6c29ea916475ff7aaf85bc554ef6a6ef94927555020911dd82efde1950c96"
+    },
+    "000918": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "5fbe19045cc445b7a90f41afdf84d6ac9db1414b0101bbfc9e43bbe4a333066b"
+    },
+    "001229": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "40fbc7d42a18c5fbbadf0e79c8f050f8228588c4589e8165d975e69592a49f62"
+    },
+    "001450": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "e02a8bfecdfe80ec78e35d1877dc6cb96cb61881fa3d588659bd2bf7cd38aa90"
+    },
+    "001608": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "a9d76957a879d6a59e4f91741aa66fd5c82ffe81f5d248ef893bd05287ae5160"
+    },
+    "001649": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "4387726e9f78a54eb67a7757315cea86d73e3f063cb9fcd55e8bd3fcff54f683"
+    },
+    "001690": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "b22c3cf95e88edced140122bed8cd31ce0233a11464df16e602c615665e6caac"
+    },
+    "001809": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "e77e30764ee86101cacdbd13c17b709e16008f59faa139d7e63634cdbf8e50fa"
+    },
+    "002142": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "d34571d8814897d6f7ec1c170989e0a2e5bdf0c422112915976270dad668247d"
+    },
+    "002290": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "dd64165e45b187656a78bce289b4053b2416efc0e6d441aa2a2c775f26438ee4"
+    },
+    "002633": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "fc04534c21c22c2d0c1ac898a01b90aeac566c6231ed77d84f64d5f68c4e63c5"
+    },
+    "002714": {
+      "group": "person_only",
+      "person_scale_group": "medium",
+      "label_sha256": "79f54286c7808ab8afe32de0daf43102b55250cf461ea3feb173441320458b23"
+    },
+    "002858": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "d9102d2688d080d199e0faff4ac28bb956d87dcfde618257bbe64685ab261c41"
+    },
+    "003003": {
+      "group": "person_only",
+      "person_scale_group": "medium",
+      "label_sha256": "b2b49e9fe5dbb8aba64d4447c24f225e8ec649992b7339415cd3cb46e14c59e4"
+    },
+    "003058": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "d33755eb9f9266d0f209d2ea0e38df6cfb9199cba047afc3451a67a1410bb93e"
+    },
+    "003064": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "577bdc4dafaa51dac9a5005a0dc3c1641057da268aeee859e07753d171e06183"
+    },
+    "003320": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "30a5c22ff3765108b034cb7a4a68f4298333280e316ac3d01c7e0972510b20e9"
+    },
+    "003436": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "037afeedd4aa64184e2155152ca92d1a44020da9528f372681816cb2163f9515"
+    },
+    "003732": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "04b1e9b6a7f5d5ba1e98199b919fe7a7b5b4f74fc2f9ecfce2a01ac5634513a2"
+    },
+    "003877": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "ea8201d68634d9bcbae1aff3f2e4acd02e955a217a4897cbb56b4d427de558b5"
+    },
+    "003960": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "ad43d0b8b1d55a9e8d8caa2426d6e57f9a8a208682485feb19843e4b0ea28ddc"
+    },
+    "004287": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "e29297ee8a08de61803a01fa0ad265de25a3c3a9fa7af872d5981c3e31a0fbbd"
+    },
+    "004321": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "75e3d5fa8d836422d155fb742b01e66f4117dafcfa075b422b57253988f0bf14"
+    },
+    "004438": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "a762e68163e077f7477ceb4dd4f26a72b13f958a7f9ecf8a5c252e1e86239181"
+    },
+    "004686": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "e3365f4d526be72844cbc40d6602ba875ec3327977d750cc61ce8083a4892620"
+    },
+    "004727": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "4e106e1a5db5e48408ae1e8275f419d6b9689b76359a3f4e8cdd86ce1d2b1338"
+    },
+    "004831": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "87b4fc8b03cb1e49203469974563a5b9b0b7b38bddc227718f1f0900cc9e5240"
+    },
+    "004868": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "c0e1a62a1e787daec493fac0eb104d7f71ac98fae840376d4101599393ab2c87"
+    },
+    "004902": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "083aaff02f75b5c7e56bae086aff7ab7f5acc7f37572daf22a6aeef96e67585f"
+    },
+    "004931": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "3725f638fb5c73756e277c271a9e98087d367f056d4090918b0b41c543042bef"
+    },
+    "005298": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "7931e9eb5f068d5dc3c20cea58bfa540629272e75e5a5cd7fa506073088b84d1"
+    },
+    "005421": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "76236f46e35036087bf34604fea79b6e8adf52000d837deb957308e3b6c89337"
+    },
+    "005664": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "aaf87273a08f8b8e2722dde9fe3434fe75ba5bc35d9731d2548ee437d7ce90c4"
+    },
+    "005693": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "7baba415983372116b7f7100e14d1a50171a74feab9a0d0874d4812839db1eb6"
+    },
+    "006033": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "cb83817bbf6e2440823ba3e16e2f05a101d7398f08ec5a1bbd0a7f9c78224963"
+    },
+    "006103": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "3e923caeca8645fca146a0c5d5717554584cb7ef5a93848637c3becbd8c91063"
+    },
+    "006233": {
+      "group": "person_only",
+      "person_scale_group": "small",
+      "label_sha256": "e462c3181c60094ad39e39480647d850c9942c343eb7762760cc3e9dee86629e"
+    },
+    "006243": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "6a146be9d82f8a7e5c507e6f1b3d026410db7e90f2524bc57401ac04b388b280"
+    },
+    "006455": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "72c99f6f1bf3e5ff9d6a331365e731f4c185113ca06d40c9128e973ce6f61dd0"
+    },
+    "006682": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "7dc8d76c25cbea9d04c7ef38d76ae24dbec2a4f40292ae3dc7415a2a85a2b7c9"
+    },
+    "007330": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "2084734544560782b55caf836deb2a74537fefbf0e5bf84d403e51b7c2092033"
+    },
+    "008327": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "c56149f63e6bec7f83d4467720dbc4e3f7222cc458ad523ec5257b9fb25e70f0"
+    },
+    "008550": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "05af3541fc20364da7896be82125164e9b974d1529f6a135c15b5f5128950685"
+    },
+    "008573": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "0d23a12fe197a84211a9cfaa3e9851616d0df6db003cccba34e37491abc3f5d1"
+    },
+    "008576": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "d4061d5ac0cbec34abbb7728b97983f9200a25a3437329fac4bb3e89d36c9bbe"
+    },
+    "008596": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "8a6530ec5879ba2ae844bb2b8e9c2ce926fbf95f8131a1d10504cbd0d3b4acae"
+    },
+    "008739": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "51ea0f4c4dbe1a502bcdaecf8011042afe755aef4ea9cac40038ee4b0324defb"
+    },
+    "008876": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "9eef0d0d830bdb7327bf668e11700242646d1e944c3dcc34b51bc3157ce3a359"
+    },
+    "009064": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "ae90ce95dcb547f99d92cd0713921f059630d82232212c966378ed0acb4d858d"
+    },
+    "009524": {
+      "group": "person_only",
+      "person_scale_group": "medium",
+      "label_sha256": "5c0d4f7053a73137af654c3798efceae9b570c380d43d49cd56c63237c433542"
+    },
+    "009638": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "ed9cf106e5696ac1c445222fc6e02264cff000c2d85e40a739f213d4d9a629c8"
+    },
+    "009734": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "9ae1e96c4903514dcde7beb68617b97d731807d190a6fb4e2fe5b1534d1fe6f4"
+    },
+    "2008_000141": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "78771c4470cebea78cb6334c39477f7cf654918627d39a5f0b8ce4fcce20f995"
+    },
+    "2008_000496": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "4d5e684fd1e5fa33e23d5c71869a359660a655a34b1cb7a94069848087bf8668"
+    },
+    "2008_000510": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "7ef3f12d05bedf3be476df97712dfc828b9a4b6bbfbfb72c8b996bad95a2a01e"
+    },
+    "2008_000514": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "a5ff85712664c4514a94ef151cc3d7ec23bb7c83d864d5e8828a7c924483bd8f"
+    },
+    "2008_000740": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "05dcb256a5bff40a0fe7b80a8adeafc6514632e5a3b4423312cc3ed4fdd3ee9a"
+    },
+    "2008_000775": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "e98e3550408cc021c01db079a92fc76121380fa52e576d019f125dc3a10452e2"
+    },
+    "2008_000881": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "8158a14faa12f9b224dace9f571291c5fe4526e1f38e2d33015d136251410c4b"
+    },
+    "2008_001052": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "a66f7559b2e04fe2e95728eab2263e94825e3b17845a70580c1614d9024e60f4"
+    },
+    "2008_001063": {
+      "group": "person_only",
+      "person_scale_group": "medium",
+      "label_sha256": "58e0344d49f354e4a79aa784e37cd00cc03ead4917f34dba032bc22ced87ff9f"
+    },
+    "2008_001325": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "9daaf6baea42c1afa4f90c451204aebc0e5565d0194ac7dc9b544480da7a6062"
+    },
+    "2008_001609": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "6215e9b18d844511273774a694c9c805bc79fa19e6a8e897f7baac46830b1409"
+    },
+    "2008_001648": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "96382a90c46b08f56a9e09a92ad55503f940f591a7eff92bc8d27b7d54fe9b72"
+    },
+    "2008_001652": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "d6ff3bb9d0e7de1ba71e6ae193a469171d65f6d93cf035e5b1b47f18c5989dd9"
+    },
+    "2008_001722": {
+      "group": "person_only",
+      "person_scale_group": "small",
+      "label_sha256": "c49037d46e8729a40c2564ec646fbba80701ffcaf5e0c19346c40a1a022bdd85"
+    },
+    "2008_001765": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "0b8f1a2aedca9f3aba819805319277e3966fbf5558f54d89d3d1e950a742028e"
+    },
+    "2008_001947": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "2bdcbbda46f118f19cfad77f564a423ef58ff9fb0a2a389e48f893a4eed812db"
+    },
+    "2008_002013": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "9ab24e268b032e6f4ca8f7a53dfa3ace56d059c54b00d0584aac26240f631c82"
+    },
+    "2008_002023": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "e23a318d51e2e728621ff864f3ec829b23062a8b1ea80a3bcde7e143da66416c"
+    },
+    "2008_002280": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "48f9a29fded6efe8b02f300dab73fe8d452d7274a55c3394ecb4eda123318019"
+    },
+    "2008_002311": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "3c036553153a63d14eba52f1617be6fb3ffbae48164927e4e511a3c1ad5d7789"
+    },
+    "2008_002312": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "5334bd0cc94425ba164c4c0b634ade319629030984c7c3a01cfc45d2af56dd8c"
+    },
+    "2008_002512": {
+      "group": "person_only",
+      "person_scale_group": "small",
+      "label_sha256": "9c449f1bb3f98c2c6061e7b2cd70ae4b314e2105cf1278ebe001fbaa67462de2"
+    },
+    "2008_002576": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "24f976ac72e25266d522b74894afedc7ee2dbd3ee393b749a248a990bd0237c5"
+    },
+    "2008_002603": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "f164c7532cbb30de7bace6040cc80a89c71f9c330651293f341a6e8e73ba5ca6"
+    },
+    "2008_003075": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "7ca0ae7bd3b72efc6e58fff457d85f78c1effc427f21f9f2baac6407001b792e"
+    },
+    "2008_003476": {
+      "group": "person_only",
+      "person_scale_group": "small",
+      "label_sha256": "5e534f1aaee81069834fcce89156f66e52b7538d424c33fcbdab5dc21e345290"
+    },
+    "2008_003635": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "b2bf2f4aa85e77ce6b4d4bb0d6f1695a7a1cc686f023a61734eeed981d046beb"
+    },
+    "2008_003662": {
+      "group": "person_only",
+      "person_scale_group": "medium",
+      "label_sha256": "ad3cda9cf8c81fbe94e6d67bccf32aa728410b54b952ed9027dfb51ef853863b"
+    },
+    "2008_003706": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "91f9a37c921c1a12872482b9d12f1604153df8dc053e048f7737f7fac005838c"
+    },
+    "2008_003766": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "e72ffdbfb81a560d4d6360a2f12543660dfc7fab7eb99e5edbe3d603ecdf11dc"
+    },
+    "2008_004533": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "0935344af09a2a5ac9ddd9f2b5e0b85159673ca801b22ea8a9e017eb541e5d8c"
+    },
+    "2008_005374": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "a8463f8be665481d91ec318637c2f399a84fff81dc6f80939fd2486ee0e35a44"
+    },
+    "2008_005500": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "9a30980336767e594222f32b2c8c08b645e2c5679604df336076d83901e9eaa7"
+    },
+    "2008_005549": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "d9e45d885d74e4f05ac567eca674a5e4897ca4b9daefbaf879dc4baba9d696ba"
+    },
+    "2008_005869": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "aca2febc0cfb7080811808fe67373770f05fb765e71e00dc6fe2063414099b99"
+    },
+    "2008_005957": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "a76347b0b5cebff618fa5277c09d3139a6f006c973fe96f88de961e1ac5308c4"
+    },
+    "2008_006410": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "9abe7d632111f3f5ff348850ecec1236ab16c6a3225aa574c3f13e17a1cf8b53"
+    },
+    "2008_006424": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "b65d6439bfe4da5dc7932d534f3ce4574e625bf97f1232ff202a73db6907c62d"
+    },
+    "2008_006519": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "44af8cdda964715c3797360adc0a879af2f1e4f07e8f148d65f06ce2df611c17"
+    },
+    "2008_007171": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "c47a2c481918144f9c2bd12d8ba359816fde5228890b00f9a0a8d13b6394bc78"
+    },
+    "2008_007222": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "7cfbb314cf513ccfb28c05cdb17054ee5c255a848f44c9db78dcdee2308ae2f7"
+    },
+    "2008_007593": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "87171307f6364f95bd90efdfe2f6b5149081944942b6cc96311c0cee16b6a9ba"
+    },
+    "2008_007692": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "b4435f85a778a0f3003f09b66d25943493aa11f2c6200fb921103a32708a2b3c"
+    },
+    "2008_007827": {
+      "group": "person_only",
+      "person_scale_group": "medium",
+      "label_sha256": "326b5337bc0241d9f508005bcfc5269cb56520f69df4fbc8132a26cc3d30e259"
+    },
+    "2008_007882": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "6f113ce6d416c458b78e255e6412002a7822ba4014c9d2355fb17493acc128f0"
+    },
+    "2008_007923": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "c7cbb3b8b36c6059a6aefc2dc9b7adce9a56600b5526839e1aca2d99a4b123bc"
+    },
+    "2009_000060": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "1106cff72c8810fe9bf678319d988003dc92e87f66b6eb5c311c356b841c8a15"
+    },
+    "2009_000257": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "5c812632bda97059e279bcd1cb05d48f39d4f776e19d8d76bfee6549f33c159d"
+    },
+    "2009_000282": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "bb534350ea1819534db82bdd157bb4c1d5e60aa779e44a8c2cce6c8185b68902"
+    },
+    "2009_000322": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "eaa6f54f93cf837564efbbd47ae065126b20f0c28f22370f9018b4aeb5b6cfe2"
+    },
+    "2009_000476": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "5675fcfaf1ffc1487d4bf6c73624058fcec3a26644882680dd2843a5b71c2e9f"
+    },
+    "2009_000727": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "5098820bff7162f9151a7048a6529a5d0b07d860c5a2fdbb26e4d520f6d1aff5"
+    },
+    "2009_000902": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "ba472eddda7cda07bedc6b203947aa046895d3b5e2834a5e545cb02b11903d12"
+    },
+    "2009_000930": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "27698faf9293f04d3db00ebdf54b7451baac667f35d02b621b0e5e1621487a0f"
+    },
+    "2009_001120": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "8f9880d8651a1377b259035418965511c33b0d6d38ead8fc8027e9e1ebce152d"
+    },
+    "2009_001140": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "71032fc0116aac5d5840afd4c3b97d125daee26def92d11113afc5a6e85206e8"
+    },
+    "2009_001237": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "49f93469f51c6abf3ccd650a2422d43a47becdc64f01e2197bb4dca7e7380d3a"
+    },
+    "2009_001319": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "b8ce84c80dc723780bf102838b746b2f6dd082cf56a06b6f7b28c04a342e05b1"
+    },
+    "2009_001909": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "ae7a03a15f9de5a47216dd9db39fee33b8abf27080e98a43d4b2a6410cf4c28d"
+    },
+    "2009_002222": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "646714ddf2f95881d25dfa5a30a279d880b83689c02f9fd516f2733c5d3d8a6d"
+    },
+    "2009_002317": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "8a37a044c0b55e2da73e8179dd00a39bfe0b8455e5c84e6f1cdaec055b1d7383"
+    },
+    "2009_002381": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "1771fa437de382657088278a1c3915e4095a6a575775c04eaddd26c947fb769b"
+    },
+    "2009_002425": {
+      "group": "person_only",
+      "person_scale_group": "medium",
+      "label_sha256": "a0044d3877a0aa896b41de96c60e8fa5f2aacb2ca6ea503edf8a6e4fed081e6e"
+    },
+    "2009_002711": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "cb237843847d4c1a975d07cebf105cd22d5adca7d06bafb2227e7020f9ac164c"
+    },
+    "2009_003519": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "50bb7403e9bc25479b4c861cd12d88a3d4dc5c5c330fed784c4004dbb969e374"
+    },
+    "2009_003739": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "2abe04e618a7bdeb94c081fba96296e400c3b6db7b9dd86e39bb99451d980828"
+    },
+    "2009_004205": {
+      "group": "person_only",
+      "person_scale_group": "medium",
+      "label_sha256": "cd62f24c4cc301419541a52af947cfb271af381f34358092f093e11686aa1d27"
+    },
+    "2009_004619": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "1a5a3d2add3a99a5f4195ed80551b212d91fca8d5c46b5795645f590b0b38ade"
+    },
+    "2009_004710": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "d092506c24ac95797c21545b00fc645c2b2455353956295da1865fb1a60c057d"
+    },
+    "2009_005103": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "b82dfbbb29cbfa8bcbdbbd0fda2e0a5656ef08d98a3dac7b4e5d85a84ac6cdd4"
+    },
+    "2009_005247": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "b348193bb1c3a906f259a3c4eff171c3d8ca4873e22d4ba7f09745c7f9827a94"
+    },
+    "2010_000573": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "63dbac93e69032fdd16d5bd516aa673a7aa6edd0d38600632e4d067b030feeb8"
+    },
+    "2010_000648": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "be0ead25b22513c124785cf00172fa72caaf7bdacf07894be4d6c9f3fc923239"
+    },
+    "2010_000865": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "d4c06df1ae684083a4e6e0838beb85717d6b19fcf75dbd1abfd2d0a99f412384"
+    },
+    "2010_001245": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "48511f9b3b4e0493a422b06a9471605f69dacf199bb2eb7d2e2305a84ae7b8ba"
+    },
+    "2010_002006": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "94af44869ad5e8938ab6ca2efa83ff3485a161d5a724971273fcb8eee6824808"
+    },
+    "2010_002263": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "df3c181a365b93f853c335b3579cf7f5931bea3e6dc788d8da9413a9f030161e"
+    },
+    "2010_002363": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "70cd83d71f4cb793defdf9e285612b716f488d6cac44452514e3d1a71f250ede"
+    },
+    "2010_002704": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "cc8d6fcdb904269bada1faffea31fe596407326c0815cc01ede6a9c4c704802a"
+    },
+    "2010_003040": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "52795342eec2aaddc50eae0c3884efee8877c57cdb0622818525e13864706d36"
+    },
+    "2010_003212": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "f7791308487926fa010142d8df17988b337a75d1cbaad502d1055f294b2ade02"
+    },
+    "2010_003239": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "cd7f46e6a44a83df2f3972f31fd5618d1a28775ccbc3467df82e13ee78a5e657"
+    },
+    "2010_003409": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "6a137cd67de4c53a49be2706ace15acc65ea194c39c5ea9b7ba2c21e94f3bdd1"
+    },
+    "2010_003618": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "8e6081d317bc8970ab804ddfb054e9b6dd0c92b3bc59708ab213cc708fa550f3"
+    },
+    "2010_003628": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "ac8faba1386a631d9a2786f76aacf0da3ffcbdf54c799a5599875b6aa54d9d24"
+    },
+    "2010_004161": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "9a21eb61a6fdd8aedc1ef09961495e9345478492fc9b0966aa244492cf604087"
+    },
+    "2010_004282": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "feecdc4f3bb52013db0de258c0d97f95a8e7f9a9a1c267a6c028789b899616b4"
+    },
+    "2010_004637": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "db52b8e9e829a5d8df6460a4d50801880553fbb633b321c53c33e45f987f7058"
+    },
+    "2010_004722": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "24b4884a9302c490e74430d4d9a3b0996bf6c050068551f9a40823e3360548b3"
+    },
+    "2010_004838": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "ebafc45b59f633bbc7e5e4c7be672ccb0d99ce1b8696615fb67d6391a147e8a0"
+    },
+    "2010_004877": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "c1a38cec59b3524cce3ef4d6c1593258686e769095f6f87fa76170e1ff136cdd"
+    },
+    "2010_005199": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "7b3e5846d50fbe9eca2cf3e1dc1fc42f3b0f3903058948e6be3b32cb605fff9f"
+    },
+    "2010_005489": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "e651d1d208cd397be3b25a95f9a499c93f59abb23b574588d94d9cd03a799a7d"
+    },
+    "2011_000003": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "b7d7e3ab14b5c06fb20dfdfdb46749318cc29979c6460c2f7203e0346316c11f"
+    },
+    "2011_000146": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "1ce630f9bd5857acca8af9fba2e41a48b8e409e4030990dcff61d41879e6f19b"
+    },
+    "2011_000344": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "a1c222e7ac7a2c3772c93c4c982b09e694ef7c6b2fb4bd581efa9bffb5fe859b"
+    },
+    "2011_000416": {
+      "group": "person_cooccur",
+      "person_scale_group": "large",
+      "label_sha256": "3029531ffcb3334dd063f2308ac659c2ff2c35804b16711a10317df1a1f64aff"
+    },
+    "2011_000600": {
+      "group": "person_cooccur",
+      "person_scale_group": "small",
+      "label_sha256": "45b75136e733ceaaaaba7d049a7d93fb71fe7f7d81c798016b723d8c1be9d834"
+    },
+    "2011_000642": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "754934a5c798deca8a143d629623a11499013b54589ae3fe332b6aa21d15fbf0"
+    },
+    "2011_000692": {
+      "group": "person_cooccur",
+      "person_scale_group": "medium",
+      "label_sha256": "78da5be474bf6f32c7463c06dd5fd81628b09f3c9a142f32ef93cb8057891ca3"
+    },
+    "2011_001201": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "6e494ecd286de2c9e28e51c21e095506a0bcd27ce72d3c35e994bb4468e48597"
+    },
+    "2011_001618": {
+      "group": "person_only",
+      "person_scale_group": "medium",
+      "label_sha256": "fe65126644daaf7f0e9fc2a7a8d3070261afa2c42651ade6843d7c07774c0e6a"
+    },
+    "2011_001649": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "1e831069a7ce6f77993ab6fe4a31f288e396a51611862657daa36f962200ec51"
+    },
+    "2011_002144": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "98d91ae0ad5ad201a9b0a025d1151286a2aaf1bd8f50d0e65c16ca72fe1ac43c"
+    },
+    "2011_002343": {
+      "group": "person_only",
+      "person_scale_group": "large",
+      "label_sha256": "b76f2f939611e4cdb4fc7f420ca0baa36db96e8f25aee566ef3ba564fede27e5"
+    }
+  },
+  "label_hash": "0c8b6f6424061bc31b84ddf42b7370dcbd074f26805433d0ba275c24815e3248",
+  "validation_gaps": [],
+  "split_hash": "e2542517af00830147117582d69ff15a62fbeae1f8583bf0c9d01fbff120cae1"
+}

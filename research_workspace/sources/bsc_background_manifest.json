@@ -1,0 +1,66 @@
+[
+  {
+    "source_id": "bg-waves-01",
+    "sha256": "02d5976d61ca704bb9cbd547fd6bf9bbecd3baf28cf936716c4b59aad35ee778",
+    "width": 960,
+    "height": 540,
+    "license_note": "本人持有并授权本研究使用",
+    "person_free": true
+  },
+  {
+    "source_id": "bg-bubbles-02",
+    "sha256": "75ff3a5039c8f1d2c5f74262d9259d7373f9a78af5e2f489452b46496b29f374",
+    "width": 960,
+    "height": 720,
+    "license_note": "本人持有并授权本研究使用",
+    "person_free": true
+  },
+  {
+    "source_id": "bg-beach-03",
+    "sha256": "a37692584c6208dd108613a0bd4e08b087e28edf01c20ba5057de34bdf948981",
+    "width": 960,
+    "height": 640,
+    "license_note": "本人持有并授权本研究使用",
+    "person_free": true
+  },
+  {
+    "source_id": "bg-field-04",
+    "sha256": "42cb21ff8b0605a25932871dd63a4b340092c54810bb31e747aaad442f9a092f",
+    "width": 960,
+    "height": 643,
+    "license_note": "本人持有并授权本研究使用",
+    "person_free": true
+  },
+  {
+    "source_id": "bg-landscape-05",
+    "sha256": "55f4e32732d4f1c17ea794433694e090a251ec901fdb61fb2f95cd410f091830",
+    "width": 960,
+    "height": 641,
+    "license_note": "本人持有并授权本研究使用",
+    "person_free": true
+  },
+  {
+    "source_id": "bg-windmills-06",
+    "sha256": "92ca0356776751506088728ae624d40c791c93ef7a035083091b45e82939c878",
+    "width": 1920,
+    "height": 1280,
+    "license_note": "本人持有并授权本研究使用",
+    "person_free": true
+  },
+  {
+    "source_id": "bg-cliff-beach-07",
+    "sha256": "5faf6e55afe212a008e3d621fefffc37f67792941d681340dd9c446594ca546b",
+    "width": 1920,
+    "height": 1440,
+    "license_note": "本人持有并授权本研究使用",
+    "person_free": true
+  },
+  {
+    "source_id": "bg-tree-08",
+    "sha256": "dc8ffacadaa07cae3aa38658099574f81787b8803a56b1962c6ccc68a332f310",
+    "width": 960,
+    "height": 638,
+    "license_note": "本人持有并授权本研究使用",
+    "person_free": true
+  }
+]
