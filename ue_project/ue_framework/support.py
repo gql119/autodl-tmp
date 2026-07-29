@@ -29,7 +29,12 @@ def _draw_instance_mask(mask: np.ndarray, ann: dict) -> None:
             cv2.fillPoly(mask, [pts.astype(np.int32)], color=1)
             return
 
-    x1, y1, x2, y2 = _bbox_to_pixels(ann["bbox"], w, h)
+    _draw_pseudo_bbox_ellipse(mask, ann["bbox"])
+
+
+def _draw_pseudo_bbox_ellipse(mask: np.ndarray, bbox) -> None:
+    h, w = mask.shape
+    x1, y1, x2, y2 = _bbox_to_pixels(bbox, w, h)
     if x2 <= x1 or y2 <= y1:
         return
 
@@ -39,6 +44,22 @@ def _draw_instance_mask(mask: np.ndarray, ann: dict) -> None:
     rx = max(1, int((x2 - x1) * 0.45))
     ry = max(1, int((y2 - y1) * 0.45))
     cv2.ellipse(mask, (cx, cy), (rx, ry), 0, 0, 360, 1, thickness=-1)
+
+
+def build_forced_pseudo_instance_masks(
+    image_shape,
+    annotations: List[dict],
+    target_class_id: int,
+) -> List[np.ndarray]:
+    h, w = image_shape[:2]
+    masks = []
+    for ann in annotations:
+        if int(ann["cls"]) != int(target_class_id):
+            continue
+        mask = np.zeros((h, w), dtype=np.uint8)
+        _draw_pseudo_bbox_ellipse(mask, ann["bbox"])
+        masks.append(mask.astype(np.float32))
+    return masks
 
 
 
