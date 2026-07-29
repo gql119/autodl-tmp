@@ -619,7 +619,7 @@ def _scale_group(annotations: Sequence[Mapping[str, Any]], target_class_id: int)
         for item in annotations
         if int(item.get("cls", -1)) == target_class_id
     ]
-    area = max(areas, default=0.0)
+    area = float(np.median(areas)) if areas else 0.0
     if area < 0.02:
         return "small"
     if area < 0.15:
@@ -758,6 +758,119 @@ def load_required_shared_split(
     runtime["split_hash"] = expected_hash
     runtime["shared_split_manifest"] = manifest
     return runtime
+
+
+def build_alce_shared_split_manifest(
+    *,
+    image_dir: Path,
+    label_dir: Path,
+    target_class_id: int = 14,
+    seed: int = 2028,
+) -> dict[str, Any]:
+    if target_class_id != 14 or seed != 2028:
+        raise ValueError("Shared ALCE split is frozen to target 14 and seed 2028.")
+    if not image_dir.is_dir() or not label_dir.is_dir():
+        raise FileNotFoundError("Shared split image/label directories are missing.")
+
+    records: dict[str, dict[str, Any]] = {}
+    for image_value in list_images(str(image_dir)):
+        image_path = Path(image_value)
+        image_id = image_path.stem
+        if image_id in records:
+            raise ValueError(f"Duplicate image id in shared split source: {image_id}")
+        label_path = Path(label_path_for_image(image_value, str(label_dir)))
+        annotations = read_yolo_annotations(str(label_path))
+        if not image_has_target(annotations, target_class_id):
+            continue
+        cooccur = any(
+            int(item.get("cls", -1)) != target_class_id
+            for item in annotations
+        )
+        records[image_id] = {
+            "group": "person_cooccur" if cooccur else "person_only",
+            "person_scale_group": _scale_group(
+                annotations,
+                target_class_id,
+            ),
+            "label_sha256": _file_sha256(label_path),
+        }
+
+    grouped = {
+        group: sorted(
+            image_id
+            for image_id, record in records.items()
+            if record["group"] == group
+        )
+        for group in ("person_only", "person_cooccur")
+    }
+    random.Random(seed).shuffle(grouped["person_only"])
+    random.Random(seed + 1).shuffle(grouped["person_cooccur"])
+
+    caps = {
+        "calibration": {"person_only": 32, "person_cooccur": 32},
+        "heldout": {"person_only": 32, "person_cooccur": 64},
+    }
+    calibration: list[str] = []
+    heldout: list[str] = []
+    group_counts: dict[str, dict[str, int]] = {
+        "calibration": {},
+        "heldout": {},
+    }
+    for group in ("person_only", "person_cooccur"):
+        values = grouped[group]
+        calibration_count = min(caps["calibration"][group], len(values))
+        calibration_group = values[:calibration_count]
+        heldout_group = values[
+            calibration_count : calibration_count + caps["heldout"][group]
+        ]
+        calibration.extend(calibration_group)
+        heldout.extend(heldout_group)
+        group_counts["calibration"][group] = len(calibration_group)
+        group_counts["heldout"][group] = len(heldout_group)
+
+    random.Random(seed + 2).shuffle(calibration)
+    random.Random(seed + 3).shuffle(heldout)
+    if not calibration or not heldout:
+        raise ValueError("Shared split requires non-empty calibration and heldout sets.")
+    selected = calibration + heldout
+    selected_metadata = {
+        image_id: records[image_id] for image_id in sorted(selected)
+    }
+    validation_gaps = [
+        f"{split_name}:{group}:count_below_8"
+        for split_name, counts in group_counts.items()
+        for group, count in counts.items()
+        if count < 8
+    ]
+    manifest: dict[str, Any] = {
+        "protocol_id": "TAUSB-ALCE-CTX-AUDIT-v1-shared-v1",
+        "seed": seed,
+        "group_seeds": {
+            "person_only": seed,
+            "person_cooccur": seed + 1,
+            "calibration_order": seed + 2,
+            "heldout_order": seed + 3,
+        },
+        "target_class_id": target_class_id,
+        "selection": (
+            "stable image-id sort; independent group shuffle; calibration "
+            "prefix then disjoint heldout prefix; independent split-order shuffle"
+        ),
+        "caps": caps,
+        "calibration": calibration,
+        "heldout": heldout,
+        "group_counts": group_counts,
+        "image_metadata": selected_metadata,
+        "label_hash": canonical_hash(
+            {
+                image_id: selected_metadata[image_id]["label_sha256"]
+                for image_id in sorted(selected_metadata)
+            }
+        ),
+        "validation_gaps": validation_gaps,
+    }
+    manifest["split_hash"] = canonical_hash(manifest)
+    return manifest
 
 
 def make_batches(

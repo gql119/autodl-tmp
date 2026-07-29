@@ -632,3 +632,22 @@ Phase D tentative Success：
 - Phase A/B/C 与 fresh-victim Phase D 的声明边界分离；
 - Success 与 Failure Signal 独立；
 - P0 稳定性/质量工作未被新方法草案替代。
+
+## 18. 已批准输入协议补充（2026-07-29）
+
+用户授权 Codex 在“等待既有 shared split”与“按上游冻结协议生成 shared
+split”之间选择更适合当前工作的方案。采用后者：
+
+- 只从 VOC train 中选择包含 class `14` 的 image id；
+- person-only 与 person-cooccur 先按 image id 稳定排序；
+- `seed=2028` 用于 person-only，`seed=2029` 用于 person-cooccur；
+- calibration 上限分别为 `32/32`，held-out 上限分别为 `32/64`；
+- calibration 和 held-out 从每组同一打乱序列的互斥前缀取得；
+- `seed=2030/2031` 只决定 calibration/held-out 内部 batch 顺序；
+- manifest 写出 selected image ids、逐 image label SHA256、label hash、分组、
+  person size group、validation gaps 与 canonical split hash；
+- 已存在 manifest 只能复算验证，生成器不得覆盖；
+- ALCE 与 BSC 必须复用同一 manifest/hash，禁止各自重新抽样。
+
+该补充只冻结共享 split 的可复算构造，不调整 Phase A/B/C 的成功阈值、失败
+信号或声明边界。

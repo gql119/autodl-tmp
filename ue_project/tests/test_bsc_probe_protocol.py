@@ -10,6 +10,7 @@ import torch
 import yaml
 
 from ue_framework.methods.bsc_rc_gr_probe import (
+    build_alce_shared_split_manifest,
     canonical_hash,
     evaluate_phase_a,
     evaluate_phase_b,
@@ -68,6 +69,57 @@ def test_probe_config_and_shared_split_are_hash_bound(tmp_path: Path) -> None:
             target_images=paths,
             required_protocol_prefix="TAUSB-ALCE-CTX-AUDIT-v1",
         )
+
+
+def test_shared_split_generator_is_deterministic_and_stratified(
+    tmp_path: Path,
+) -> None:
+    image_dir = tmp_path / "images" / "train"
+    label_dir = tmp_path / "labels" / "train"
+    image_dir.mkdir(parents=True)
+    label_dir.mkdir(parents=True)
+    for index in range(50):
+        image_id = f"only_{index:03d}"
+        (image_dir / f"{image_id}.jpg").write_bytes(b"image")
+        (label_dir / f"{image_id}.txt").write_text(
+            "14 0.5 0.5 0.1 0.1\n",
+            encoding="utf-8",
+        )
+    for index in range(110):
+        image_id = f"cooccur_{index:03d}"
+        (image_dir / f"{image_id}.jpg").write_bytes(b"image")
+        (label_dir / f"{image_id}.txt").write_text(
+            "14 0.5 0.5 0.2 0.2\n11 0.7 0.7 0.1 0.1\n",
+            encoding="utf-8",
+        )
+
+    first = build_alce_shared_split_manifest(
+        image_dir=image_dir,
+        label_dir=label_dir,
+    )
+    second = build_alce_shared_split_manifest(
+        image_dir=image_dir,
+        label_dir=label_dir,
+    )
+    assert first == second
+    assert first["group_counts"] == {
+        "calibration": {"person_only": 32, "person_cooccur": 32},
+        "heldout": {"person_only": 18, "person_cooccur": 64},
+    }
+    assert not set(first["calibration"]) & set(first["heldout"])
+    assert first["validation_gaps"] == []
+    without_hash = {
+        key: value for key, value in first.items() if key != "split_hash"
+    }
+    assert first["split_hash"] == canonical_hash(without_hash)
+    generated_path = tmp_path / "shared.json"
+    generated_path.write_text(json.dumps(first), encoding="utf-8")
+    loaded = load_required_shared_split(
+        generated_path,
+        target_images=list(image_dir.glob("*.jpg")),
+        required_protocol_prefix="TAUSB-ALCE-CTX-AUDIT-v1",
+    )
+    assert loaded["split_hash"] == first["split_hash"]
 
 
 def test_background_source_map_is_local_only_and_hash_checked(

@@ -26,3 +26,25 @@
 - Validation gaps: 本地无 VOC dataset；尚未运行真实 VOC calibration/held-out forward；没有 Phase A/B/C mechanism metrics；没有 victim UE 或 clean mAP 证据。
 
 结论：代码路径与最小 sink 已达到进入输入冻结阶段的条件，但 pre-run 硬门禁未满足。不得启动 GPU probe。
+
+## PRERUN-INPUTS-01 Progress
+
+- Split decision: 用户授权 Codex 选择当前更合适方案；采用按
+  `TAUSB-ALCE-CTX-AUDIT-v1` 冻结协议生成一个 shared manifest，并让 ALCE/BSC
+  复用其 immutable hash。生成器不得覆盖既有 manifest。
+- Background authorization: 用户声明“本人持有并授权本研究使用”。
+- Intake result: 已收到并核验 `7/8` 张 person-free 背景图；均可解码且 SHA256
+  互不重复。
+
+| Stable source id | Dimensions | SHA256 |
+|---|---:|---|
+| `bg-waves-01` | 960×540 | `02d5976d61ca704bb9cbd547fd6bf9bbecd3baf28cf936716c4b59aad35ee778` |
+| `bg-bubbles-02` | 960×720 | `75ff3a5039c8f1d2c5f74262d9259d7373f9a78af5e2f489452b46496b29f374` |
+| `bg-beach-03` | 960×640 | `a37692584c6208dd108613a0bd4e08b087e28edf01c20ba5057de34bdf948981` |
+| `bg-field-04` | 960×643 | `42cb21ff8b0605a25932871dd63a4b340092c54810bb31e747aaad442f9a092f` |
+| `bg-landscape-05` | 960×641 | `55f4e32732d4f1c17ea794433694e090a251ec901fdb61fb2f95cd410f091830` |
+| `bg-windmills-06` | 1920×1280 | `92ca0356776751506088728ae624d40c791c93ef7a035083091b45e82939c878` |
+| `bg-cliff-beach-07` | 1920×1440 | `5faf6e55afe212a008e3d621fefffc37f67792941d681340dd9c446594ca546b` |
+
+- Remaining input blocker: 缺少第 8 张不同的授权 person-free 背景图，因此正式
+  8-source repository manifest、本地 map、C1/C2 basis rank/hash 仍不能冻结。
