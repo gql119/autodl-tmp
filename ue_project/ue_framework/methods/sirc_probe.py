@@ -117,6 +117,11 @@ def validate_sirc_config(config: Mapping[str, Any]) -> None:
     for key, expected in frozen_carrier.items():
         if int(carrier.get(key, -1)) != expected:
             raise ValueError(f"SIRC carrier.{key} must remain {expected}.")
+    if int(carrier.get("baseline_basis_seed", -1)) != 0:
+        raise ValueError("SIRC baseline_basis_seed must remain 0.")
+    for key in ("gamma_bisection_iterations", "gamma_chunk_size"):
+        if int(carrier.get(key, 0)) <= 0:
+            raise ValueError(f"SIRC carrier.{key} must be positive.")
     if tuple(float(value) for value in carrier.get("radial_edges", ())) != (
         2.0,
         5.5,
@@ -148,6 +153,11 @@ def validate_sirc_config(config: Mapping[str, Any]) -> None:
             raise ValueError(f"SIRC optimization.{key} must remain 1.0.")
     if not 0 <= float(optimization.get("prototype_momentum", -1)) < 1:
         raise ValueError("SIRC prototype_momentum must lie in [0,1).")
+    for key in ("box_teacher_weight", "align_alpha", "align_beta"):
+        if float(optimization.get(key, 0)) <= 0:
+            raise ValueError(f"SIRC optimization.{key} must be positive.")
+    if int(optimization.get("assignment_topk", 0)) <= 0:
+        raise ValueError("SIRC assignment_topk must be positive.")
     if (
         len(optimization.get("pag_layer_ratios", ())) != 3
         or len(optimization.get("pag_min_pos", ())) != 3
@@ -155,6 +165,8 @@ def validate_sirc_config(config: Mapping[str, Any]) -> None:
         raise ValueError("SIRC PAG settings must define P3/P4/P5.")
 
     eot = config["eot"]
+    if int(eot.get("seed", -1)) != 2105:
+        raise ValueError("SIRC EOT seed must remain 2105.")
     expected_ranges = {
         "scale": (0.90, 1.10),
         "translate": (-0.05, 0.05),
@@ -196,6 +208,8 @@ def validate_sirc_config(config: Mapping[str, Any]) -> None:
         "shared_split_sha256",
         "label_sha256",
         "surrogate_checkpoint_sha256",
+        "c2lm_basis_sha256",
+        "semantic_bank_sha256",
     ):
         if len(str(config["spec"].get(key, ""))) != 64:
             raise ValueError(f"SIRC spec.{key} must be a SHA256.")

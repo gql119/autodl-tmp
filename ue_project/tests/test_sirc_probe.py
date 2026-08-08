@@ -151,3 +151,11 @@ def test_formal_config_is_frozen_and_parseable() -> None:
         assert "variant_seed" in str(error)
     else:
         raise AssertionError("Changed frozen variant seed was accepted.")
+    changed_eot = deepcopy(config)
+    changed_eot["eot"]["seed"] = 999
+    try:
+        validate_sirc_config(changed_eot)
+    except ValueError as error:
+        assert "EOT seed" in str(error)
+    else:
+        raise AssertionError("Changed frozen EOT seed was accepted.")
