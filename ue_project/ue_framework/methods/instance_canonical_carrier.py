@@ -166,8 +166,8 @@ def calibrate_shared_gamma(
     iterations: int = 32,
     chunk_size: int = 16,
 ) -> SharedGammaCalibration:
-    if len(bases_by_family) != 2:
-        raise ValueError("Shared calibration requires exactly two basis families.")
+    if len(bases_by_family) < 2:
+        raise ValueError("Shared calibration requires at least two basis families.")
     if num_directions <= 0 or iterations <= 0 or chunk_size <= 0:
         raise ValueError("Calibration counts must be positive.")
     if (
@@ -247,8 +247,8 @@ def calibrate_shared_gamma(
         family: float(torch.quantile(values, 0.5).item())
         for family, values in family_values.items()
     }
-    first, second = (medians[family] for family in family_names)
-    ratio = max(first, second) / max(min(first, second), 1e-12)
+    median_values = [medians[family] for family in family_names]
+    ratio = max(median_values) / max(min(median_values), 1e-12)
     return SharedGammaCalibration(
         gamma=float(gamma),
         target_rms=target_rms,
@@ -483,6 +483,57 @@ def apply_canonical_pattern(
         )
         for boxes, supports in zip(boxes_by_image, supports_by_image)
     ]
+    spatial_patterns = torch.stack(
+        [item.spatial_pattern for item in rendered]
+    )
+    raw = spatial_patterns * jnd_map(images, floor=jnd_floor)
+    raw = raw.clamp(-float(epsilon), float(epsilon))
+    poisoned = (images + raw).clamp(0, 1)
+    return poisoned, poisoned - images, rendered
+
+
+def apply_variant_canonical_patterns(
+    images: torch.Tensor,
+    patterns: torch.Tensor,
+    *,
+    variant_indices: Sequence[int],
+    boxes_by_image: Sequence[Sequence[tuple[int, int, int, int]]],
+    supports_by_image: Sequence[torch.Tensor],
+    mode: str,
+    epsilon: float,
+    jnd_floor: float = 0.5,
+) -> tuple[torch.Tensor, torch.Tensor, list[RenderedCanonicalPattern]]:
+    if images.ndim != 4 or images.shape[1] != 3:
+        raise ValueError("images must have shape [B,3,H,W].")
+    if patterns.ndim != 4 or patterns.shape[1] != 3:
+        raise ValueError("patterns must have shape [V,3,Hc,Wc].")
+    batch_size = images.shape[0]
+    if not (
+        len(variant_indices)
+        == len(boxes_by_image)
+        == len(supports_by_image)
+        == batch_size
+    ):
+        raise ValueError("All per-image inputs must match batch size.")
+    if not math.isfinite(float(epsilon)) or float(epsilon) <= 0:
+        raise ValueError("epsilon must be positive.")
+
+    rendered = []
+    for image_index, variant_index in enumerate(variant_indices):
+        selected = int(variant_index)
+        if not 0 <= selected < patterns.shape[0]:
+            raise ValueError("variant_indices contains an out-of-range index.")
+        pattern = patterns[selected]
+        rendered.append(
+            render_canonical_pattern(
+                pattern,
+                image_size=images.shape[-2:],
+                boxes=boxes_by_image[image_index],
+                instance_supports=supports_by_image[image_index],
+                mode=mode,
+            )
+        )
+
     spatial_patterns = torch.stack(
         [item.spatial_pattern for item in rendered]
     )

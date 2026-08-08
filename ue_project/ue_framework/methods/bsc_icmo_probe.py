@@ -6,7 +6,7 @@ import math
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
 import cv2
 import numpy as np
@@ -49,6 +49,7 @@ from .instance_canonical_carrier import (
     SharedGammaCalibration,
     affine_canonical_pattern,
     apply_canonical_pattern,
+    apply_variant_canonical_patterns,
     build_synthetic_fourier_bases,
     calibrate_shared_gamma,
     canonicalize_explicit_bases,
@@ -365,30 +366,88 @@ class ICMOProbeEngine(ProbeEngine):
         *,
         render_mode: str,
         affine: Mapping[str, float] | None = None,
+        variant_indices: Sequence[int] | None = None,
+        paired_view_transform: Callable[
+            [torch.Tensor, torch.Tensor, ICMOBatch],
+            tuple[torch.Tensor, torch.Tensor],
+        ]
+        | None = None,
+        assignment_reference_images: torch.Tensor | None = None,
     ) -> ICMOObservation:
         canonical = carrier()
         if affine:
-            canonical = affine_canonical_pattern(canonical, **affine)
-        adv_images, perturbation, rendered = apply_canonical_pattern(
-            batch.images,
-            canonical,
-            boxes_by_image=batch.boxes_by_image,
-            supports_by_image=batch.supports_by_image,
-            mode=render_mode,
-            epsilon=carrier.epsilon,
-        )
+            if canonical.ndim == 3:
+                canonical = affine_canonical_pattern(canonical, **affine)
+            elif canonical.ndim == 4:
+                canonical = torch.stack(
+                    [
+                        affine_canonical_pattern(pattern, **affine)
+                        for pattern in canonical
+                    ]
+                )
+            else:
+                raise ValueError("Carrier output must be [3,H,W] or [V,3,H,W].")
+        if canonical.ndim == 3:
+            if variant_indices is not None:
+                raise ValueError("variant_indices require a variant carrier.")
+            adv_images, perturbation, rendered = apply_canonical_pattern(
+                batch.images,
+                canonical,
+                boxes_by_image=batch.boxes_by_image,
+                supports_by_image=batch.supports_by_image,
+                mode=render_mode,
+                epsilon=carrier.epsilon,
+            )
+        elif canonical.ndim == 4:
+            if variant_indices is None:
+                raise ValueError("Variant carrier requires variant_indices.")
+            adv_images, perturbation, rendered = apply_variant_canonical_patterns(
+                batch.images,
+                canonical,
+                variant_indices=variant_indices,
+                boxes_by_image=batch.boxes_by_image,
+                supports_by_image=batch.supports_by_image,
+                mode=render_mode,
+                epsilon=carrier.epsilon,
+            )
+        else:
+            raise ValueError("Carrier output must be [3,H,W] or [V,3,H,W].")
+        clean_view = batch.images
+        adv_view = adv_images
+        if paired_view_transform is not None:
+            clean_view, adv_view = paired_view_transform(
+                batch.images,
+                adv_images,
+                batch,
+            )
+            if clean_view.shape != batch.images.shape or adv_view.shape != batch.images.shape:
+                raise ValueError("Paired view transform must preserve image shape.")
+            if not torch.isfinite(clean_view).all() or not torch.isfinite(adv_view).all():
+                raise ValueError("Paired view transform produced non-finite values.")
         with torch.no_grad():
             with self.capture.record("clean"):
-                clean_output = self.model(batch.images)
+                clean_output = self.model(clean_view)
             clean_features = self.capture.take("clean")
             clean_predictions = (
                 clean_output[0]
                 if isinstance(clean_output, (tuple, list))
                 else clean_output
             )
+            assignment_predictions = clean_predictions
+            if assignment_reference_images is not None:
+                if assignment_reference_images.shape != batch.images.shape:
+                    raise ValueError(
+                        "assignment_reference_images must match batch images."
+                    )
+                reference_output = self.model(assignment_reference_images)
+                assignment_predictions = (
+                    reference_output[0]
+                    if isinstance(reference_output, (tuple, list))
+                    else reference_output
+                )
             self.hijacked.last_real_assign = {}
             self.hijacked.get_assigned_targets_and_loss(
-                clean_predictions,
+                assignment_predictions,
                 batch.yolo_batch,
             )
             raw_assign = self.hijacked.last_real_assign
@@ -406,7 +465,7 @@ class ICMOProbeEngine(ProbeEngine):
             )
 
         with self.capture.record("adv"):
-            adv_output = self.model(adv_images)
+            adv_output = self.model(adv_view)
         adv_features = self.capture.take("adv")
         adv_predictions = (
             adv_output[0] if isinstance(adv_output, (tuple, list)) else adv_output
