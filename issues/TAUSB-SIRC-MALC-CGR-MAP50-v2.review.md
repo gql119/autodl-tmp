@@ -210,3 +210,9 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
   changed to `typing.Tuple[float, float]`. The complete `134`-test suite passed again. Actual
   AutoDL import remains a mandatory read-only recheck, but the previously observed blocker is
   now corrected rather than hidden behind a grammar-only claim.
+- 2026-08-09: created the scoped implementation snapshot
+  `d85967ed070340718b8e805fb59021f560f1eb71` on
+  `codex/tausb-sirc-malc-cgr-map50-v2`. The commit contains exactly 35 audited v2 Spec/CSV/review,
+  source, formal-config and test files. Secret and binary-artifact scans passed. It excludes
+  `.tmp`, the local smoke config, datasets, weights, credentials, old v1 task state and all
+  unrelated dirty-worktree files. Push remains pending exact remote payload authorization.
