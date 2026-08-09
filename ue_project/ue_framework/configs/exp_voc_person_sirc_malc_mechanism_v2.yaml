@@ -22,8 +22,8 @@ model:
   image_size: 640
 
 background:
-  source_manifest: /root/autodl-tmp/research_workspace/sources/bsc_background_manifest.json
-  source_local_map: /root/.local/share/tausb/bsc_background_local_map.json
+  source_manifest: /root/.local/share/tausb/TAUSB-SIRC-MALC-CGR-MAP50-v2/bsc_background_manifest.json
+  source_local_map: /root/.local/share/tausb/TAUSB-SIRC-MALC-CGR-MAP50-v2/bsc_background_local_map.json
 
 carrier:
   epsilon: 0.06274509803921569
@@ -43,7 +43,7 @@ carrier:
   target_rms_ratio: 0.35
 
 split:
-  manifest: /root/autodl-tmp/research_workspace/sources/TAUSB-ALCE-CTX-AUDIT-v1.json
+  manifest: /root/.local/share/tausb/TAUSB-SIRC-MALC-CGR-MAP50-v2/TAUSB-ALCE-CTX-AUDIT-v1.json
   required_protocol_prefix: TAUSB-ALCE-CTX-AUDIT-v1
 
 method:
