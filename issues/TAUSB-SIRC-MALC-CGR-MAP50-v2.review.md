@@ -423,3 +423,77 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
 - 2026-08-09: the formal mechanism workflow launched after a passing pre-run review, emitted
   its first mechanism marker, then triggered the cost guard and shut the instance down before
   C0/M1. Root cause remains unknown until persistent logs are retrieved in no-card mode.
+
+## Systematic debugging: portable provenance hash correction
+
+- Persisted cost-guard evidence recorded `state=failed`, `stage=mechanism`, and
+  `formal_pipeline_exit_1_shutdown_requested`; the traceback failed in
+  `SIRCProbeWorkflow.__init__` with `Frozen semantic carrier bank hash mismatch`. No mechanism
+  artifact root was created and C0/M1 never started.
+- All eight authorized source files matched the frozen per-file SHA256 values on both systems.
+  Local OpenCV 5.0 and AutoDL OpenCV 4.9 also produced identical RGB uint8 shapes, sums and
+  decoded-tensor SHA256 values for every source. Source bytes, ordering and image decoding are
+  therefore ruled out.
+- The failed gate hashed exact float32 bytes produced by large FFT/SVD pipelines. Local
+  Windows/Torch 2.11 and AutoDL Linux/Torch 2.0 are not required to produce bit-identical last
+  bits, so that checksum was an environment fingerprint rather than a portable protocol hash.
+- Corrective commit `a7df8684b0c8ccb767df9712c7bc88a4fde29321` adds opt-in
+  `recipe-v1` hashes over the already verified source manifest, ordered source IDs and SHA256
+  values, and frozen carrier parameters. Historical configs continue to default to
+  `tensor-v1`. Actual tensors still pass finite/rank/zero-mean/unit-norm checks, and the frozen
+  A1 carrier state retains an exact content hash.
+- Re-derived formal hashes are semantic bank
+  `0b8a94efc55155bea20a1ec799bfac14c8a6f11fd6530538f3e0437b37c0dd4b` and C2-LM
+  `8350c0a608150839c98a8dad8db862d0c9dfaeca4714f05d1714afac0f30cfa5`.
+- Local validation: four modified modules compile; Python 3.8 AST parsing passes; all formal
+  YAML files parse; focused carrier tests pass `18/18`; pipeline/MALC/CGR tests pass `43/43`;
+  complete suite passes `139/139`; formal hashes are independently re-derived from the frozen
+  manifest and match both mechanism and M1 configs.
+- The fix was normally pushed to
+  `origin/codex/tausb-sirc-malc-cgr-map50-v2`. The new local cost wrapper is bound to the full
+  corrective commit and has SHA256
+  `430e80e02288bc8adc7b31e15c2ef5913784f57b8d711335803a0a32d68c4415`.
+- AutoDL was shut down after the no-card diagnostic exceeded the user's cost budget. The
+  remote clean worktree is still known to be at `93f49be`; no new remote command was launched.
+
+## PRERUN-REVIEW-03
+
+- Result: `blocked`
+- Decision: `do_not_run`
+- Gated run: `REMOTE-MECHANISM-01`; C0/M1 remain additionally gated by mechanism PASS.
+- Code snapshot: local/GitHub branch `codex/tausb-sirc-malc-cgr-map50-v2`, commit
+  `a7df8684b0c8ccb767df9712c7bc88a4fde29321`; remote clean checkout deployment pending.
+- Intent: unchanged approved SIRC-MALC-CGR VOC20/person experiment. This correction changes
+  provenance checking only; carrier tensors, MALC, CGR, epsilon, no-EOT, victim protocol and
+  metrics are unchanged.
+- Code location: `provenance_hash.py`, `semantic_residual_carrier.py`,
+  `background_spectral_basis.py`, `sirc_probe.py`, the two formal v2 configs, and tests.
+- Parameter data flow: verified source bytes and canonical manifest -> ordered provenance plus
+  frozen resolution/bands/seeds -> `recipe-v1` hash -> mechanism frozen A1 state -> formal M1
+  config/state equality gate. The exact frozen-state content hash remains downstream.
+- Runtime state: AutoDL is off. The last known clean worktree is commit `93f49be`, dirty 0;
+  formal run root was absent and the failure happened before mechanism artifact creation.
+- Sink effect: input audit now records semantic/C2-LM hash values and modes; existing
+  mechanism, C0/M1 status, named VOC20 AP50 and aggregate sinks are unchanged.
+- Baseline/disable path: configs without explicit hash modes still execute the original
+  `tensor-v1`; v2 feature-off and historical TAUSB paths remain covered by the 139-test suite.
+- Local validation: compile, YAML parse, Python 3.8 AST, independent formal recipe check and
+  `139 passed`.
+- Minimal probe: exact source/decode parity across local and AutoDL plus pure-standard-library
+  formal recipe recomputation. Full 640x640 numerical reconstruction is intentionally not
+  repeated on the half-CPU no-card mode because the hash no longer depends on float bytes.
+- Run command binding: local wrapper binds commit
+  `a7df8684b0c8ccb767df9712c7bc88a4fde29321`, method `sirc_malc_cgr`, steps 40, seed 0,
+  device 0, formal/mechanism v2 configs and the unique approved run root. It retains automatic
+  shutdown on completion/failure and the 20-minute idle-hang watchdog.
+- Experiment validity: unchanged VOC train/val, target id 14, fresh C0/M1 YOLOv8n victims,
+  200 epochs, imgsz 640, batch 36, SGD and clean validation; no robustness transforms.
+- Output non-overwrite: wrapper requires the formal run root to be absent and does not use
+  force-resume. This must be rechecked remotely before launch.
+- Recoverability/secrecy: persistent external control log/status paths and tmux are retained;
+  no credentials, data, weights or local paths enter the commit or CSV.
+- Blockers: start AutoDL in no-card mode; update the clean worktree to exact `a7df868`; verify
+  dirty count 0, Python 3.8 import, formal recipe hashes and absent formal root; upload and hash
+  the new wrapper; then repeat this review. Do not start GPU work before `pass / allow_run`.
+- Validation gaps: no remote Python 3.8 runtime import or deployed-commit verification for
+  `a7df868` yet. No fresh-victim or mechanism effectiveness claim exists.
