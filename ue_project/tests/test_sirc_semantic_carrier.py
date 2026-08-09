@@ -138,6 +138,35 @@ def test_variant_carrier_shares_one_coefficient_matrix() -> None:
     assert float(carrier.coefficients.grad.norm()) > 0
 
 
+def test_variant_carrier_rejects_nonfinite_or_nonpositive_parameters() -> None:
+    anchor, donors = _images()
+    bank = build_semantic_carrier_bank(anchor, donors, resolution=48)
+    initial = torch.zeros((16, 3))
+    invalid_cases = (
+        {"epsilon": 0.0, "gamma": 80.0, "coefficients": initial},
+        {"epsilon": float("nan"), "gamma": 80.0, "coefficients": initial},
+        {"epsilon": 16 / 255, "gamma": float("inf"), "coefficients": initial},
+        {
+            "epsilon": 16 / 255,
+            "gamma": 80.0,
+            "coefficients": initial.clone().fill_(float("nan")),
+        },
+    )
+    for case in invalid_cases:
+        try:
+            VariantMatchedCanonicalCarrier(
+                bank.semantic_bases,
+                bank.semantic_scales,
+                epsilon=case["epsilon"],
+                gamma=case["gamma"],
+                initial_coefficients=case["coefficients"],
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Invalid carrier parameters did not fail closed.")
+
+
 def test_positive_modulation_preserves_initial_semantic_structure() -> None:
     anchor, donors = _images()
     bank = build_semantic_carrier_bank(anchor, donors, resolution=48)

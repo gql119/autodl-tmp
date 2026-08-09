@@ -259,6 +259,12 @@ class VariantMatchedCanonicalCarrier(nn.Module):
             raise ValueError("reconstruction_scales must be finite.")
         if initial_coefficients.shape != (canonical.shape[1], 3):
             raise ValueError("initial_coefficients must have shape [K,3].")
+        if not torch.isfinite(initial_coefficients).all():
+            raise ValueError("initial_coefficients must be finite.")
+        if not math.isfinite(float(epsilon)) or float(epsilon) <= 0:
+            raise ValueError("epsilon must be positive and finite.")
+        if not math.isfinite(float(gamma)) or float(gamma) <= 0:
+            raise ValueError("gamma must be positive and finite.")
         self.epsilon = float(epsilon)
         self.gamma = float(gamma)
         self.register_buffer("bases", canonical)

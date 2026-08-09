@@ -34,6 +34,7 @@ from .background_spectral_basis import (
 )
 from .bsc_rc_gr_probe import (
     ProbeEngine,
+    _assigned_gt_boxes,
     _file_sha256,
     _resolve_path,
     _split_flat_gate,
@@ -64,7 +65,17 @@ from .instance_cicr import (
     instance_classification_residuals,
     target_gt_indices_from_labels,
 )
-from .shadow_tal import TargetRouteResult, compute_target_route
+from .malc import (
+    MALCInstanceResiduals,
+    score_weighted_instance_residuals,
+    target_class_assignment_scores,
+)
+from .shadow_tal import (
+    NonTargetConstraintSet,
+    TargetRouteResult,
+    build_non_target_constraints,
+    compute_target_route,
+)
 
 
 ARM_DEFINITIONS = {
@@ -222,9 +233,11 @@ class ICMOBatch:
 @dataclass
 class ICMOObservation:
     target_residuals: InstanceClassificationResiduals
+    malc_residuals: MALCInstanceResiduals
     non_target_residuals: ClassificationResiduals
     box_residuals: InstanceClassificationResiduals
     route: TargetRouteResult
+    constraints: NonTargetConstraintSet
     image_ids: list[str]
     person_cooccur: list[bool]
     instance_scale_groups_by_image: list[list[str]]
@@ -511,6 +524,17 @@ class ICMOProbeEngine(ProbeEngine):
             real_assign["target_gt_idx"],
             target_gt_indices,
         )
+        malc_residuals = score_weighted_instance_residuals(
+            clean_features.classification,
+            adv_features.classification,
+            pag_gate=pag_gate,
+            target_gt_idx=real_assign["target_gt_idx"],
+            assigned_scores=target_class_assignment_scores(
+                real_assign["target_scores"],
+                target_class_id=self.target_class_id,
+            ),
+            target_gt_indices_by_image=target_gt_indices,
+        )
         box_residuals = instance_classification_residuals(
             clean_features.box,
             adv_features.box,
@@ -542,6 +566,22 @@ class ICMOProbeEngine(ProbeEngine):
             gt_labels=clean_cache["gt_labels"],
             gt_bboxes=clean_cache["gt_bboxes"],
             mask_gt=clean_cache["mask_gt"],
+        )
+        constraints = build_non_target_constraints(
+            clean_class_logits=clean_cache["pred_scores_logits"],
+            adv_class_logits=adv_cache["pred_scores_logits"],
+            clean_boxes=clean_cache["pred_bboxes"],
+            adv_boxes=adv_cache["pred_bboxes"],
+            assigned_gt_boxes=_assigned_gt_boxes(
+                real_assign["target_gt_idx"],
+                clean_cache["gt_bboxes"],
+            ),
+            assigned_labels=labels,
+            real_foreground=real_foreground,
+            target_class_id=self.target_class_id,
+            num_classes=self.num_classes,
+            tau_cls=float(self.config["optimization"].get("tau_cls", 0.005)),
+            tau_box=float(self.config["optimization"].get("tau_box", 0.02)),
         )
         score_delta = (
             adv_cache["pred_scores_logits"]
@@ -610,9 +650,11 @@ class ICMOProbeEngine(ProbeEngine):
             )
         return ICMOObservation(
             target_residuals=target_residuals,
+            malc_residuals=malc_residuals,
             non_target_residuals=non_target_residuals,
             box_residuals=box_residuals,
             route=route,
+            constraints=constraints,
             image_ids=batch.image_ids,
             person_cooccur=batch.person_cooccur,
             instance_scale_groups_by_image=batch.instance_scale_groups_by_image,

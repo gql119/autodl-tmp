@@ -9,6 +9,7 @@ class RunPaths:
     method: str
     steps: int
     seed: int
+    run_tag: str
     poisoned_root: str
     artifact_root: str
     poisoned_images: str
@@ -28,18 +29,28 @@ class RunPaths:
 
 
 
-def build_run_paths(run_root: str, method: str, steps: int, seed: int) -> RunPaths:
+def _tagged_seed(seed: int, run_tag: str) -> str:
+    if not run_tag:
+        return f"seed{seed}"
+    if os.path.sep in run_tag or (os.path.altsep and os.path.altsep in run_tag):
+        raise ValueError(f"run_tag must not contain path separators: {run_tag}")
+    return f"seed{seed}_{run_tag}"
+
+
+def build_run_paths(run_root: str, method: str, steps: int, seed: int, run_tag: str = "") -> RunPaths:
     poisoned_root = os.path.join(run_root, "poisoned_datasets", method, f"steps{steps}", f"seed{seed}")
-    artifact_root = os.path.join(run_root, "artifacts", method, f"steps{steps}", f"seed{seed}")
+    artifact_root = os.path.join(run_root, "artifacts", method, f"steps{steps}", _tagged_seed(seed, run_tag))
 
     bundle_dir = os.path.join(run_root, "bundles")
-    bundle_name = f"{method}_steps{steps}_seed{seed}_compact.zip"
+    bundle_suffix = f"_seed{seed}_{run_tag}" if run_tag else f"_seed{seed}"
+    bundle_name = f"{method}_steps{steps}{bundle_suffix}_compact.zip"
 
     return RunPaths(
         run_root=run_root,
         method=method,
         steps=steps,
         seed=seed,
+        run_tag=run_tag,
         poisoned_root=poisoned_root,
         artifact_root=artifact_root,
         poisoned_images=os.path.join(poisoned_root, "images", "train"),
@@ -57,6 +68,15 @@ def build_run_paths(run_root: str, method: str, steps: int, seed: int) -> RunPat
         bundle_dir=bundle_dir,
         bundle_path=os.path.join(bundle_dir, bundle_name),
     )
+
+
+def apply_poisoned_root_override(paths: RunPaths, poisoned_root: str) -> RunPaths:
+    paths.poisoned_root = poisoned_root
+    paths.poisoned_images = os.path.join(poisoned_root, "images", "train")
+    paths.poisoned_labels = os.path.join(poisoned_root, "labels", "train")
+    paths.manifest_csv = os.path.join(poisoned_root, "manifest.csv")
+    paths.poisoned_status_json = os.path.join(poisoned_root, "status.json")
+    return paths
 
 
 

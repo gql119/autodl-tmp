@@ -1,6 +1,5 @@
 ﻿import argparse
 import os
-import shutil
 import sys
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -9,7 +8,7 @@ if ROOT_DIR not in sys.path:
 
 from ue_framework.config import SUPPORTED_METHODS, SUPPORTED_STAGES, load_config
 from ue_framework.env_utils import detect_platform
-from ue_framework.paths import build_run_paths, ensure_run_dirs
+from ue_framework.paths import apply_poisoned_root_override, build_run_paths, ensure_run_dirs
 from ue_framework.runtime import RunContext
 from ue_framework.stages import (
     run_aggregate,
@@ -40,9 +39,33 @@ def _fresh_reset_if_needed(paths, stage: str, resume: bool):
     if stage not in {"all", "generate_poisoned_dataset"}:
         return
 
-    for p in [paths.poisoned_root, paths.artifact_root]:
-        if os.path.isdir(p):
-            shutil.rmtree(p)
+    existing = [
+        p for p in (paths.poisoned_root, paths.artifact_root)
+        if os.path.exists(p)
+    ]
+    if existing:
+        raise FileExistsError(
+            "Fresh run refuses existing output roots; choose a new scoped root "
+            f"or use an explicitly reviewed resume command: {existing}"
+        )
+
+
+def _resolve_cli_env(cli_value: str, env_name: str, default: str = "") -> str:
+    if cli_value:
+        return cli_value
+    return os.environ.get(env_name, default)
+
+
+def _validate_poisoned_root_override(poisoned_root: str) -> None:
+    if not os.path.isdir(poisoned_root):
+        raise FileNotFoundError(f"poisoned_root_override not found: {poisoned_root}")
+    required = [
+        os.path.join(poisoned_root, "images", "train"),
+        os.path.join(poisoned_root, "labels", "train"),
+    ]
+    for path in required:
+        if not os.path.isdir(path):
+            raise FileNotFoundError(f"poisoned_root_override missing required directory: {path}")
 
 
 
@@ -55,6 +78,8 @@ def parse_args():
     ap.add_argument("--stage", type=str, default="all", choices=SUPPORTED_STAGES)
     ap.add_argument("--gpu_id", type=int, default=0)
     ap.add_argument("--force_resume", action="store_true")
+    ap.add_argument("--poisoned_root_override", type=str, default="")
+    ap.add_argument("--run_tag", type=str, default="")
     return ap.parse_args()
 
 
@@ -76,7 +101,26 @@ def main():
     run_root = cfg["platform"].get("run_root", "./runs_formal")
     os.makedirs(run_root, exist_ok=True)
 
-    paths = build_run_paths(run_root, args.method, args.steps, args.seed)
+    run_tag = _resolve_cli_env(args.run_tag, "RUN_TAG", "").strip()
+    poisoned_root_override = _resolve_cli_env(args.poisoned_root_override, "POISONED_ROOT_OVERRIDE", "").strip()
+    if poisoned_root_override and args.stage == "all":
+        raise RuntimeError(
+            "Do not use --stage all with POISONED_ROOT_OVERRIDE. "
+            "Use train_victim/evaluate/aggregate separately."
+        )
+
+    paths = build_run_paths(run_root, args.method, args.steps, args.seed, run_tag=run_tag)
+
+    if poisoned_root_override and args.stage in {"train_victim", "evaluate", "aggregate"}:
+        _validate_poisoned_root_override(poisoned_root_override)
+        paths = apply_poisoned_root_override(paths, poisoned_root_override)
+        print(f"[PathOverride] poisoned_root_override={poisoned_root_override}")
+        print(f"[PathOverride] effective poisoned_root={paths.poisoned_root}")
+    elif poisoned_root_override:
+        print(
+            "[PathOverride][Warning] poisoned_root_override is ignored for "
+            f"stage={args.stage}; generate_poisoned_dataset uses the default poisoned_root."
+        )
 
     _fresh_reset_if_needed(paths, args.stage, bool(cfg["platform"].get("resume", False)))
     ensure_run_dirs(paths)
@@ -86,6 +130,7 @@ def main():
         method=args.method,
         steps=args.steps,
         seed=args.seed,
+        run_tag=run_tag,
         stage=args.stage,
         gpu_id=args.gpu_id,
         platform_mode=platform_mode,
@@ -95,6 +140,7 @@ def main():
     print("[launch_one] method=", args.method)
     print("[launch_one] steps=", args.steps)
     print("[launch_one] seed=", args.seed)
+    print(f"[RunTag] run_tag={run_tag}")
     print("[launch_one] stage=", args.stage)
     print("[launch_one] run_root=", paths.run_root)
     print("[launch_one] artifact_root=", paths.artifact_root)

@@ -5,13 +5,13 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import PurePath, PurePosixPath, PureWindowsPath
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
 
 
-BandRange = tuple[float, float]
+BandRange = Tuple[float, float]
 
 
 @dataclass(frozen=True)

@@ -1,6 +1,7 @@
 ﻿from .em import EMPoisonGenerator
 from .ours import OursPoisonGenerator
 from .rem import REMPoisonGenerator
+from .sirc_malc_cgr import SIRCMALCCGRMaterializer
 
 
 
@@ -16,4 +17,6 @@ def build_generator(method: str, cfg, method_cfg, device, surrogate):
             "tausb_mask requires stage-level universal training before generator init. "
             "Use stages.generate._build_tausb_generator()."
         )
+    if method == "sirc_malc_cgr":
+        return SIRCMALCCGRMaterializer(cfg, method_cfg, device, surrogate)
     raise ValueError(f"Unsupported method: {method}")

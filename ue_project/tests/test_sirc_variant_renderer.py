@@ -112,3 +112,29 @@ def test_variant_indices_fail_closed() -> None:
         assert "out-of-range" in str(error)
     else:
         raise AssertionError("Out-of-range variant index did not fail closed.")
+
+
+def test_variant_render_and_jnd_are_exactly_deterministic() -> None:
+    generator = torch.Generator(device="cpu").manual_seed(29)
+    images = torch.rand((2, 3, 12, 12), generator=generator)
+    patterns = 0.03 * torch.randn(
+        (2, 3, 5, 5),
+        generator=generator,
+    )
+    boxes = [[(1, 1, 8, 10)], [(3, 2, 11, 11)]]
+    supports = [
+        _support(12, 12, boxes[0]),
+        _support(12, 12, boxes[1]),
+    ]
+    kwargs = {
+        "variant_indices": (0, 1),
+        "boxes_by_image": boxes,
+        "supports_by_image": supports,
+        "mode": "instance",
+        "epsilon": 16 / 255,
+    }
+    first = apply_variant_canonical_patterns(images, patterns, **kwargs)
+    second = apply_variant_canonical_patterns(images, patterns, **kwargs)
+    assert torch.equal(first[0], second[0])
+    assert torch.equal(first[1], second[1])
+    assert float(first[1].abs().amax()) <= 16 / 255 + 1e-7

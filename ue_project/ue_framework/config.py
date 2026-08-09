@@ -4,7 +4,14 @@ from typing import Any, Dict
 
 import yaml
 
-SUPPORTED_METHODS = ["em_bbox", "em_mask", "rem_mask", "tausb_mask", "ours_mask"]
+SUPPORTED_METHODS = [
+    "em_bbox",
+    "em_mask",
+    "rem_mask",
+    "tausb_mask",
+    "ours_mask",
+    "sirc_malc_cgr",
+]
 SUPPORTED_STAGES = [
     "generate_poisoned_dataset",
     "train_victim",
@@ -118,6 +125,19 @@ def _default_config() -> Dict[str, Any]:
                 "jnd_floor": 0.2,
                 "jnd_ceiling": 1.0,
             },
+            "sirc_malc_cgr": {
+                "support_type": "mask",
+                "enable_sirc_carrier": True,
+                "enable_malc": True,
+                "enable_cgr": True,
+                "require_mechanism_pass": True,
+                "frozen_carrier_state": "",
+                "semantic_bank_hash": "",
+                "source_manifest_hash": "",
+                "split_hash": "",
+                "variant_seed": 2102,
+                "jnd_floor": 0.5,
+            },
             "ours_mask": {
                 "support_type": "mask",
                 "ring_width": 4,
@@ -214,6 +234,25 @@ def _ensure_method_defaults(cfg: Dict[str, Any]) -> None:
             if k not in tausb:
                 tausb[k] = v
 
+    sirc_malc = methods.get("sirc_malc_cgr", {})
+    if isinstance(sirc_malc, dict):
+        required = {
+            "support_type": "mask",
+            "enable_sirc_carrier": True,
+            "enable_malc": True,
+            "enable_cgr": True,
+            "require_mechanism_pass": True,
+            "frozen_carrier_state": "",
+            "semantic_bank_hash": "",
+            "source_manifest_hash": "",
+            "split_hash": "",
+            "variant_seed": 2102,
+            "jnd_floor": 0.5,
+        }
+        for key, value in required.items():
+            if key not in sirc_malc:
+                sirc_malc[key] = value
+
 
 
 def load_config(config_path: str) -> Dict[str, Any]:
@@ -223,6 +262,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
 
     with open(config_path, "r", encoding="utf-8") as f:
         user_cfg = yaml.safe_load(f) or {}
+    sirc_malc_requested = "sirc_malc_cgr" in user_cfg.get("methods", {})
 
     cfg = _deep_update(copy.deepcopy(defaults), user_cfg)
     _ensure_method_defaults(cfg)
@@ -234,5 +274,46 @@ def load_config(config_path: str) -> Dict[str, Any]:
             "Target class id is out of surrogate class range. "
             f"target_class_id={target_id}, surrogate.num_classes={num_classes}"
         )
+
+    method_cfg = cfg.get("methods", {}).get("sirc_malc_cgr", {})
+    switches = tuple(
+        bool(method_cfg.get(key, True))
+        for key in ("enable_sirc_carrier", "enable_malc", "enable_cgr")
+    )
+    if sirc_malc_requested and any(switches):
+        if target_id != 14 or int(cfg["surrogate"]["num_classes"]) != 20:
+            raise ValueError("SIRC-MALC-CGR requires VOC20 person class id 14.")
+        if abs(float(cfg["experiment"]["eps"]) - 16.0 / 255.0) > 1e-9:
+            raise ValueError("SIRC-MALC-CGR epsilon must remain 16/255.")
+        if int(cfg["surrogate"].get("imgsz", -1)) != 640:
+            raise ValueError("SIRC-MALC-CGR surrogate imgsz must remain 640.")
+        if int(cfg["surrogate"].get("eot_samples", -1)) != 1:
+            raise ValueError("SIRC-MALC-CGR formal config forbids EOT.")
+        victim = cfg["victim"]
+        frozen_victim = {
+            "epochs": 200,
+            "imgsz": 640,
+            "batch": 36,
+            "optimizer": "SGD",
+        }
+        for key, expected in frozen_victim.items():
+            if victim.get(key) != expected:
+                raise ValueError(
+                    f"SIRC-MALC-CGR victim.{key} must remain {expected}."
+                )
+        if [int(value) for value in cfg["experiment"].get("seeds", [])] != [0]:
+            raise ValueError("SIRC-MALC-CGR first experiment must remain seed 0.")
+        if float(cfg["experiment"].get("poisoning_ratio", -1)) != 1.0:
+            raise ValueError("SIRC-MALC-CGR M1 poisoning_ratio must remain 1.0.")
+        if int(cfg["experiment"].get("expected_poisoned_count", -1)) != 6095:
+            raise ValueError("SIRC-MALC-CGR expected_poisoned_count must remain 6095.")
+        for key in (
+            "frozen_carrier_state",
+            "semantic_bank_hash",
+            "source_manifest_hash",
+            "split_hash",
+        ):
+            if not str(method_cfg.get(key, "")).strip():
+                raise ValueError(f"SIRC-MALC-CGR methods config requires {key}.")
 
     return cfg

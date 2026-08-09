@@ -1,7 +1,7 @@
 import os
 import random
 import shutil
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
@@ -22,6 +22,7 @@ from ..env_utils import collect_runtime_info, select_device, set_global_seed
 from ..io_utils import atomic_write_csv, atomic_write_json, read_csv_rows
 from ..methods import build_generator
 from ..methods.tausb_universal import TAUSBMaskGenerator, TAUSBUniversalTrainer
+from ..methods.sirc_malc_cgr import resolve_sirc_malc_effective_method
 from ..paths import ensure_run_dirs
 from ..runtime import RunContext
 from ..status import (
@@ -47,6 +48,11 @@ MANIFEST_FIELDS = [
     "steps",
     "seed",
     "support_source",
+    "state_content_hash",
+    "semantic_bank_hash",
+    "source_manifest_hash",
+    "split_hash",
+    "variant_index",
 ]
 
 
@@ -149,6 +155,19 @@ def _build_tausb_generator(
     return TAUSBMaskGenerator(cfg, method_cfg, device, surrogate, global_params_path=global_params_path)
 
 
+def resolve_effective_generation_method(
+    requested_method: str,
+    cfg: Dict,
+) -> Tuple[str, Dict]:
+    method_cfg = cfg["methods"][requested_method]
+    if requested_method != "sirc_malc_cgr":
+        return requested_method, method_cfg
+    effective = resolve_sirc_malc_effective_method(method_cfg)
+    if effective == "tausb_mask":
+        return effective, cfg["methods"]["tausb_mask"]
+    return effective, method_cfg
+
+
 def run_generate_poisoned_dataset(ctx: RunContext) -> None:
     cfg = ctx.cfg
     paths = ctx.paths
@@ -179,10 +198,23 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
     surrogate = yolo_wrapper.model.to(device)
     surrogate.eval()
 
-    if ctx.method == "tausb_mask":
-        generator = _build_tausb_generator(ctx, cfg, method_cfg, device, surrogate, poison_status, artifact_status)
+    effective_method, effective_method_cfg = resolve_effective_generation_method(
+        ctx.method,
+        cfg,
+    )
+
+    if effective_method == "tausb_mask":
+        generator = _build_tausb_generator(
+            ctx,
+            cfg,
+            effective_method_cfg,
+            device,
+            surrogate,
+            poison_status,
+            artifact_status,
+        )
     else:
-        generator = build_generator(ctx.method, cfg, method_cfg, device, surrogate)
+        generator = build_generator(effective_method, cfg, effective_method_cfg, device, surrogate)
 
     train_img_dir = ctx.train_img_dir
     train_label_dir = ctx.train_label_dir
@@ -218,6 +250,11 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
         out_label_path = os.path.join(paths.poisoned_labels, os.path.basename(label_path)) # 🚑 修复：存入 poisoned_labels
 
         support_source = "none"
+        state_content_hash = ""
+        semantic_bank_hash = ""
+        source_manifest_hash = ""
+        split_hash = ""
+        variant_index = ""
         
         # 🚑 修复：补回漏掉的 should_poison 定义
         should_poison = has_target and (random.random() <= poisoning_ratio)
@@ -237,6 +274,11 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             support = result.support_mask
 
             support_source = str(result.extras.get("support_source", "unknown"))
+            state_content_hash = str(result.extras.get("state_content_hash", ""))
+            semantic_bank_hash = str(result.extras.get("semantic_bank_hash", ""))
+            source_manifest_hash = str(result.extras.get("source_manifest_hash", ""))
+            split_hash = str(result.extras.get("split_hash", ""))
+            variant_index = str(result.extras.get("variant_index", ""))
 
             if bool(cfg["platform"].get("debug", False)) and viz_saved < 2:
                 print(
@@ -264,7 +306,7 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
                     perturb,
                     poisoned,
                 )
-                if ctx.method in {"ours_mask", "tausb_mask"}:
+                if ctx.method in {"ours_mask", "tausb_mask", "sirc_malc_cgr"}:
                     _save_extra_viz(paths.viz_dir, stem, result.extras, result.support_mask, result.ring_mask)
                 viz_saved += 1
 
@@ -302,6 +344,11 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             "steps": str(ctx.steps),
             "seed": str(ctx.seed),
             "support_source": support_source,
+            "state_content_hash": state_content_hash,
+            "semantic_bank_hash": semantic_bank_hash,
+            "source_manifest_hash": source_manifest_hash,
+            "split_hash": split_hash,
+            "variant_index": variant_index,
         }
         rows.append(row)
         done_stems.add(stem)
@@ -329,6 +376,16 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
     atomic_write_csv(paths.manifest_csv, rows, MANIFEST_FIELDS)
     atomic_write_json(os.path.join(paths.noise_dir, "noise_meta.json"), {"items": noise_meta_rows})
 
+    actual_poisoned_count = sum(
+        int(str(row.get("poisoned", "0")) == "1") for row in rows
+    )
+    expected_poisoned_count = cfg["experiment"].get("expected_poisoned_count")
+    if expected_poisoned_count is not None and actual_poisoned_count != int(expected_poisoned_count):
+        raise RuntimeError(
+            "Poisoned image count differs from the frozen protocol: "
+            f"actual={actual_poisoned_count}, expected={expected_poisoned_count}."
+        )
+
     mark_stage_completed(
         paths.poisoned_status_json,
         poison_status,
@@ -336,6 +393,7 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
         {
             "processed": len(done_stems),
             "total": total_images,
+            "poisoned_count": actual_poisoned_count,
             "manifest_csv": paths.manifest_csv,
         },
     )
@@ -346,6 +404,7 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
         {
             "processed": len(done_stems),
             "total": total_images,
+            "poisoned_count": actual_poisoned_count,
             "manifest_csv": paths.manifest_csv,
         },
     )

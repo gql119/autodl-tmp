@@ -7,8 +7,10 @@ import numpy as np
 from ultralytics import YOLO
 
 from ..data_utils import (
+    list_images,
     load_image_rgb_float,
     split_val_image_lists,
+    stem_of,
     write_image_list_txt,
 )
 from ..env_utils import resolve_workers
@@ -18,6 +20,7 @@ from ..metrics_utils import (
     compute_lpips_batch,
     compute_non_target_map,
     extract_map50_per_class,
+    VOC20_CLASS_NAMES,
 )
 from ..runtime import RunContext
 from ..status import (
@@ -37,11 +40,10 @@ train: images/train
 val: {val_spec}
 names:
 """
-    for i in range(int(ctx.cfg["experiment"]["num_classes"])):
-        if i == int(ctx.cfg["experiment"]["target_class_id"]):
-            cls_name = ctx.cfg["experiment"]["target_class_name"]
-        else:
-            cls_name = f"class_{i}"
+    num_classes = int(ctx.cfg["experiment"]["num_classes"])
+    if num_classes != len(VOC20_CLASS_NAMES):
+        raise ValueError("The approved evaluator requires the full VOC20 class space.")
+    for i, cls_name in enumerate(VOC20_CLASS_NAMES):
         content += f"  {i}: {cls_name}\n"
 
     with open(yaml_path, "w", encoding="utf-8") as f:
@@ -49,10 +51,27 @@ names:
     return yaml_path
 
 
-def _extract_metrics_dict(metrics_obj, num_classes: int, target_id: int) -> Dict:
+def _extract_metrics_dict(
+    metrics_obj,
+    num_classes: int,
+    target_id: int,
+    *,
+    strict: bool,
+) -> Dict:
     box = getattr(metrics_obj, "box", None)
-    map50_all = float(getattr(box, "map50", float("nan"))) if box is not None else float("nan")
-    ap50_cls = extract_map50_per_class(metrics_obj, num_classes)
+    reported_map50 = float(getattr(box, "map50", float("nan"))) if box is not None else float("nan")
+    ap50_cls = extract_map50_per_class(metrics_obj, num_classes, strict=strict)
+    finite = [value for value in ap50_cls if np.isfinite(value)]
+    map50_all = float(np.mean(finite)) if finite else float("nan")
+    if strict:
+        if len(finite) != num_classes:
+            raise ValueError("Strict VOC20 evaluation requires 20 finite AP50 values.")
+        if not np.isfinite(reported_map50):
+            raise ValueError("Ultralytics reported map50 is non-finite.")
+        if abs(reported_map50 - map50_all) > 1e-5:
+            raise ValueError(
+                "Reported map50 disagrees with the mapped 20-class AP50 mean."
+            )
 
     m_target = float(ap50_cls[target_id]) if target_id < len(ap50_cls) else float("nan")
     m_non = compute_non_target_map(ap50_cls, target_id)
@@ -62,6 +81,11 @@ def _extract_metrics_dict(metrics_obj, num_classes: int, target_id: int) -> Dict
         "mAP50_target": m_target,
         "mAP50_non_target": m_non,
         "ap50_per_class": ap50_cls,
+        "ap50_by_class": {
+            name: float(ap50_cls[index])
+            for index, name in enumerate(VOC20_CLASS_NAMES)
+            if np.isfinite(ap50_cls[index])
+        },
     }
 
 
@@ -171,7 +195,7 @@ def _compute_quality_from_poison_stats(poison_rows: List[Dict]) -> Dict:
     }
 
 
-def _compute_image_quality(ctx: RunContext, manifest_rows: List[Dict]) -> Dict:
+def _compute_image_quality_legacy(ctx: RunContext, manifest_rows: List[Dict]) -> Dict:
     poison_stats_jsonl = os.path.join(ctx.paths.artifact_root, "poison_stats.jsonl")
     poison_rows = _read_poison_stats_jsonl(poison_stats_jsonl)
     if poison_rows:
@@ -260,12 +284,181 @@ def _compute_image_quality(ctx: RunContext, manifest_rows: List[Dict]) -> Dict:
     }
 
 
+def _compute_image_quality(ctx: RunContext, manifest_rows: List[Dict]) -> Dict:
+    poisoned_rows = [
+        row
+        for row in manifest_rows
+        if _is_true_like(row.get("is_poisoned", row.get("poisoned", "0")))
+    ]
+    if not poisoned_rows:
+        return {
+            "PSNR": None,
+            "LPIPS": None,
+            "average_perturbed_area_ratio": 0.0,
+            "average_support_area_ratio": 0.0,
+            "poisoned_count": 0,
+            "actual_linf_max": 0.0,
+            "actual_linf_mean": 0.0,
+            "validation_gaps": ["no_poisoned_manifest_rows"],
+        }
+
+    linf_values = [_safe_float(row.get("linf")) for row in poisoned_rows]
+    if not all(np.isfinite(value) and value >= 0 for value in linf_values):
+        raise ValueError("Every poisoned manifest row requires finite non-negative linf.")
+    psnr_values = [
+        value
+        for value in (_safe_float(row.get("psnr")) for row in poisoned_rows)
+        if np.isfinite(value)
+    ]
+    area_values = [
+        value
+        for value in (
+            _safe_float(row.get("perturbed_area_ratio"))
+            for row in poisoned_rows
+        )
+        if np.isfinite(value)
+    ]
+    support_values = [
+        value
+        for value in (_safe_float(row.get("support_ratio")) for row in poisoned_rows)
+        if np.isfinite(value)
+    ]
+    gaps = []
+    if len(psnr_values) != len(poisoned_rows):
+        gaps.append("manifest_psnr_incomplete")
+    if len(area_values) != len(poisoned_rows):
+        gaps.append("manifest_perturbed_area_incomplete")
+    if len(support_values) != len(poisoned_rows):
+        gaps.append("manifest_support_ratio_incomplete")
+
+    clean_batch = []
+    poison_batch = []
+    clean_by_stem = {stem_of(path): path for path in list_images(ctx.train_img_dir)}
+    for row in poisoned_rows[:64]:
+        poisoned_path = str(row.get("image_path", "")).strip()
+        if not poisoned_path or not os.path.isfile(poisoned_path):
+            gaps.append("lpips_poison_image_missing")
+            continue
+        clean_path = clean_by_stem.get(stem_of(poisoned_path))
+        if not clean_path:
+            gaps.append("lpips_clean_image_missing")
+            continue
+        try:
+            clean_batch.append(load_image_rgb_float(clean_path))
+            poison_batch.append(load_image_rgb_float(poisoned_path))
+        except Exception:
+            gaps.append("lpips_image_read_failure")
+
+    lpips_value = None
+    if clean_batch and poison_batch:
+        computed = compute_lpips_batch(clean_batch, poison_batch)
+        if computed is None:
+            gaps.append("LPIPS_dependency_unavailable")
+        else:
+            lpips_value = float(computed)
+    else:
+        gaps.append("LPIPS_no_readable_pairs")
+
+    return {
+        "PSNR": float(np.mean(psnr_values)) if psnr_values else None,
+        "LPIPS": lpips_value,
+        "average_perturbed_area_ratio": float(np.mean(area_values)) if area_values else 0.0,
+        "average_support_area_ratio": float(np.mean(support_values)) if support_values else 0.0,
+        "poisoned_count": len(poisoned_rows),
+        "actual_linf_max": float(np.max(linf_values)),
+        "actual_linf_mean": float(np.mean(linf_values)),
+        "validation_gaps": sorted(set(gaps)),
+    }
+
+
 def _nan_subset_metrics() -> Dict:
     return {
         "mAP50_all": float("nan"),
         "mAP50_target": float("nan"),
         "mAP50_non_target": float("nan"),
         "ap50_per_class": [],
+    }
+
+
+def _sirc_manifest_provenance(ctx: RunContext, manifest_rows: List[Dict]) -> Dict:
+    if ctx.method != "sirc_malc_cgr":
+        return {}
+    poisoned = [
+        row
+        for row in manifest_rows
+        if _is_true_like(row.get("is_poisoned", row.get("poisoned", "0")))
+    ]
+    if not poisoned:
+        return {"materializer_provenance": "not_applicable_clean_arm"}
+    expected = ctx.cfg["methods"]["sirc_malc_cgr"]
+    output = {}
+    for key in (
+        "state_content_hash",
+        "semantic_bank_hash",
+        "source_manifest_hash",
+        "split_hash",
+    ):
+        values = {str(row.get(key, "")).strip() for row in poisoned}
+        if len(values) != 1 or "" in values:
+            raise ValueError(f"Poisoned manifest has inconsistent {key} values.")
+        value = next(iter(values))
+        if len(value) != 64:
+            raise ValueError(f"Poisoned manifest {key} is not a SHA-256 digest.")
+        output[key] = value
+    for key in ("semantic_bank_hash", "source_manifest_hash", "split_hash"):
+        if output[key] != str(expected[key]):
+            raise ValueError(f"Poisoned manifest {key} differs from formal config.")
+    variants = {int(row["variant_index"]) for row in poisoned}
+    if not variants or any(value < 0 or value >= 4 for value in variants):
+        raise ValueError("Poisoned manifest variant indices are invalid.")
+    support_sources = {str(row.get("support_source", "")) for row in poisoned}
+    if support_sources != {"forced_pseudo_fallback"}:
+        raise ValueError("Formal M1 must use only forced_pseudo_fallback support.")
+    output["variant_indices_used"] = sorted(variants)
+    output["support_source"] = "forced_pseudo_fallback"
+    return output
+
+
+def _sirc_mechanism_evidence(ctx: RunContext) -> Dict:
+    """Load the immutable held-out mechanism report for the formal M1 arm."""
+
+    if ctx.method != "sirc_malc_cgr" or ctx.run_tag != "M1":
+        return {"mechanism_diagnostics": "not_applicable_clean_or_legacy_arm"}
+    method_cfg = ctx.cfg["methods"]["sirc_malc_cgr"]
+    frozen_state_value = str(method_cfg.get("frozen_carrier_state", "")).strip()
+    if not frozen_state_value:
+        raise ValueError("Formal M1 requires frozen_carrier_state.")
+    frozen_state = os.path.abspath(frozen_state_value)
+    report_path = os.path.join(os.path.dirname(frozen_state), "mechanism_report.json")
+    if not os.path.isfile(report_path):
+        raise FileNotFoundError(
+            f"Formal M1 mechanism report is missing: {report_path}"
+        )
+    with open(report_path, "r", encoding="utf-8") as handle:
+        report = json.load(handle)
+    if int(report.get("schema_version", -1)) != 1:
+        raise ValueError("Unsupported MALC mechanism report schema.")
+    if report.get("evidence_scope") != "heldout_mechanism_only_not_fresh_victim_ue":
+        raise ValueError("MALC mechanism report has an invalid evidence scope.")
+    if str(report.get("split_hash", "")) != str(method_cfg.get("split_hash", "")):
+        raise ValueError("MALC mechanism report split hash differs from formal config.")
+    gate = report.get("gate")
+    if not isinstance(gate, dict) or gate.get("pass") is not True:
+        raise ValueError("Formal M1 requires a passing MALC mechanism gate report.")
+    if gate.get("allow_fresh_victim") is not True:
+        raise ValueError("MALC mechanism report forbids fresh-victim execution.")
+    for arm in ("A0", "A1"):
+        if not isinstance(report.get(arm), dict):
+            raise ValueError(f"MALC mechanism report is missing {arm} diagnostics.")
+    return {
+        "mechanism_diagnostics": {
+            "report_path": report_path,
+            "evidence_scope": report["evidence_scope"],
+            "split_hash": report["split_hash"],
+            "A0": report["A0"],
+            "A1": report["A1"],
+            "gate": gate,
+        }
     }
 
 
@@ -308,6 +501,7 @@ def run_evaluate(ctx: RunContext) -> None:
         full_metrics_obj,
         int(exp_cfg["num_classes"]),
         int(exp_cfg["target_class_id"]),
+        strict=True,
     )
 
     person_free, person_cooccur = split_val_image_lists(
@@ -315,6 +509,8 @@ def run_evaluate(ctx: RunContext) -> None:
         ctx.val_label_dir,
         int(exp_cfg["target_class_id"]),
     )
+    if not person_free or not person_cooccur:
+        raise ValueError("VOC validation split must contain both person-free and person-cooccur images.")
 
     person_free_txt = os.path.join(ctx.paths.eval_dir, "val_person_free.txt")
     person_cooccur_txt = os.path.join(ctx.paths.eval_dir, "val_person_cooccur.txt")
@@ -331,7 +527,12 @@ def run_evaluate(ctx: RunContext) -> None:
             workers=int(workers),
             verbose=False,
         )
-        free_metrics = _extract_metrics_dict(free_obj, int(exp_cfg["num_classes"]), int(exp_cfg["target_class_id"]))
+        free_metrics = _extract_metrics_dict(
+            free_obj,
+            int(exp_cfg["num_classes"]),
+            int(exp_cfg["target_class_id"]),
+            strict=False,
+        )
     else:
         free_metrics = _nan_subset_metrics()
 
@@ -345,20 +546,47 @@ def run_evaluate(ctx: RunContext) -> None:
             workers=int(workers),
             verbose=False,
         )
-        co_metrics = _extract_metrics_dict(co_obj, int(exp_cfg["num_classes"]), int(exp_cfg["target_class_id"]))
+        co_metrics = _extract_metrics_dict(
+            co_obj,
+            int(exp_cfg["num_classes"]),
+            int(exp_cfg["target_class_id"]),
+            strict=False,
+        )
     else:
         co_metrics = _nan_subset_metrics()
 
     manifest_rows = read_csv_rows(ctx.paths.manifest_csv)
     quality_metrics = _compute_image_quality(ctx, manifest_rows)
-
+    provenance = _sirc_manifest_provenance(ctx, manifest_rows)
+    mechanism_evidence = _sirc_mechanism_evidence(ctx)
+    if not all(
+        np.isfinite(value)
+        for value in (
+            full_metrics["mAP50_target"],
+            full_metrics["mAP50_non_target"],
+            full_metrics["mAP50_all"],
+            free_metrics["mAP50_non_target"],
+            co_metrics["mAP50_non_target"],
+        )
+    ):
+        raise ValueError("Evaluation produced a non-finite detection metric.")
+    expected_poisoned = exp_cfg.get("expected_poisoned_count")
+    if ctx.run_tag == "M1" and expected_poisoned is not None:
+        if quality_metrics["poisoned_count"] != int(expected_poisoned):
+            raise ValueError("M1 poisoned_count differs from the frozen protocol.")
+        if quality_metrics["actual_linf_max"] > float(exp_cfg["eps"]) + 1.0 / 255.0:
+            raise ValueError("M1 actual Linf exceeds the approved tolerance.")
     final_metrics = {
         "method": ctx.method,
         "steps": ctx.steps,
         "seed": ctx.seed,
+        "run_tag": ctx.run_tag,
         "mAP50_target": full_metrics["mAP50_target"],
         "mAP50_non_target": full_metrics["mAP50_non_target"],
+        "mAP50_non_target_macro": full_metrics["mAP50_non_target"],
         "mAP50_all": full_metrics["mAP50_all"],
+        "ap50_by_class": full_metrics["ap50_by_class"],
+        "voc20_class_names": list(VOC20_CLASS_NAMES),
         "AP_person_free_non_target": free_metrics["mAP50_non_target"],
         "AP_person_cooccur_non_target": co_metrics["mAP50_non_target"],
         "PSNR": quality_metrics["PSNR"],
@@ -366,7 +594,12 @@ def run_evaluate(ctx: RunContext) -> None:
         "average_perturbed_area_ratio": quality_metrics["average_perturbed_area_ratio"],
         "average_support_area_ratio": quality_metrics.get("average_support_area_ratio", 0.0),
         "poisoned_count": int(quality_metrics.get("poisoned_count", 0)),
+        "actual_linf_max": quality_metrics["actual_linf_max"],
+        "actual_linf_mean": quality_metrics["actual_linf_mean"],
+        "quality_validation_gaps": quality_metrics["validation_gaps"],
     }
+    final_metrics.update(provenance)
+    final_metrics.update(mechanism_evidence)
 
     final_metrics.update(
         build_pareto_scores(
@@ -405,10 +638,15 @@ def run_evaluate(ctx: RunContext) -> None:
         },
     )
 
+    psnr_display = (
+        f"{final_metrics['PSNR']:.4f}"
+        if final_metrics["PSNR"] is not None
+        else "validation_gap"
+    )
     print(
         "[evaluate] done: "
         f"mAP50_target={final_metrics['mAP50_target']:.4f}, "
         f"mAP50_non_target={final_metrics['mAP50_non_target']:.4f}, "
-        f"PSNR={final_metrics['PSNR']:.4f}, area={final_metrics['average_perturbed_area_ratio']:.6f}, "
+        f"PSNR={psnr_display}, area={final_metrics['average_perturbed_area_ratio']:.6f}, "
         f"poisoned_count={int(quality_metrics.get('poisoned_count', 0))}"
     )

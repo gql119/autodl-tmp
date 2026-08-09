@@ -88,10 +88,18 @@ def validate_sirc_config(config: Mapping[str, Any]) -> None:
     missing = sorted(required.difference(config))
     if missing:
         raise ValueError(f"Missing SIRC config sections: {missing}")
-    if config["spec"].get("spec_id") != "TAUSB-SIRC-v1":
-        raise ValueError("SIRC spec_id mismatch.")
-    if config["spec"].get("exp_id") != "TAUSB-SIRC-MECH-S0":
-        raise ValueError("SIRC exp_id mismatch.")
+    spec_id = str(config["spec"].get("spec_id", ""))
+    exp_id = str(config["spec"].get("exp_id", ""))
+    is_malc_v2 = spec_id == "TAUSB-SIRC-MALC-CGR-MAP50-v2"
+    valid_contract = (
+        (spec_id == "TAUSB-SIRC-v1" and exp_id == "TAUSB-SIRC-MECH-S0")
+        or (
+            is_malc_v2
+            and exp_id == "TAUSB-SIRC-MALC-CGR-MAP50-S0"
+        )
+    )
+    if not valid_contract:
+        raise ValueError("SIRC spec_id/exp_id mismatch.")
     if int(config["spec"].get("seed", -1)) != 0:
         raise ValueError("SIRC experiment seed must remain 0.")
     if int(config["dataset"].get("target_class_id", -1)) != 14:
@@ -148,7 +156,12 @@ def validate_sirc_config(config: Mapping[str, Any]) -> None:
         raise ValueError("SIRC learning_rate must remain 0.01.")
     if str(optimization.get("target_route")) != "easy_cls":
         raise ValueError("SIRC target route must remain easy_cls.")
-    for key in ("lambda_cicr", "lambda_route", "lambda_rms"):
+    weight_keys = (
+        ("lambda_route", "lambda_rms")
+        if is_malc_v2
+        else ("lambda_cicr", "lambda_route", "lambda_rms")
+    )
+    for key in weight_keys:
         if abs(float(optimization.get(key, -1)) - 1.0) > 1e-12:
             raise ValueError(f"SIRC optimization.{key} must remain 1.0.")
     if not 0 <= float(optimization.get("prototype_momentum", -1)) < 1:
@@ -165,6 +178,12 @@ def validate_sirc_config(config: Mapping[str, Any]) -> None:
         raise ValueError("SIRC PAG settings must define P3/P4/P5.")
 
     eot = config["eot"]
+    if is_malc_v2:
+        if eot.get("enabled") is not False or int(eot.get("samples", -1)) != 1:
+            raise ValueError("MALC v2 requires EOT disabled with samples=1.")
+    else:
+        if int(eot.get("samples", -1)) != 2:
+            raise ValueError("SIRC EOT samples must remain 2.")
     if int(eot.get("seed", -1)) != 2105:
         raise ValueError("SIRC EOT seed must remain 2105.")
     expected_ranges = {
@@ -176,8 +195,6 @@ def validate_sirc_config(config: Mapping[str, Any]) -> None:
         actual = tuple(float(value) for value in eot.get(key, ()))
         if actual != expected:
             raise ValueError(f"SIRC eot.{key} must remain {expected}.")
-    if int(eot.get("samples", -1)) != 2:
-        raise ValueError("SIRC EOT samples must remain 2.")
     if abs(float(eot.get("grayscale_probability", -1)) - 0.25) > 1e-12:
         raise ValueError("SIRC grayscale probability must remain 0.25.")
 

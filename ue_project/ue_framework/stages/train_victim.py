@@ -6,6 +6,7 @@ from ultralytics import YOLO
 
 from ..env_utils import resolve_workers
 from ..io_utils import atomic_write_json
+from ..metrics_utils import VOC20_CLASS_NAMES
 from ..pack import pack_run_artifacts
 from ..runtime import RunContext
 from ..status import (
@@ -25,11 +26,10 @@ train: images/train
 val: {ctx.val_img_dir}
 names:
 """
-    for i in range(int(ctx.cfg["experiment"]["num_classes"])):
-        if i == int(ctx.cfg["experiment"]["target_class_id"]):
-            cls_name = ctx.cfg["experiment"]["target_class_name"]
-        else:
-            cls_name = f"class_{i}"
+    num_classes = int(ctx.cfg["experiment"]["num_classes"])
+    if num_classes != len(VOC20_CLASS_NAMES):
+        raise ValueError("The approved victim trainer requires the full VOC20 class space.")
+    for i, cls_name in enumerate(VOC20_CLASS_NAMES):
         content += f"  {i}: {cls_name}\n"
 
     with open(yaml_path, "w", encoding="utf-8") as f:
@@ -67,6 +67,7 @@ def _snapshot_train_state(ctx: RunContext, run_dir: str, latest_ckpt_ultra: str,
         "method": ctx.method,
         "steps": ctx.steps,
         "seed": ctx.seed,
+        "run_tag": ctx.run_tag,
         "latest_epoch": latest_epoch,
         "latest_checkpoint": latest_ckpt if os.path.isfile(latest_ckpt) else "",
         "best_checkpoint": best_ckpt if os.path.isfile(best_ckpt) else "",
@@ -90,8 +91,11 @@ def _prepare_train_run_dir(ctx: RunContext, run_dir: str, resume_enabled: bool) 
             f"run_dir={abs_run_dir}, artifact_root={abs_artifact_root}"
         )
 
-    if os.path.isdir(abs_run_dir):
-        shutil.rmtree(abs_run_dir)
+    if os.path.exists(abs_run_dir):
+        raise FileExistsError(
+            "Fresh victim training refuses an existing run directory: "
+            f"{abs_run_dir}"
+        )
     os.makedirs(abs_run_dir, exist_ok=True)
 
 
@@ -184,6 +188,7 @@ def run_train_victim(ctx: RunContext) -> None:
     best_ckpt = os.path.join(ctx.paths.checkpoints_dir, "best.pt")
 
     stage_extra = {
+        "run_tag": ctx.run_tag,
         "deleted_cache_files": deleted_cache,
         "train_data_yaml": yaml_path,
         "latest_checkpoint": latest_ckpt if os.path.isfile(latest_ckpt) else "",

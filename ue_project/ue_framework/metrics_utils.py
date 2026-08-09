@@ -6,6 +6,30 @@ import numpy as np
 import torch
 
 
+VOC20_CLASS_NAMES = (
+    "aeroplane",
+    "bicycle",
+    "bird",
+    "boat",
+    "bottle",
+    "bus",
+    "car",
+    "cat",
+    "chair",
+    "cow",
+    "diningtable",
+    "dog",
+    "horse",
+    "motorbike",
+    "person",
+    "pottedplant",
+    "sheep",
+    "sofa",
+    "train",
+    "tvmonitor",
+)
+
+
 def compute_psnr(clean: np.ndarray, poisoned: np.ndarray) -> float:
     mse = float(np.mean((clean - poisoned) ** 2))
     if mse <= 1e-12:
@@ -50,26 +74,69 @@ def safe_float(v, default=float("nan")) -> float:
         return default
 
 
-def extract_map50_per_class(metrics_obj, num_classes: int):
-    # Ultralytics API may vary by version; try several fields.
+def extract_map50_per_class(metrics_obj, num_classes: int, *, strict: bool = False):
+    """Return AP50 in dataset class-id order.
+
+    Ultralytics may compact AP arrays to classes present in the evaluated
+    split. In that case ``ap_class_index`` is mandatory; array position is not
+    silently treated as a class id.
+    """
     box = getattr(metrics_obj, "box", None)
     if box is None:
+        if strict:
+            raise ValueError("Ultralytics metrics object has no box metrics.")
         return [float("nan")] * num_classes
 
-    for attr in ["ap50", "maps50"]:
+    values = None
+    for attr in ("ap50", "maps50"):
         arr = getattr(box, attr, None)
         if arr is not None:
             arr = np.array(arr).astype(float).reshape(-1)
-            if arr.size >= num_classes:
-                return arr[:num_classes].tolist()
+            if arr.size:
+                values = arr
+                break
+    if values is None:
+        if strict:
+            raise ValueError("Ultralytics box metrics contain no AP50 array.")
+        return [float("nan")] * num_classes
 
-    maps = getattr(box, "maps", None)
-    if maps is not None:
-        arr = np.array(maps).astype(float).reshape(-1)
-        if arr.size >= num_classes:
-            return arr[:num_classes].tolist()
+    class_indices = getattr(box, "ap_class_index", None)
+    if class_indices is None:
+        class_indices = getattr(metrics_obj, "ap_class_index", None)
+    if class_indices is None:
+        if values.size != num_classes:
+            if strict:
+                raise ValueError(
+                    "Compacted AP50 values require explicit ap_class_index."
+                )
+            return [float("nan")] * num_classes
+        indices = np.arange(num_classes, dtype=np.int64)
+    else:
+        indices = np.asarray(class_indices).astype(np.int64).reshape(-1)
+        if indices.size != values.size:
+            raise ValueError("AP50 values and ap_class_index lengths differ.")
 
-    return [float("nan")] * num_classes
+    if len(set(int(value) for value in indices)) != indices.size:
+        raise ValueError("ap_class_index contains duplicate class ids.")
+    if np.any(indices < 0) or np.any(indices >= num_classes):
+        raise ValueError("ap_class_index contains an out-of-range class id.")
+    result = np.full(num_classes, np.nan, dtype=np.float64)
+    result[indices] = values
+    if strict:
+        if not np.isfinite(result).all():
+            missing = np.where(~np.isfinite(result))[0].tolist()
+            raise ValueError(f"Full AP50 mapping is incomplete; missing class ids {missing}.")
+        if np.any(result < 0) or np.any(result > 1):
+            raise ValueError("AP50 values must lie in [0,1].")
+    return result.tolist()
+
+
+def named_voc20_ap50(metrics_obj) -> Dict[str, float]:
+    values = extract_map50_per_class(metrics_obj, len(VOC20_CLASS_NAMES), strict=True)
+    return {
+        name: float(values[index])
+        for index, name in enumerate(VOC20_CLASS_NAMES)
+    }
 
 
 def compute_non_target_map(ap50_per_class: List[float], target_class_id: int) -> float:
