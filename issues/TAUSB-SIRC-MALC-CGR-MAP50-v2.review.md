@@ -216,3 +216,6 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
   source, formal-config and test files. Secret and binary-artifact scans passed. It excludes
   `.tmp`, the local smoke config, datasets, weights, credentials, old v1 task state and all
   unrelated dirty-worktree files. Push remains pending exact remote payload authorization.
+- 2026-08-09: normal non-force push succeeded to
+  `origin/codex/tausb-sirc-malc-cgr-map50-v2`; the remote branch contains implementation commit
+  `d85967ed070340718b8e805fb59021f560f1eb71` and its workflow-metadata successor `f0995e5`.
