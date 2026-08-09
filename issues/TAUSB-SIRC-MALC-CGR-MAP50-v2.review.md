@@ -497,3 +497,52 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
   the new wrapper; then repeat this review. Do not start GPU work before `pass / allow_run`.
 - Validation gaps: no remote Python 3.8 runtime import or deployed-commit verification for
   `a7df868` yet. No fresh-victim or mechanism effectiveness claim exists.
+
+## PRERUN-REVIEW-04
+
+- Result: `blocked`
+- Decision: `do_not_run`
+- Gated run: `REMOTE-MECHANISM-01`; C0/M1 remain additionally gated by mechanism PASS.
+- Code snapshot: AutoDL clean worktree `/root/tausb-malc-wt-039c7fc` is detached at exact
+  `a7df8684b0c8ccb767df9712c7bc88a4fde29321`; dirty count is 0. The committed-object bundle
+  SHA256 is `5d666f3435105647481da0f113da28c9273986e7d276986362567b099e5a62e7`
+  and `git bundle verify` passed.
+- Intent: unchanged approved VOC20/person SIRC-MALC-CGR mechanism followed conditionally by
+  C0/M1 fresh victims. The deployed correction affects provenance gates only.
+- Code location: active canonical modules import successfully from the reviewed worktree;
+  formal mechanism and M1 configs both resolve the new semantic hash.
+- Parameter data flow: canonical source manifest
+  `3a13b0f38b06006fd7f68ae03c7206b4b047d4b6129ee7357b05b966641d47af`
+  plus ordered source SHA256 values and frozen carrier parameters produce semantic hash
+  `0b8a94efc55155bea20a1ec799bfac14c8a6f11fd6530538f3e0437b37c0dd4b`
+  and C2-LM hash
+  `8350c0a608150839c98a8dad8db862d0c9dfaeca4714f05d1714afac0f30cfa5`.
+  Mechanism and formal configs agree on the semantic hash.
+- Runtime state: Python `3.8.10`, Torch `2.0.0+cu118`, Ultralytics `8.4.33`; active imports,
+  formal config, target id 14 and `eot_samples=1` all pass. CUDA is false because the instance
+  is in no-card mode. No tmux session is active.
+- Sink effect: unchanged mechanism status/report/frozen-state sinks and C0/M1 VOC20 AP50
+  sinks. The additional input-audit fields identify the hash mode and C2-LM hash.
+- Baseline/disable path: `tensor-v1` remains the default for historical configs; the local full
+  suite passed all 139 tests including feature-off and materializer regression paths.
+- Local validation: `139 passed`, compile/YAML/Python3.8 AST and independent formal recipe
+  recomputation passed.
+- Minimal probe: remote Python 3.8 compiled the four changed modules, imported the active
+  materializer/generate/train path and re-derived both formal hashes without running FFT/SVD or
+  creating experiment outputs. The audit JSON is stored at
+  `/root/autodl-tmp/tausb-malc-v2-control/portable-hash-audit-a7df868.json`, with local/remote
+  SHA256 `b510736a0e87a0ddb325041cdce3b195a020b804457a1ea484d28d604b52db3a`.
+- Run command binding: wrapper `/root/autodl-tmp/tausb-malc-v2-formal-cost-guard.sh` passes
+  `bash -n`, binds exact `a7df8684b0c8ccb767df9712c7bc88a4fde29321`, and has verified
+  SHA256 `430e80e02288bc8adc7b31e15c2ef5913784f57b8d711335803a0a32d68c4415`.
+- Experiment validity: unchanged target/person id 14, seed 0, steps 40, no EOT, fresh C0/M1,
+  200 epochs, imgsz 640, batch 36, SGD and clean VOC validation.
+- Output non-overwrite: formal and mechanism roots are absent. The wrapper additionally refuses
+  an existing formal root and does not use force-resume.
+- Recoverability/secrecy: all required source/map/split/surrogate paths exist; available disk is
+  approximately 25 GB on `/` and 14 GB on `/root/autodl-tmp`; persistent log/status and
+  automatic shutdown remain configured. No credentials entered evidence files.
+- Blockers: only CUDA/GPU availability. Re-enable the GPU, confirm one idle RTX 4090 D and
+  re-run the runtime portion of pre-run review. Do not launch before a new `pass / allow_run`.
+- Validation gaps: no mechanism effectiveness, frozen A1 carrier, C0/M1 training or AP50 result
+  exists yet. The no-card instance was shut down after audit; connection refusal confirmed it.
