@@ -11,6 +11,7 @@ from ue_framework.methods.sirc_probe import (
     apply_object_relative_eot,
     assert_heldout_bank_immutable,
     deterministic_eot_parameters,
+    evaluate_phase_a,
     evaluate_phase_b,
     paired_object_relative_eot,
     semantic_structure_audit,
@@ -133,6 +134,80 @@ def test_phase_b_gate_requires_gain_retention_and_preservation() -> None:
     )
     assert not failed["pass"]
     assert failed["failure_signals"]["collateral_leakage"]
+
+
+def _passing_phase_a_inputs():
+    arm = {
+        "heldout_cicr_median": 0.65,
+        "heldout_cicr_q25": 0.30,
+        "valid_instance_coverage": 0.85,
+        "robustness_retention": {
+            "affine": 0.80,
+            "blur": 0.80,
+            "grayscale": 0.80,
+            "jpeg50": 0.80,
+        },
+        "route_effect": 0.20,
+        "cue_gain_median": 0.20,
+        "non_target_target_energy_ratio": 0.30,
+        "box_residual_energy": 0.20,
+        "group_cicr_median": {
+            "person_only": 0.60,
+            "person_cooccur": 0.60,
+        },
+        "coefficient_saturation_ratio": 0.10,
+        "active_basis_fraction": 0.50,
+        "top1_basis_energy_share": 0.40,
+        "high_frequency_energy_ratio": 0.20,
+        "zero_norm_ratio": 0.01,
+        "calibration_cicr_gain": 0.05,
+        "heldout_cicr_gain": 0.04,
+        "finite": True,
+    }
+    arms = {
+        arm_id: deepcopy(arm)
+        for arm_id in ("I-C2LM", "I-SPC-F", "I-SF", "I-SPC-V", "I-SV")
+    }
+    paired = {"paired_median_delta": 0.06, "ci95": [0.01, 0.10]}
+    structure = {
+        "semantic_pair_gradient_ncc_median": 0.75,
+        "semantic_anchor_gradient_ncc_median": 0.65,
+        "control_anchor_gradient_ncc_median": 0.10,
+        "pairwise_normalized_amplitude_distance_median": 0.20,
+    }
+    return arms, paired, structure
+
+
+def test_phase_a_uses_phase_sensitive_ncc_and_keeps_p5_proxy_diagnostic() -> None:
+    arms, paired, structure = _passing_phase_a_inputs()
+    result = evaluate_phase_a(
+        arms,
+        structure=structure,
+        semantic_proxy_delta=0.01,
+        semantic_vs_control=paired,
+        fixed_semantic_vs_control=paired,
+        cue_contrast=paired,
+        mechanical_pass=True,
+    )
+    assert result["pass"]
+    assert result["diagnostics"]["semantic_proxy_delta"] == 0.01
+    assert abs(result["diagnostics"]["structure_ncc_margin"] - 0.55) < 1e-12
+
+    failed = evaluate_phase_a(
+        arms,
+        structure={
+            **structure,
+            "semantic_anchor_gradient_ncc_median": 0.35,
+            "control_anchor_gradient_ncc_median": 0.30,
+        },
+        semantic_proxy_delta=0.90,
+        semantic_vs_control=paired,
+        fixed_semantic_vs_control=paired,
+        cue_contrast=paired,
+        mechanical_pass=True,
+    )
+    assert not failed["pass"]
+    assert failed["failure_signals"]["structure_destroyed"]
 
 
 def test_formal_config_is_frozen_and_parseable() -> None:

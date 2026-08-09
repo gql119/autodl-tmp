@@ -6,6 +6,7 @@ experiment_type: probe
 csv: issues/TAUSB-SIRC-v1.csv
 created: 2026-08-01
 approved: 2026-08-08
+amended: 2026-08-09
 parent_spec: TAUSB-BSC-ICMO-v1
 ---
 
@@ -246,8 +247,11 @@ L_A = 1.0 * L_instance_cicr
 诊断指标，不进入任何 arm 的优化。另将 canonical pattern 映射到
 `P_vis=clamp(0.5+0.5*P/eps,0,1)`，分别把 `P_vis` 与 anchor 输入同一个 frozen
 YOLO surrogate backbone，记录 P5 global-pooled cosine 作为
-`semantic_proxy_cosine`。该 proxy 也不参与优化，只检验高层特征中是否仍能区分
-phase-preserved 与 phase-scrambled carrier。这样主要 contrast 只改变 basis
+`semantic_proxy_cosine`。本地 smoke 表明 global pooling 对空间 phase/shape 不够敏感，
+因此经用户于 2026-08-09 批准的门禁修订，该 proxy 仅作诊断输出，不参与
+pass/failure/stop 决策。载体结构硬门禁改由 band-limited gradient NCC 承担：
+同时检查语义变体之间的一致性、语义载体对 anchor 的 NCC、相位打乱对照对
+anchor 的 NCC，以及两者的 NCC margin。这样主要 contrast 只改变 basis
 phase/shape，不被额外 auxiliary loss 混淆。若 semantic structure 在优化中消失，
 则按 Failure Signal 停止；是否增加 shape regularizer 必须另建 Spec。
 
@@ -444,7 +448,8 @@ Phase A 必须同时满足：
    active Linf `<=16/255`、outside-support max `=0`、所有值 finite；
 2. structural：I-SV 四变体之间 band-limited gradient NCC median `>=0.70`，
    I-SV 对 anchor median `>=0.60`，I-SPC-V 对 anchor median `<=0.20`；
-   `semantic_proxy_cosine(I-SV)-semantic_proxy_cosine(I-SPC-V) >=0.10`；
+   `NCC_anchor(I-SV)-NCC_anchor(I-SPC-V) >=0.30`；global-P5
+   `semantic_proxy_cosine` 只报告、不作硬门禁；
 3. texture diversity：四个 I-SV variant 的 pairwise normalized amplitude distance
    median `>=0.10`；
 4. I-SV held-out image-level Instance-CICR median `>=0.60`、Q25 `>=0.20`、
@@ -485,7 +490,7 @@ Phase B 必须同时满足：
 2. I-SF 与 I-SPC-F、或任一 I-SV/I-SPC-V variant 的 amplitude spectrum
    不匹配超过相对误差 `1e-5`；
 3. semantic carrier 在 JND/clamp/instance warp 后对 anchor 的结构 NCC `<0.30`，
-   或 `semantic_proxy_cosine(I-SV)-semantic_proxy_cosine(I-SPC-V) <0.03`；
+   或 `NCC_anchor(I-SV)-NCC_anchor(I-SPC-V) <0.10`；
 4. I-SF 明显优于 I-SPC-F，但 I-SV CICR 比 I-SF 低 `>0.15`，说明收益依赖精确
    重复像素而不是共享语义结构；
 5. I-SV calibration CICR gain `>=0.10`，但 held-out gain `<0.02`，说明
@@ -506,8 +511,8 @@ Phase B 必须同时满足：
 
 - Primary：held-out image-level Instance-CICR、I-SV vs I-SPC-V paired delta、
   transformed CICR retention；
-- Secondary：route effect、shortcut `cue_gain`、structure NCC、semantic proxy
-  cosine、texture diversity、scale/cooccur 分组；
+- Secondary：route effect、shortcut `cue_gain`、structure NCC、texture diversity、
+  scale/cooccur 分组；global-P5 semantic proxy cosine 仅作诊断；
 - Protection：non-target/target logit residual ratio、non-target FPN residual、
   box residual、target-vs-preservation gradient cosine；
 - Mechanical/quality proxy：active RMS/Linf、saturation、frequency energy、
@@ -536,7 +541,11 @@ Phase B 必须同时满足：
 
 ## 10. Pre-run Review
 
-- reviewed branch / commit：pending；
+- PRERUN-REVIEW-01：`blocked / do_not_run`，审查快照
+  `baaabcddd2fb76c892ee0b21c971987b50fe4560`；
+- 2026-08-09 用户已批准 global-P5 proxy 门禁修订，并授权普通推送到
+  `https://github.com/gql119/autodl-tmp.git`，不删除、覆盖或改写已有版本；
+- reviewed branch / commit：待本地回归通过后填写新快照；
 - exact command：pending；
 - source contamination evidence：pending；
 - phase/amplitude reconstruction evidence：pending；

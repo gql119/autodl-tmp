@@ -483,12 +483,19 @@ def evaluate_phase_a(
     group = candidate["group_cicr_median"]
     identity = float(candidate["heldout_cicr_median"])
     retentions = candidate["robustness_retention"]
+    semantic_anchor_ncc = float(
+        structure["semantic_anchor_gradient_ncc_median"]
+    )
+    control_anchor_ncc = float(
+        structure["control_anchor_gradient_ncc_median"]
+    )
+    structure_margin = semantic_anchor_ncc - control_anchor_ncc
     checks = {
         "mechanical": bool(mechanical_pass),
         "structure": float(structure["semantic_pair_gradient_ncc_median"]) >= 0.70
-        and float(structure["semantic_anchor_gradient_ncc_median"]) >= 0.60
-        and float(structure["control_anchor_gradient_ncc_median"]) <= 0.20
-        and float(semantic_proxy_delta) >= 0.10,
+        and semantic_anchor_ncc >= 0.60
+        and control_anchor_ncc <= 0.20
+        and structure_margin >= 0.30,
         "texture_diversity": float(
             structure["pairwise_normalized_amplitude_distance_median"]
         )
@@ -522,9 +529,8 @@ def evaluate_phase_a(
         and float(candidate["zero_norm_ratio"]) < 0.10,
     }
     failure_signals = {
-        "structure_destroyed": float(structure["semantic_anchor_gradient_ncc_median"])
-        < 0.30
-        or float(semantic_proxy_delta) < 0.03,
+        "structure_destroyed": semantic_anchor_ncc < 0.30
+        or structure_margin < 0.10,
         "exact_pixel_dependence": float(fixed_semantic_vs_control["paired_median_delta"])
         >= 0.05
         and identity < float(fixed_candidate["heldout_cicr_median"]) - 0.15,
@@ -545,6 +551,10 @@ def evaluate_phase_a(
         "pass": all(checks.values()) and not any(failure_signals.values()),
         "checks": checks,
         "failure_signals": failure_signals,
+        "diagnostics": {
+            "semantic_proxy_delta": float(semantic_proxy_delta),
+            "structure_ncc_margin": structure_margin,
+        },
     }
 
 
