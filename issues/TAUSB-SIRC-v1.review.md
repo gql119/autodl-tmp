@@ -105,3 +105,104 @@
 结论：`REMOTE-PROBE-01` 保持关闭。只有用户对具体 GitHub push 给出明确授权、恢复
 可连接 AutoDL、完成全部远端只读输入核验，并对 global-P5 proxy 门禁作出明确决定后，
 才可重建独立 review packet 并考虑 `allow_run`。
+
+## LOCAL-RUN-REVIEW-02
+
+- Local result: pass
+- Formal result: blocked
+- Decision: do_not_run
+- Gated run: `REMOTE-PROBE-01` / `TAUSB-SIRC-MECH-S0`
+- Code snapshot: branch `codex/tausb-sirc-v1`, commit
+  `10658b072bda0f5c9b1e06a39937203dc9bb420a`
+- Intent: 实施用户 2026-08-09 批准的载体结构门禁修订。global-P5
+  `semantic_proxy_cosine` 仍然计算并落盘，但不再单独决定 Phase A
+  pass/failure/stop；结构硬门禁使用 band-limited gradient NCC 及
+  semantic-control NCC margin。本修订不改 optimization loss、split、seed、
+  epsilon、support、renderer、budget 或 claim boundary。
+- Code location:
+  - Spec 修订：`docs/research/specs/TAUSB-SIRC-v1.md`；
+  - active gate：`ue_project/ue_framework/methods/sirc_probe.py` 的
+    `evaluate_phase_a`；
+  - 正反例回归：`ue_project/tests/test_sirc_probe.py` 的
+    `test_phase_a_uses_phase_sensitive_ncc_and_keeps_p5_proxy_diagnostic`。
+- Parameter data flow:
+  - CLI `probe_tausb_sirc --config ... --stage all` → `load_config` →
+    `validate_sirc_config` → `SIRCProbeWorkflow.run`；
+  - 每个 arm 的 final canonical pattern → `_pattern_shape_ncc` 与
+    `_semantic_proxy_cosine` → arm summary；
+  - I-SV/I-SPC-V 的 `shape_ncc_median` → `final_structure` →
+    `evaluate_phase_a`；
+  - `evaluate_phase_a` 将 semantic/control NCC 及 margin 写入决策，将
+    `semantic_proxy_delta` 仅写入 `phase_a.diagnostics`；
+  - `phase_a.json`、`metrics.json`、`status.json` 保持原 sink 路径。
+- Runtime state: surrogate 仍全部冻结，只优化原 48 个 carrier
+  coefficients。修订没有新增 optimizer parameter、forward、loss 或 held-out
+  反传路径。
+- Sink effect:
+  - success structure gate：semantic pair NCC `>=0.70`、semantic-anchor
+    `>=0.60`、control-anchor `<=0.20`、margin `>=0.30`；
+  - independent failure：semantic-anchor `<0.30` 或 margin `<0.10`；
+  - 单元回归证明 proxy delta `0.01` + 合格 NCC 可通过，而 proxy
+    delta `0.90` + 破坏 NCC margin 必须失败。
+- Baseline/disable path: 改动仅在独立 SIRC probe 的 `evaluate_phase_a`；
+  ICMO、TAUSB best、victim train/evaluate 和 clean metric 路径未改。本轮
+  `git diff --check` 通过，且未暂存用户的其他工作树改动。
+- Local validation:
+  - 定向：`.venv/Scripts/python.exe -m pytest tests/test_sirc_probe.py -q`
+    → `7 passed`；
+  - 全量：`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider
+    --basetemp tmp/pytest-sirc-gate-20260809-01` → `93 passed`；
+  - `py_compile` 覆盖 SIRC carrier/renderer/probe/CLI → pass；
+  - formal validate-only → pass，config hash
+    `4fc00518c1793c098bb160dc4827d66952187e51c720f5b7c16551fd6b1378c8`；
+  - 首次新 smoke 临时 config 放在错误层级，导致 project root 解析错误；
+    该尝试在 shared split 前 fail closed，没有创建 artifact root。更正 config
+    位置并使用新 root 后 smoke 完成。
+- Minimal probe:
+  - artifact：
+    `ue_project/runs_research_local/TAUSB-SIRC-v1-smoke-20260809-gate-review-02/`；
+  - status `completed`，真实 TAL `target_gt_idx` shape `4x8400`；
+  - I-SPC-V/I-SV/I-SV-E1 coverage `0.8/1.0/1.0`，梯度均 finite，
+    outside-support max 均为 `0`；
+  - mechanical preconditions PASS，minimum basis rank `16`，gamma family RMS
+    ratio `1.03988`，spectrum relative error max `7.44e-10`；
+  - smoke 中 I-SV/I-SPC-V anchor NCC 为 `0.67132/0.06081`，margin
+    `0.61052`；global-P5 proxy delta 仍为 `0.01878`，但仅作诊断；
+  - `mechanism_claim=not_evaluated_by_smoke`，未声称 Phase A/B 或 UE 有效。
+- Run command binding: formal 内层命令仍为
+
+  ```bash
+  cd /root/autodl-tmp/ue_project
+  python -u -m ue_framework.tools.probe_tausb_sirc \
+    --config ue_framework/configs/exp_voc_person_tausb_sirc_probe.yaml \
+    --stage all \
+    --device 0
+  ```
+
+  本地审查已绑定 commit `10658b072bda0f5c9b1e06a39937203dc9bb420a`。
+  普通非 force push 尝试被安全审查器拒绝，要求用户再次明确确认
+  具体仓库、分支与 payload；未尝试绕过。
+- Experiment validity: formal config 仍是 VOC20、person id 14、seed 0、
+  eps `16/255`、原 split/checkpoint/source/bank hashes；修订未引入 clean validation
+  robustness transform，也不产生 mAP。
+- Output non-overwrite: 新本地 smoke 使用独立 root
+  `TAUSB-SIRC-v1-smoke-20260809-gate-review-02`；旧 smoke 和正式 root 未删除、
+  覆盖或 resume。formal workflow 仍在 root 存在时 fail closed。
+- Recoverability/secrecy: 本地 CSV、Spec、commit 和 smoke artifact 可恢复；未写入
+  SSH 主机、用户、端口、密钥或 token。未生成远端 tmux/session/log。
+- Blockers:
+  1. 需要用户显式确认将 commit
+     `10658b072bda0f5c9b1e06a39937203dc9bb420a` 及本地 review 证据推送到
+     `https://github.com/gql119/autodl-tmp.git` 的
+     `codex/tausb-sirc-v1`，允许普通非 force push；
+  2. 12 个已保存 AutoDL profile 仍不可连接，远端 checkout、GPU、VOC、
+     checkpoint、source local map 与 fresh artifact root 尚未只读核验。
+- Validation gaps:
+  - 本地 smoke 只证明机械链路和门禁路由，不证明 formal Phase A/B
+    或 fresh-victim UE 有效；
+  - formal held-out/bootstrap/JPEG 全量路径未运行；
+  - 没有远端输入、环境、tmux 或运行证据。
+
+本地审查结论：门禁修订的 active data flow 和回归证据通过；正式
+`REMOTE-PROBE-01` 仍保持关闭，直到推送与远端只读输入核验完成，再执行
+`PRERUN-REVIEW-02`。
