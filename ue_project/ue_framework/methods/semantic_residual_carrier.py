@@ -4,7 +4,7 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 import torch
 import torch.nn.functional as F
@@ -15,6 +15,7 @@ from .instance_canonical_carrier import (
     canonicalize_explicit_bases,
     tensor_sha256,
 )
+from .provenance_hash import portable_recipe_sha256
 
 
 DEFAULT_RADIAL_EDGES = (2.0, 5.5, 10.0, 16.0, 24.0)
@@ -229,6 +230,7 @@ class SemanticCarrierBank:
     semantic_scales: torch.Tensor
     control_scales: torch.Tensor
     bank_hash: str
+    hash_mode: str
     resolution: int
     radial_edges: tuple[float, ...]
     phase_seed: int
@@ -440,7 +442,15 @@ def build_semantic_carrier_bank(
     phase_seed: int = 2101,
     radial_edges: Sequence[float] = DEFAULT_RADIAL_EDGES,
     num_orientations: int = 4,
+    hash_mode: str = "tensor-v1",
+    source_provenance: Mapping[str, Any] | None = None,
 ) -> SemanticCarrierBank:
+    if hash_mode not in {"tensor-v1", "recipe-v1"}:
+        raise ValueError("hash_mode must be 'tensor-v1' or 'recipe-v1'.")
+    if hash_mode == "tensor-v1" and source_provenance is not None:
+        raise ValueError("tensor-v1 does not accept source provenance.")
+    if hash_mode == "recipe-v1" and source_provenance is None:
+        raise ValueError("recipe-v1 requires source provenance.")
     variants = construct_phase_amplitude_variants(
         anchor,
         donors,
@@ -468,17 +478,25 @@ def build_semantic_carrier_bank(
         "num_orientations": int(num_orientations),
         "phase_seed": int(phase_seed),
     }
-    digest = hashlib.sha256()
-    digest.update(json.dumps(metadata, sort_keys=True).encode("utf-8"))
-    for tensor in (
-        variants,
-        controls,
-        semantic_bases,
-        control_bases,
-        semantic_scales,
-        control_scales,
-    ):
-        digest.update(tensor_sha256(tensor).encode("ascii"))
+    if hash_mode == "tensor-v1":
+        digest = hashlib.sha256()
+        digest.update(json.dumps(metadata, sort_keys=True).encode("utf-8"))
+        for tensor in (
+            variants,
+            controls,
+            semantic_bases,
+            control_bases,
+            semantic_scales,
+            control_scales,
+        ):
+            digest.update(tensor_sha256(tensor).encode("ascii"))
+        bank_hash = digest.hexdigest()
+    elif hash_mode == "recipe-v1":
+        bank_hash = portable_recipe_sha256(
+            schema="tausb.semantic-carrier-bank.recipe-v1",
+            parameters=metadata,
+            source_provenance=source_provenance,
+        )
     return SemanticCarrierBank(
         variants=variants,
         controls=controls,
@@ -488,7 +506,8 @@ def build_semantic_carrier_bank(
         control_ranks=control_ranks,
         semantic_scales=semantic_scales,
         control_scales=control_scales,
-        bank_hash=digest.hexdigest(),
+        bank_hash=bank_hash,
+        hash_mode=hash_mode,
         resolution=int(resolution),
         radial_edges=tuple(float(value) for value in radial_edges),
         phase_seed=int(phase_seed),

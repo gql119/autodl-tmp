@@ -36,6 +36,14 @@ def test_formal_config_freezes_victim_no_eot_and_hashes() -> None:
         "source_manifest_hash",
         "split_hash",
     ))
+    mechanism = yaml.safe_load(MECHANISM.read_text(encoding="utf-8"))
+    assert mechanism["spec"]["semantic_bank_hash_mode"] == "recipe-v1"
+    assert mechanism["spec"]["c2lm_basis_hash_mode"] == "recipe-v1"
+    assert (
+        mechanism["spec"]["semantic_bank_sha256"]
+        == method["semantic_bank_hash"]
+    )
+    assert len(mechanism["spec"]["c2lm_basis_sha256"]) == 64
 
 
 def test_mechanism_config_is_no_eot_and_a0_a1_are_exactly_matched() -> None:

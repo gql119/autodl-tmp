@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import torch
 
 from ue_framework.methods.semantic_residual_carrier import (
@@ -115,6 +116,55 @@ def test_basis_invariants_rank_hash_and_gradients() -> None:
     assert coefficients.grad is not None
     assert torch.isfinite(coefficients.grad).all()
     assert float(coefficients.grad.norm()) > 0
+
+
+def test_recipe_hash_binds_provenance_and_preserves_tensor_default() -> None:
+    anchor, donors = _images()
+    provenance = {
+        "manifest_sha256": "a" * 64,
+        "ordered_sources": [
+            {"source_id": f"source-{index}", "sha256": f"{index:x}" * 64}
+            for index in range(5)
+        ],
+    }
+    legacy = build_semantic_carrier_bank(anchor, donors, resolution=32)
+    first = build_semantic_carrier_bank(
+        anchor,
+        donors,
+        resolution=32,
+        hash_mode="recipe-v1",
+        source_provenance=provenance,
+    )
+    second = build_semantic_carrier_bank(
+        anchor,
+        donors,
+        resolution=32,
+        hash_mode="recipe-v1",
+        source_provenance=provenance,
+    )
+    changed = build_semantic_carrier_bank(
+        anchor,
+        donors,
+        resolution=32,
+        phase_seed=2102,
+        hash_mode="recipe-v1",
+        source_provenance=provenance,
+    )
+    assert legacy.hash_mode == "tensor-v1"
+    assert first.hash_mode == "recipe-v1"
+    assert first.bank_hash == second.bank_hash
+    assert first.bank_hash != changed.bank_hash
+
+
+def test_recipe_hash_requires_explicit_source_provenance() -> None:
+    anchor, donors = _images()
+    with pytest.raises(ValueError, match="source provenance"):
+        build_semantic_carrier_bank(
+            anchor,
+            donors,
+            resolution=32,
+            hash_mode="recipe-v1",
+        )
 
 
 def test_variant_carrier_shares_one_coefficient_matrix() -> None:

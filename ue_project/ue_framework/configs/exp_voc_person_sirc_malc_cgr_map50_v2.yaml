@@ -64,7 +64,7 @@ methods:
     enable_cgr: true
     require_mechanism_pass: true
     frozen_carrier_state: /root/tausb-sirc-runs/TAUSB-SIRC-MALC-CGR-MAP50-v2/mechanism/a1_frozen_carrier.pt
-    semantic_bank_hash: 0c503d900676c05212cef3443ab4a11d0dafe17e0ab82d0a384bc870a2b945d2
+    semantic_bank_hash: 0b8a94efc55155bea20a1ec799bfac14c8a6f11fd6530538f3e0437b37c0dd4b
     source_manifest_hash: 3a13b0f38b06006fd7f68ae03c7206b4b047d4b6129ee7357b05b966641d47af
     split_hash: e2542517af00830147117582d69ff15a62fbeae1f8583bf0c9d01fbff120cae1
     variant_seed: 2102

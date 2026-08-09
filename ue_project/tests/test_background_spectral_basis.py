@@ -114,6 +114,45 @@ def test_raw_and_scrambled_phase_produce_distinct_bases() -> None:
     assert raw.basis_hash != scrambled.basis_hash
 
 
+def test_recipe_hash_binds_sources_and_parameters() -> None:
+    provenance = {
+        "manifest_sha256": "b" * 64,
+        "ordered_sources": [
+            {"source_id": f"source-{index}", "sha256": f"{index:x}" * 64}
+            for index in range(8)
+        ],
+    }
+    kwargs = {
+        "resolution": 24,
+        "num_bases": 8,
+        "bands": ((2.0, 8.0),),
+        "phase_mode": "scrambled",
+        "min_rank": 8,
+        "hash_mode": "recipe-v1",
+        "source_provenance": provenance,
+    }
+    first = build_background_spectral_basis(_source_images(), seed=3, **kwargs)
+    second = build_background_spectral_basis(_source_images(), seed=3, **kwargs)
+    changed = build_background_spectral_basis(_source_images(), seed=4, **kwargs)
+    assert first.hash_mode == "recipe-v1"
+    assert first.basis_hash == second.basis_hash
+    assert first.basis_hash != changed.basis_hash
+
+
+def test_background_recipe_hash_requires_source_provenance() -> None:
+    with pytest.raises(ValueError, match="source provenance"):
+        build_background_spectral_basis(
+            _source_images(),
+            resolution=24,
+            num_bases=8,
+            bands=((2.0, 8.0),),
+            phase_mode="scrambled",
+            seed=3,
+            min_rank=8,
+            hash_mode="recipe-v1",
+        )
+
+
 def test_square_source_produces_two_distinct_deterministic_crops() -> None:
     image = torch.arange(3 * 32 * 32, dtype=torch.float32).reshape(3, 32, 32)
     first = deterministic_two_crops(image, resolution=24, source_index=0)

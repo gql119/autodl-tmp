@@ -230,6 +230,10 @@ def validate_sirc_config(config: Mapping[str, Any]) -> None:
     ):
         if len(str(config["spec"].get(key, ""))) != 64:
             raise ValueError(f"SIRC spec.{key} must be a SHA256.")
+    for key in ("semantic_bank_hash_mode", "c2lm_basis_hash_mode"):
+        mode = str(config["spec"].get(key, "tensor-v1"))
+        if mode not in {"tensor-v1", "recipe-v1"}:
+            raise ValueError(f"SIRC spec.{key} has an unsupported value.")
 
 
 def _gradient_map(image: torch.Tensor) -> torch.Tensor:
@@ -918,17 +922,53 @@ class SIRCProbeWorkflow:
             and _file_sha256(path) in required_hashes
         ]
         self.anchor = source_by_id[required_ids[0]]
+        records_by_id = {
+            str(record["source_id"]): record
+            for record in source_manifest_records
+        }
+        semantic_source_provenance = {
+            "manifest_sha256": source_manifest_hash,
+            "ordered_sources": [
+                {
+                    "source_id": source_id,
+                    "sha256": str(records_by_id[source_id]["sha256"]).lower(),
+                }
+                for source_id in required_ids
+            ],
+        }
+        semantic_hash_mode = str(
+            config["spec"].get("semantic_bank_hash_mode", "tensor-v1")
+        )
         self.semantic_bank = build_semantic_carrier_bank(
             self.anchor,
             [source_by_id[source_id] for source_id in required_ids[1:]],
             resolution=int(config["carrier"]["resolution"]),
             phase_seed=int(config["carrier"]["phase_seed"]),
             radial_edges=config["carrier"]["radial_edges"],
+            hash_mode=semantic_hash_mode,
+            source_provenance=(
+                semantic_source_provenance
+                if semantic_hash_mode == "recipe-v1"
+                else None
+            ),
         )
         expected_bank_hash = str(config["spec"].get("semantic_bank_sha256", ""))
         if expected_bank_hash and self.semantic_bank.bank_hash != expected_bank_hash:
             raise ValueError("Frozen semantic carrier bank hash mismatch.")
 
+        baseline_hash_mode = str(
+            config["spec"].get("c2lm_basis_hash_mode", "tensor-v1")
+        )
+        baseline_source_provenance = {
+            "manifest_sha256": source_manifest_hash,
+            "ordered_sources": [
+                {
+                    "source_id": str(record["source_id"]),
+                    "sha256": str(record["sha256"]).lower(),
+                }
+                for record in source_manifest_records
+            ],
+        }
         baseline = build_background_spectral_basis(
             source_images,
             resolution=int(config["carrier"]["resolution"]),
@@ -936,10 +976,18 @@ class SIRCProbeWorkflow:
             bands=((2.0, 8.0), (8.0, 24.0)),
             phase_mode="scrambled",
             seed=int(config["carrier"].get("baseline_basis_seed", 0)),
+            hash_mode=baseline_hash_mode,
+            source_provenance=(
+                baseline_source_provenance
+                if baseline_hash_mode == "recipe-v1"
+                else None
+            ),
         )
         expected_baseline_hash = str(config["spec"].get("c2lm_basis_sha256", ""))
         if expected_baseline_hash and baseline.basis_hash != expected_baseline_hash:
             raise ValueError("Frozen C2-LM baseline hash mismatch.")
+        self.c2lm_basis_hash = baseline.basis_hash
+        self.c2lm_basis_hash_mode = baseline.hash_mode
         baseline_scales = torch.full(
             (baseline.bases.shape[0],),
             1.0 / math.sqrt(baseline.bases.shape[0]),
@@ -1037,6 +1085,9 @@ class SIRCProbeWorkflow:
                 "voc_source_hash_duplicates": self.source_duplicate_matches,
                 "structure": self.structure_audit,
                 "semantic_bank_hash": self.semantic_bank.bank_hash,
+                "semantic_bank_hash_mode": self.semantic_bank.hash_mode,
+                "c2lm_basis_hash": self.c2lm_basis_hash,
+                "c2lm_basis_hash_mode": self.c2lm_basis_hash_mode,
                 "source_manifest_hash": self.source_manifest_hash,
                 "split_hash": self.split["split_hash"],
                 "surrogate_checkpoint_sha256": self.surrogate_checkpoint_hash,

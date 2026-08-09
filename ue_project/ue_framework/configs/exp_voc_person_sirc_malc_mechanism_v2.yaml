@@ -6,8 +6,10 @@ spec:
   shared_split_sha256: e2542517af00830147117582d69ff15a62fbeae1f8583bf0c9d01fbff120cae1
   label_sha256: 0c8b6f6424061bc31b84ddf42b7370dcbd074f26805433d0ba275c24815e3248
   surrogate_checkpoint_sha256: 8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89
-  c2lm_basis_sha256: 0395c41541d6bcb51ce81805a96271cd099253eee20c94945968d6e1b0f881c1
-  semantic_bank_sha256: 0c503d900676c05212cef3443ab4a11d0dafe17e0ab82d0a384bc870a2b945d2
+  c2lm_basis_hash_mode: recipe-v1
+  c2lm_basis_sha256: 8350c0a608150839c98a8dad8db862d0c9dfaeca4714f05d1714afac0f30cfa5
+  semantic_bank_hash_mode: recipe-v1
+  semantic_bank_sha256: 0b8a94efc55155bea20a1ec799bfac14c8a6f11fd6530538f3e0437b37c0dd4b
 
 dataset:
   root: /root/autodl-tmp/ue_project/VOC_0712_Kaggle_Ready

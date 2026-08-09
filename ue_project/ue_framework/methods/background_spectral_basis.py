@@ -10,6 +10,8 @@ from typing import Any, Mapping, Sequence, Tuple
 import torch
 import torch.nn.functional as F
 
+from .provenance_hash import portable_recipe_sha256
+
 
 BandRange = Tuple[float, float]
 
@@ -21,6 +23,7 @@ class BackgroundSpectralBasis:
     rank: int
     source_hash: str
     basis_hash: str
+    hash_mode: str
     phase_mode: str
     bands: tuple[BandRange, ...]
     resolution: int
@@ -230,7 +233,15 @@ def build_background_spectral_basis(
     phase_mode: str = "scrambled",
     seed: int = 0,
     min_rank: int = 8,
+    hash_mode: str = "tensor-v1",
+    source_provenance: Mapping[str, Any] | None = None,
 ) -> BackgroundSpectralBasis:
+    if hash_mode not in {"tensor-v1", "recipe-v1"}:
+        raise ValueError("hash_mode must be 'tensor-v1' or 'recipe-v1'.")
+    if hash_mode == "tensor-v1" and source_provenance is not None:
+        raise ValueError("tensor-v1 does not accept source provenance.")
+    if hash_mode == "recipe-v1" and source_provenance is None:
+        raise ValueError("recipe-v1 requires source provenance.")
     if len(source_images) != 8:
         raise ValueError(f"Expected 8 source images, got {len(source_images)}.")
     if resolution <= 0 or num_bases <= 0:
@@ -285,14 +296,27 @@ def build_background_spectral_basis(
         "resolution": int(resolution),
         "seed": int(seed),
     }
-    source_hash = _tensor_digest(torch.stack(source_tensors), metadata)
-    basis_hash = _tensor_digest(bases, metadata)
+    if hash_mode == "tensor-v1":
+        source_hash = _tensor_digest(torch.stack(source_tensors), metadata)
+        basis_hash = _tensor_digest(bases, metadata)
+    elif hash_mode == "recipe-v1":
+        source_hash = portable_recipe_sha256(
+            schema="tausb.background-sources.recipe-v1",
+            parameters={"resolution": int(resolution)},
+            source_provenance=source_provenance,
+        )
+        basis_hash = portable_recipe_sha256(
+            schema="tausb.background-spectral-basis.recipe-v1",
+            parameters=metadata,
+            source_provenance=source_provenance,
+        )
     return BackgroundSpectralBasis(
         bases=bases,
         singular_values=singular_values.float(),
         rank=rank,
         source_hash=source_hash,
         basis_hash=basis_hash,
+        hash_mode=hash_mode,
         phase_mode=phase_mode,
         bands=frozen_bands,
         resolution=int(resolution),
