@@ -397,3 +397,29 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
   confirmed one idle RTX 4090 D, clean code commit `93f49be`, fresh outputs and sufficient disk.
   `PRERUN-REVIEW-02` therefore changed the mechanism gate to `pass / allow_run`; automatic
   shutdown and a 20-minute idle-hang watchdog are mandatory for the launched workflow.
+
+## REMOTE-MECHANISM-01 launch and recovery state
+
+- Launch UTC: `2026-08-09T15:06:34Z`.
+- Code/session: `93f49beeeb608c4ed5d78fd762a4f8d080b4590a` in clean worktree
+  `/root/tausb-malc-wt-039c7fc`; tmux `tausb-malc-v2-s0`.
+- Wrapper: `/root/autodl-tmp/tausb-malc-v2-formal-cost-guard.sh`, SHA256
+  `3a0ac8845b4463ae8db8c5406993e46013cf47ed0d4400531eaf80c1472d0961`.
+- Persistent diagnostics: `/root/autodl-tmp/tausb-malc-v2-control/formal-seed0.log` and
+  `/root/autodl-tmp/tausb-malc-v2-control/cost-guard-status.json`.
+- First health evidence: tmux pane PID `1414`, pane alive, and the first durable marker was
+  `stage=mechanism detail=matched_A0_A1_gate`.
+- Observed failure boundary: the next SSH health check was refused and a second attempt timed
+  out. The cost wrapper invokes `/usr/bin/shutdown` on every command failure, so this is strong
+  evidence that the instance shut down during early mechanism initialization. C0/M1 were not
+  started; no mechanism PASS or UE result is claimed.
+- Cost outcome: the requested automatic shutdown operated immediately; the GPU is not being
+  left online for debugging.
+- Debug decision: `systematic-debugging / evidence_pending`. Do not infer a cause or patch code
+  until the persisted full traceback, mechanism status and cost-guard state are read. The
+  cheapest faithful next step is AutoDL no-card mode, followed by read-only retrieval of the two
+  persistent diagnostics and any partial mechanism status. GPU must remain off during diagnosis.
+
+- 2026-08-09: the formal mechanism workflow launched after a passing pre-run review, emitted
+  its first mechanism marker, then triggered the cost guard and shut the instance down before
+  C0/M1. Root cause remains unknown until persistent logs are retrieved in no-card mode.
