@@ -352,3 +352,48 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
   `93f49be`, reran the full 135-test suite, pushed normally, fast-forwarded the clean AutoDL
   worktree and verified the Python-3.8 import. The review remains blocked solely at the formal
   run gate because CUDA is unavailable; no formal artifact was created.
+
+## PRERUN-REVIEW-02
+
+- Result: `pass`
+- Decision: `allow_run`
+- Gated run: 允许启动 `REMOTE-MECHANISM-01`；`REMOTE-C0-01` 和 `REMOTE-M1-01`
+  仍以 mechanism report 的 `pass=true`、`allow_fresh_victim=true` 为运行时硬门禁。
+- Code snapshot: `codex/tausb-sirc-malc-cgr-map50-v2`；
+  `pre_run_code_commit=93f49beeeb608c4ed5d78fd762a4f8d080b4590a`；远端 clean worktree
+  `/root/tausb-malc-wt-039c7fc` 同一 HEAD，`git status --porcelain` 为空。
+- Intent: 与 `PRERUN-REVIEW-01` 相同；不加入 EOT、robustness transforms、外部 ResNet
+  或第二套非目标保护损失。
+- Code location: 与 `PRERUN-REVIEW-01` 相同；当前审查没有新增方法代码。
+- Parameter data flow: CLI/config/runtime/MALC/CGR/materializer/metrics 链与上一审查一致；
+  victim 的 seed 现在同时覆盖模型初始化和 Ultralytics trainer。
+- Runtime state: 远端 Python `3.8.10`、torch `2.0.0+cu118`、ultralytics `8.4.33`；
+  CUDA 可用，device count 1，GPU 为 `NVIDIA GeForce RTX 4090 D`，总显存 24,564 MiB、
+  复审时空闲 24,081 MiB；无其他 compute process、无已有 tmux session。
+- Sink effect: 与上一审查一致；机制、C0、M1、aggregate 均有独立 status/log/metrics sink。
+- Baseline/disable path: A0/MALC-off、全关回退和正式 M1 partial-switch 拒绝行为均保持不变。
+- Local validation: `135 passed in 9.54s`；v2 聚焦 `32 passed`；seed 聚焦 `5 passed`；
+  AutoDL Python 3.8 导入通过。
+- Minimal probe: 输入文件、surrogate、source manifest/map、split 均存在；VOC/labels/person
+  counts 与已冻结审计一致。正式根 `/root/tausb-sirc-runs/TAUSB-SIRC-MALC-CGR-MAP50-v2`
+  不存在；overlay 空闲约 25 GiB，`/root/autodl-tmp` 空闲约 14 GiB。
+- Run command binding: 使用 `PRERUN-REVIEW-01` 冻结的机制/C0/M1/aggregate 内层命令；
+  由 `autodl-remote-run-snippet` 生成 tmux 绑定，并置于成本保护 wrapper 中。解释器固定
+  `/root/miniconda3/bin/python`，工作目录固定 `/root/tausb-malc-wt-039c7fc/ue_project`。
+- Experiment validity: C0/M1 均 fresh、seed 0、200 epochs、640、batch 36、SGD、同一 clean
+  VOC val；机制失败时 shell 编排和 Python 两层均禁止进入 victim。
+- Output non-overwrite: 所有正式子 root 当前不存在；不使用 `--force_resume`；任何现有
+  mechanism、poisoned、C0/M1 victim root 都会触发 fail closed。
+- Recoverability/secrecy: 唯一正式 tmux 将记录 session、日志、commit、GPU 和 artifacts。
+  根据用户成本要求，wrapper 在完整流水线成功或任一命令失败后都执行官方建议的
+  `/usr/bin/shutdown`；另设 watchdog：日志连续 20 分钟无增长且 GPU 空闲时判作 hang，
+  终止 runner 并关机。正常长计算但 GPU 忙时不误杀。日志和产物在关机前落盘。
+- Blockers: 无。
+- Validation gaps: semantic-bank/C2-LM 的远端精确重建将在正式 mechanism 初始化时执行并
+  fail closed；这不是允许 victim 绕过的缺口。远端没有 pytest，但代码行为已由本地完整套件
+  和远端 Python 3.8 import 覆盖。
+
+- 2026-08-09: user enabled the GPU and added a strict cost policy. The repeat pre-run audit
+  confirmed one idle RTX 4090 D, clean code commit `93f49be`, fresh outputs and sufficient disk.
+  `PRERUN-REVIEW-02` therefore changed the mechanism gate to `pass / allow_run`; automatic
+  shutdown and a 20-minute idle-hang watchdog are mandatory for the launched workflow.
