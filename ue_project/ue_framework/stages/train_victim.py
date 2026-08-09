@@ -4,7 +4,7 @@ import shutil
 
 from ultralytics import YOLO
 
-from ..env_utils import resolve_workers
+from ..env_utils import resolve_workers, set_global_seed
 from ..io_utils import atomic_write_json
 from ..metrics_utils import VOC20_CLASS_NAMES
 from ..pack import pack_run_artifacts
@@ -105,6 +105,11 @@ def run_train_victim(ctx: RunContext) -> None:
     victim_cfg = cfg["victim"]
     resume_enabled = bool(cfg["platform"].get("resume", True))
 
+    # C0 and M1 are independent fresh victims under one matched seed. Seed
+    # before constructing YOLO so model initialization is matched as well as
+    # the subsequent Ultralytics training loop.
+    set_global_seed(ctx.seed)
+
     status = load_or_init_status(ctx.paths.artifact_status_json, ctx.method, ctx.steps, ctx.seed)
     if resume_enabled and stage_completed(status, "train_victim"):
         print("[train_victim] already completed, skipping.")
@@ -157,6 +162,7 @@ def run_train_victim(ctx: RunContext) -> None:
         lrf=float(victim_cfg.get("lrf", 0.01)),
         momentum=float(victim_cfg.get("momentum", 0.937)),
         weight_decay=float(victim_cfg.get("weight_decay", 0.0005)),
+        seed=int(ctx.seed),
     )
 
     def on_fit_epoch_end(trainer):
