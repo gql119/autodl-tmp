@@ -219,3 +219,136 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
 - 2026-08-09: normal non-force push succeeded to
   `origin/codex/tausb-sirc-malc-cgr-map50-v2`; the remote branch contains implementation commit
   `d85967ed070340718b8e805fb59021f560f1eb71` and its workflow-metadata successor `f0995e5`.
+- 2026-08-09: `REMOTE-INPUTS-01` found and repaired two pre-run environment defects without
+  touching the legacy dirty worktree. A real AutoDL Python 3.8 import exposed an eager
+  `tuple[...]` annotation in `shadow_tal.py`; the minimal future-annotations fix is commit
+  `25c85435d8c234fc84d6cc49bcef63c21a26de03`. The mechanism config was then bound to the
+  isolated input root `/root/.local/share/tausb/TAUSB-SIRC-MALC-CGR-MAP50-v2` in commit
+  `c233f38ccbc7a226ffb8b99a03ae2551e2cbb588`. Both commits passed all `134` local tests and
+  were normally pushed.
+- 2026-08-09: AutoDL now uses clean worktree `/root/tausb-malc-wt-039c7fc` at exact HEAD
+  `c233f38ccbc7a226ffb8b99a03ae2551e2cbb588`, dirty count `0`; the old clean checkout remains
+  clean and `/root/autodl-tmp` remains at dirty count `2162`. A slow incomplete shallow-clone
+  attempt was stopped by its exact process group and retained unused at `/root/tausb-malc-039c7fc`;
+  no directory was deleted. Committed-code-only bundles were used to update the worktree after
+  AutoDL-to-GitHub TLS failures.
+- 2026-08-09: remote input evidence passed for Python `3.8.10`, torch `2.0.0+cu118`,
+  ultralytics `8.4.33`, all active imports, no-EOT formal config, VOC train/val
+  `16551/4952`, `16551` train labels, exactly `6095` person images, VOC20/person=14, and
+  surrogate SHA256 `8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89`.
+  All eight authorized background files passed per-file SHA256 and decode checks; canonical
+  source hash is `3a13b0f38b06006fd7f68ae03c7206b4b047d4b6129ee7357b05b966641d47af`.
+  The 64-calibration/96-held-out split resolved against VOC with hash
+  `e2542517af00830147117582d69ff15a62fbeae1f8583bf0c9d01fbff120cae1`.
+  Semantic-bank and C2-LM remote reconstruction invoke large CPU matrix-rank/SVD work and
+  exceeded the no-card audit budget; the exact hashes passed local real-VOC smoke and remain
+  fail-closed in persistent formal initialization. Formal root is absent. The instance exposes
+  no GPU, so no mechanism or victim command was started; this is the remaining external blocker.
+
+## PRERUN-REVIEW-01
+
+- Result: `blocked`（实现与输入审计通过，但正式运行环境门禁未满足）
+- Decision: `do_not_run`
+- Gated run: `REMOTE-MECHANISM-01`、`REMOTE-C0-01`、`REMOTE-M1-01` 全部保持禁止；
+  C0/M1 还继续受 A0/A1 mechanism gate 约束。
+- Code snapshot: branch `codex/tausb-sirc-malc-cgr-map50-v2`，
+  `pre_run_code_commit=93f49beeeb608c4ed5d78fd762a4f8d080b4590a`；GitHub 已普通非 force
+  push；AutoDL clean worktree `/root/tausb-malc-wt-039c7fc` 同一 HEAD、dirty count 0。
+- Intent: 在 VOC2007+2012 / YOLOv8n 上，以 `person`（id 14）为唯一目标类，先验证
+  detector-native MALC 是否让共享 SIRC carrier 在 held-out person 实例产生更一致、非零且
+  多尺度有效的分类塔残差，再验证该 gate-passed carrier 是否令 fresh victim 的 person AP50
+  显著下降，同时用逐类 CGR 尽量保持另外 19 类。
+- Code location: 机制入口
+  `ue_framework/tools/probe_tausb_sirc_malc.py`；A0/A1 主循环
+  `ue_framework/methods/sirc_malc_mechanism.py`；MALC/CGR
+  `ue_framework/methods/malc.py`、`malc_calibration.py`、`malc_cgr.py`；冻结状态与
+  materializer `ue_framework/methods/sirc_malc_cgr.py`；正式流水线
+  `ue_framework/launch_one.py`、`stages/generate.py`、`stages/train_victim.py`、
+  `stages/evaluate.py`、`stages/aggregate.py`。
+- Parameter data flow: mechanism YAML 冻结 source/split/surrogate/basis/bank hashes、seed、
+  no-EOT、40 steps 与 CGR 阈值；运行时依次进入共享 48 系数 carrier、YOLO cv3 P3/P4/P5、
+  clean TAL/PAG、score-weighted MALC、逐类 classification-probability CGR、非线性回溯和
+  held-out gate。只有通过 gate 的 A1 写出冻结 carrier；正式 YAML 再核验其内容 hash、
+  bank/source/split hash、`eps=16/255`、forced-pseudo support 与 no-EOT，随后 materialize
+  6,095 张 person 图像。`run_tag=C0/M1` 隔离 victim artifacts，poisoned dataset 仅供 M1。
+- Runtime state: AutoDL Python `3.8.10`、torch `2.0.0+cu118`、ultralytics `8.4.33`；
+  当前 `torch.cuda.is_available()=False`、device count `0`。正式 run root 仍不存在，未创建
+  tmux session，未启动机制、训练或评估。
+- Sink effect: `evaluate.py` 通过显式 `ap_class_index` 映射落盘完整 VOC20 命名 AP50、
+  person AP50、19 类宏平均、person-free/co-occurrence 指标、poison count、实际 Linf 和质量
+  gap；`aggregate.py` 只在恰好一条 C0 和一条 M1 指标存在时生成逐类 delta/retention 与冻结
+  success rules，结论固定为 `tentative_single_seed`。
+- Baseline/disable path: mechanism A0 与 A1 除 `enable_malc` 外完全匹配；MALC-off 保留
+  easy classification route、RMS 和 CGR；所有 v2 开关全关时精确回退已有 `tausb_mask`
+  method config。正式 M1 拒绝 partial switches、MALC-off、CGR-off、EOT 或未通过 gate 的状态。
+- Local validation: 审查中发现并修复 victim 随机性漏洞：此前 seed 未覆盖
+  `YOLO(config)` 初始化。提交 `93f49be` 现在在构造模型前执行 `set_global_seed(ctx.seed)`，
+  并向 Ultralytics 显式传入同一 seed；新增行为测试验证调用顺序与参数。完整本地测试为
+  `135 passed in 9.54s`，v2 聚焦测试 `32 passed`，seed 聚焦测试 `5 passed`；diff check 通过。
+- Minimal probe: 先前 real-VOC CPU smoke 的 10 个 JSON 均为有限值，A0/A1 前后向和 CGR
+  投影/非线性检查机械通过；它只是一阶非证据 smoke，科学 gate 按预期未通过且没有冻结
+  carrier。AutoDL Python 3.8 已成功导入修订后的 `run_train_victim`；远端未安装 pytest，
+  因此远端行为测试由本地完整套件覆盖，保留为环境性 validation gap。
+- Run command binding: 以下命令仅绑定，当前不得执行。工作目录固定为
+  `/root/tausb-malc-wt-039c7fc/ue_project`，解释器固定为 `/root/miniconda3/bin/python`。
+
+  ```bash
+  # mechanism（应放入 tmux: tausb-malc-mech-s0）
+  /root/miniconda3/bin/python -u ue_framework/tools/probe_tausb_sirc_malc.py \
+    --config ue_framework/configs/exp_voc_person_sirc_malc_mechanism_v2.yaml \
+    --device 0
+
+  # C0（仅在 mechanism gate PASS 后；tmux: tausb-malc-c0-s0）
+  /root/miniconda3/bin/python -u ue_framework/launch_one.py \
+    --config ue_framework/configs/exp_voc_person_sirc_malc_cgr_map50_v2.yaml \
+    --method sirc_malc_cgr --steps 40 --seed 0 --stage train_victim \
+    --gpu_id 0 --run_tag C0 \
+    --poisoned_root_override /root/autodl-tmp/ue_project/VOC_0712_Kaggle_Ready
+  /root/miniconda3/bin/python -u ue_framework/launch_one.py \
+    --config ue_framework/configs/exp_voc_person_sirc_malc_cgr_map50_v2.yaml \
+    --method sirc_malc_cgr --steps 40 --seed 0 --stage evaluate \
+    --gpu_id 0 --run_tag C0 \
+    --poisoned_root_override /root/autodl-tmp/ue_project/VOC_0712_Kaggle_Ready
+
+  # M1（仅在 mechanism gate PASS 且 C0 完成后；tmux: tausb-malc-m1-s0）
+  /root/miniconda3/bin/python -u ue_framework/launch_one.py \
+    --config ue_framework/configs/exp_voc_person_sirc_malc_cgr_map50_v2.yaml \
+    --method sirc_malc_cgr --steps 40 --seed 0 \
+    --stage generate_poisoned_dataset --gpu_id 0 --run_tag M1
+  /root/miniconda3/bin/python -u ue_framework/launch_one.py \
+    --config ue_framework/configs/exp_voc_person_sirc_malc_cgr_map50_v2.yaml \
+    --method sirc_malc_cgr --steps 40 --seed 0 --stage train_victim \
+    --gpu_id 0 --run_tag M1
+  /root/miniconda3/bin/python -u ue_framework/launch_one.py \
+    --config ue_framework/configs/exp_voc_person_sirc_malc_cgr_map50_v2.yaml \
+    --method sirc_malc_cgr --steps 40 --seed 0 --stage evaluate \
+    --gpu_id 0 --run_tag M1
+  /root/miniconda3/bin/python -u ue_framework/launch_one.py \
+    --config ue_framework/configs/exp_voc_person_sirc_malc_cgr_map50_v2.yaml \
+    --method sirc_malc_cgr --steps 40 --seed 0 --stage aggregate \
+    --gpu_id 0 --run_tag M1
+  ```
+
+- Experiment validity: C0/M1 都从同一配置独立构造 fresh YOLOv8n，并在模型初始化之前固定
+  seed 0；epochs 200、imgsz 640、batch 36、SGD 和 clean VOC val 一致。C0 数据根不存在
+  `manifest.csv/status.json`，不会被旧 poisoning metadata 污染。M1 评估必须看到 6,095 条
+  poisoned rows、完整 provenance 和 passing mechanism report，否则 fail closed。
+- Output non-overwrite: mechanism root 已存在即拒绝；fresh generate 拒绝既有 poisoned/M1
+  artifact roots；fresh victim 拒绝既有 `train_runs/victim`。C0/M1 artifacts 的真实路径分别为
+  `.../artifacts/sirc_malc_cgr/steps40/seed0_C0` 与 `seed0_M1`；M1 poisoned dataset 为
+  `.../poisoned_datasets/sirc_malc_cgr/steps40/seed0`。正式命令不使用 `--force_resume`。
+- Recoverability/secrecy: GPU 运行时必须使用独立 tmux 和独立日志路径，记录 hostname、
+  branch、commit、session、GPU、环境、artifact root 与首进度；每 10 epoch 快照和打包。
+  凭据、SSH key、数据集、权重和 smoke artifacts 均不进入提交、CSV 或日志。历史 dirty
+  worktree 未被 reset/stash/clean；未删除任何目录。
+- Blockers: 当前 AutoDL 实例没有 GPU。因此 `pre_run_result=blocked`，不得生成 carrier、
+  不得训练 C0/M1，也不得把无卡 smoke 当作正式证据。
+- Validation gaps: semantic-bank 与 C2-LM basis 的远端 CPU 重建因大矩阵 SVD 超过无卡审计
+  时间预算；精确 hash 已在本地 real-VOC 初始化中通过，正式持久 mechanism 初始化仍会在任何
+  优化前重新构建并 fail closed。GPU 可用后必须先重查 HEAD/dirty、CUDA、所有 hashes 和
+  fresh roots，再重复本节审查；只有 `pass / allow_run` 才能调用远程运行技能。
+
+- 2026-08-09: pre-run review detected unmatched victim initialization randomness, fixed it in
+  `93f49be`, reran the full 135-test suite, pushed normally, fast-forwarded the clean AutoDL
+  worktree and verified the Python-3.8 import. The review remains blocked solely at the formal
+  run gate because CUDA is unavailable; no formal artifact was created.
