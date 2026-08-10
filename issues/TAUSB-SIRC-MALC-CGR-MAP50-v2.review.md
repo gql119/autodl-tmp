@@ -594,3 +594,63 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
 
 - 2026-08-10: the second cost-guarded launch again shut the instance down during early remote
   execution. GPU cost is stopped; root-cause work is deferred to persisted no-card evidence.
+
+## Systematic debugging: held-out autograd graph lifetime OOM
+
+- Persisted guard state is `failed / mechanism` at `2026-08-10T02:59:57Z`. Mechanism status is
+  `failed / optimize_A1 / OutOfMemoryError`; C0/M1 were never entered.
+- The exact OOM occurred while `_heldout_batches` routed a CGR update and evaluated a nonlinear
+  candidate margin. PyTorch reported 22.66 GiB allocated, 23.02 GiB reserved and 14.69 MiB free
+  on the 23.52 GiB device before a 20 MiB allocation.
+- A0 had already completed all 40 optimization steps and all 24 held-out batches. Its metrics
+  and diagnostics exist, while no A1 metrics/report or frozen carrier exists.
+- Root cause: each `MALCMechanismBatch` stored the full `MALCResult`, including loss tensors with
+  detector autograd graphs. The outer A0 `heldout` list remained referenced while A1 started.
+  In addition, nonlinear backtracking candidate evaluation performed a second detector forward
+  with gradient recording even though it only returned scalar class margins. The established
+  BSC routing path performs this candidate evaluation under `torch.no_grad()`.
+- This rules out batch size, recipe hash, input contamination and C0/M1 training as the first bad
+  boundary. Merely setting an allocator fragmentation flag would not address the live 22.66 GiB
+  graph retention.
+
+## OOM-GRAPH-LIFETIME-01
+
+- Corrective code commit: `fcf26cc24dc7e6943234cc3cdf7943fd957cb6cc`.
+- Held-out MALC records are now copied to CPU with every tensor detached before entering the
+  records list. The original observation/MALC/target/routing references are explicitly released
+  after each held-out batch, and the per-arm held-out list is released after aggregation.
+- CGR nonlinear candidate margin observations now execute entirely under `torch.no_grad()` while
+  preserving candidate-copy and original-coefficient restoration semantics.
+- Scientific invariants are unchanged: batch 4, 40 optimization steps, 64 calibration images,
+  96 held-out images, A0/A1 matching, loss weights, MALC prototypes, CGR projection/backtracking,
+  thresholds, seed and no-EOT protocol are unchanged.
+- Focused validation passed `15/15`. The first full run produced 123 passes and 18 fixture setup
+  errors solely because the global Windows pytest temp root was inaccessible; rerunning with a
+  new repository-local `--basetemp` passed `141/141`. Compile and Python 3.8 AST checks passed.
+- The clean AutoDL worktree is deployed at exact `fcf26cc`, dirty count 0; Python 3.8 compile and
+  active imports pass. The minimal bundle SHA256 is
+  `afa59e94f3b5249882a15d9b463af3db6b74a96e898c534516880d16b681ee50`.
+- No mechanism or fresh-victim effectiveness claim follows from this mechanical memory fix.
+
+## PRERUN-REVIEW-06
+
+- Result: `blocked`
+- Decision: `do_not_run`
+- Gated run: `REMOTE-MECHANISM-01`; C0/M1 remain additionally gated by mechanism PASS.
+- Code snapshot: exact `fcf26cc24dc7e6943234cc3cdf7943fd957cb6cc` in clean remote worktree,
+  dirty count 0. Python 3.8 compile/import checks pass.
+- Output non-overwrite: the 48 KB OOM artifact was preserved at
+  `/root/tausb-sirc-runs/TAUSB-SIRC-MALC-CGR-MAP50-v2-failed-20260810-oom-a7df868`;
+  the formal root `/root/tausb-sirc-runs/TAUSB-SIRC-MALC-CGR-MAP50-v2` is absent.
+- Run command binding: new wrapper
+  `/root/autodl-tmp/tausb-malc-v2-formal-cost-guard-fcf26cc.sh` passes `bash -n`, binds exact
+  `fcf26cc`, uses distinct log/status paths, and has SHA256
+  `1a7a50aff158033cad7acdda9d8377e9e5a757a289772440ffad65aaabb3026b`.
+- Cost control remains automatic shutdown after complete/failure plus the 20-minute no-progress
+  and idle-compute watchdog. The old wrapper and failed evidence remain preserved.
+- Parameter chain, baseline/disable paths, sinks, experiment validity and claim boundary remain
+  unchanged from the prior passing implementation review.
+- Blocker: the instance is in no-card mode, so CUDA is unavailable. A fresh GPU runtime review
+  must verify one idle device and record `pass / allow_run` before launch.
+- Validation gaps: the memory fix has not yet executed on GPU; no A1 mechanism report, frozen
+  carrier, C0/M1 training or AP50 result exists.
