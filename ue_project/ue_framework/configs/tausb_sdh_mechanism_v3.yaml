@@ -4,7 +4,7 @@ spec:
   seed: 0
 
 dataset:
-  root: VOC_0712_Kaggle_Ready
+  root: /root/autodl-tmp/ue_project/VOC_0712_Kaggle_Ready
   train_images: images/train
   train_labels: labels/train
   target_class_id: 14
@@ -13,7 +13,7 @@ dataset:
   train_label_manifest_sha256: 3cd05ad1ab6a546bf2afd5e63cb6c3ff6667064d80af129dd819325625b9d848
 
 model:
-  surrogate_checkpoint: checkpoints/voc20_surrogate.pt
+  surrogate_checkpoint: /root/autodl-tmp/ue_project/checkpoints/voc20_surrogate.pt
   num_classes: 20
   image_size: 640
 

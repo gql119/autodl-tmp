@@ -92,6 +92,10 @@ def test_factory_never_silently_maps_sdh_to_legacy() -> None:
 def test_capped_mechanism_config_freezes_cost_and_protocol() -> None:
     config = yaml.safe_load(MECHANISM.read_text(encoding="utf-8"))
     validate_sdh_experiment_config(config)
+    assert config["dataset"]["root"] == "/root/autodl-tmp/ue_project/VOC_0712_Kaggle_Ready"
+    assert config["model"]["surrogate_checkpoint"] == (
+        "/root/autodl-tmp/ue_project/checkpoints/voc20_surrogate.pt"
+    )
     assert config["hiding"]["max_seconds"] == 1200
     assert config["mechanism"]["max_seconds"] == 900
     assert config["mechanism"]["calibration_batches"] == 16
