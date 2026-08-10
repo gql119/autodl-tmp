@@ -157,3 +157,8 @@ seed, if eventually run, remains tentative.
   Python 3.8 AST, formal/mechanism config parsing, CLI help, 31-row CSV structure, finite
   gradients, deterministic rendering, and real VOC TAL/loss smokes pass. GPU hiding,
   held-out mechanism gates, fresh-victim training, and all AP50 outcomes remain unrun gaps.
+- 2026-08-11: Created dedicated branch
+  `codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3` and code snapshot `a781e1f`. The commit contains
+  41 approved task files, including the four user-authorized source carriers and deterministic
+  256px derivatives (<1 MiB total), but excludes VOC, weights, checkpoints, smoke artifacts,
+  credentials, temporary outputs, and every unrelated dirty-worktree file.
