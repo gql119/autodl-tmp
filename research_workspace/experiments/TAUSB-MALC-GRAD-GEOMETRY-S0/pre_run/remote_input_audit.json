@@ -1,0 +1,34 @@
+{
+  "actual": {
+    "label_sha256": "0c8b6f6424061bc31b84ddf42b7370dcbd074f26805433d0ba275c24815e3248",
+    "shared_split_sha256": "e2542517af00830147117582d69ff15a62fbeae1f8583bf0c9d01fbff120cae1",
+    "source_manifest_sha256": "3a13b0f38b06006fd7f68ae03c7206b4b047d4b6129ee7357b05b966641d47af",
+    "surrogate_checkpoint_sha256": "8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89"
+  },
+  "all_train_images": 16551,
+  "artifact_root": "/root/tausb-sirc-runs/TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1/geometry",
+  "artifact_root_fresh": true,
+  "calibration_images": 64,
+  "claim_boundary": "remote_input_audit_only_no_probe",
+  "deferred_fail_fast_hashes": [
+    "semantic_bank_sha256",
+    "c2lm_basis_sha256"
+  ],
+  "deferred_reason": "CPU reconstruction exceeded five-minute no-progress guard",
+  "disk_free_bytes": 26685173760,
+  "expected": {
+    "label_sha256": "0c8b6f6424061bc31b84ddf42b7370dcbd074f26805433d0ba275c24815e3248",
+    "shared_split_sha256": "e2542517af00830147117582d69ff15a62fbeae1f8583bf0c9d01fbff120cae1",
+    "source_manifest_sha256": "3a13b0f38b06006fd7f68ae03c7206b4b047d4b6129ee7357b05b966641d47af",
+    "surrogate_checkpoint_sha256": "8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89"
+  },
+  "heldout_images": 96,
+  "matches": {
+    "label_sha256": true,
+    "shared_split_sha256": true,
+    "source_manifest_sha256": true,
+    "surrogate_checkpoint_sha256": true
+  },
+  "pass": true,
+  "target_images": 6095
+}

@@ -9,7 +9,7 @@
 - Initial implementation snapshot: `354ad58c067968e3e4b6dd220bfdf262fea1fa7a` (superseded by the single-projector pre-run fix).
 - Remote branch: pushed normally to `origin/codex/tausb-malc-grad-geometry-audit-v1`
 - Approval: user explicitly approved on 2026-08-10.
-- Active row: `REMOTE-INPUTS-01`.
+- Active row: `GPU-ENABLE-01`.
 
 ## Frozen scope
 
@@ -29,6 +29,18 @@ The ordered output is exactly one `first_bad_boundary`: `prototype_incoherence`,
 
 The worktree already contains unrelated user modifications and untracked research assets. Preserve them: no reset, stash, clean, bulk deletion, or broad staging. Only files attributable to this Spec may be committed.
 
-## Current remote blocker
+## Current remote state and blocker
 
-On 2026-08-10 a single read-only SSH availability check to the authorized AutoDL endpoint returned `Connection refused`. The instance therefore remains off and is not accruing GPU cost. No repeated reconnect loop was attempted. Start the AutoDL instance before resuming `REMOTE-INPUTS-01`; the next run must first verify commit, environment, frozen hashes and the fresh artifact root, then complete the formal pre-run review before any probe is launched.
+The authorized AutoDL no-card instance is reachable. `REMOTE-INPUTS-01` is complete: the
+remote executable source/config scope is an exact clean copy of reviewed commit
+`18304b96c45360cfba5168d97d21d2961a13f390`; frozen VOC counts and input hashes match;
+the formal/control roots and tmux session are absent; and the cost-guard wrapper has matching
+local/remote SHA-256 and passes remote `bash -n`. Detailed evidence is in
+`research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/pre_run/`.
+
+`PRERUN-REVIEW-01` is complete with `blocked / do_not_run` solely because no-card mode reports
+CUDA unavailable and zero devices. Per the execution workflow, `GPU-ENABLE-01` and
+`PRERUN-REVIEW-02` were inserted before the gated remote row. The next action is for the user
+to enable GPU mode. The second review will recheck one idle RTX 4090 D, the exact commit,
+source-scoped clean state, wrapper hash, fresh roots and absent session. No probe may launch
+until that review records `pass / allow_run`.
