@@ -92,3 +92,12 @@
 - Recoverability/secrecy: r1 tmux/log/status paths are fixed; automatic shutdown applies on success, exception or ten minutes with no log/artifact progress while CPU/GPU are idle. No credential is persisted.
 - Blockers: none.
 - Validation gaps: scientific geometry values and real graph lifetime remain unknown until this bounded retry produces artifacts.
+
+## REMOTE-GEOMETRY-02 launch and terminal health
+
+- Launch: accepted in tmux `tausb-malc-geometry-s0-r1`.
+- First health: guard `running/geometry_probe`; PID 1294 present; GPU process used 2,684 MiB; input-audit and CUDA checks passed; no victim/materialization route.
+- Completion observed before shutdown: calibration batch count 16, held-out batch count 24 and microtrajectory step count 8. `config_resolved.json`, `input_audit.json`, `prototype_geometry.json`, `gradient_geometry.json`, `microtrajectory.json`, `diagnostic_decision.json` and `status.json` were present.
+- Terminal scientific status: `stopped`, `valid=false`, `first_bad_boundary=None`, `allow_fresh_victim=false`. This is not a runtime crash and cannot support a mechanism conclusion until `diagnostic_decision.json` is pulled and its validity flags are inspected.
+- Shutdown: the next bounded reconnect returned `Connection refused`, confirming automatic shutdown after the snapshot path.
+- Current state: `completed_pending_pull`; reopen no-card mode for exact artifact/checksum ingest.

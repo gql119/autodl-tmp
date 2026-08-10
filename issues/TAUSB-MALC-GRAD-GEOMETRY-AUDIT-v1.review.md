@@ -9,7 +9,7 @@
 - Initial implementation snapshot: `354ad58c067968e3e4b6dd220bfdf262fea1fa7a` (superseded by the single-projector pre-run fix).
 - Remote branch: pushed normally to `origin/codex/tausb-malc-grad-geometry-audit-v1`
 - Approval: user explicitly approved on 2026-08-10.
-- Active row: `REMOTE-GEOMETRY-02`.
+- Active row: `ARTIFACT-PULL-01` (awaiting no-card mode).
 
 ## Frozen scope
 
@@ -70,3 +70,11 @@ HEAD/source, corrected wrapper hash/schema, preserved old failure, fresh formal/
 absent r1 session, one idle NVIDIA GeForce RTX 4090 D with 0 MiB used and no compute process,
 and the unchanged surrogate-only claim boundary. `REMOTE-GEOMETRY-02` is allowed to run in
 tmux `tausb-malc-geometry-s0-r1` with automatic shutdown protection.
+
+`REMOTE-GEOMETRY-02` completed all frozen counts (16 calibration batches, 24 held-out batches,
+8 matched steps) and wrote the seven core JSON files. First health showed the expected Python
+process and 2,684 MiB GPU use. The terminal status is `stopped / valid=false /
+first_bad_boundary=None`; this is a scientific validity failure, not a crash, and must not be
+interpreted before the decision artifact is pulled. The instance then automatically shut down,
+confirmed by `Connection refused`. The next action is a no-card artifact pull and checksum
+audit; no further GPU work is authorized.

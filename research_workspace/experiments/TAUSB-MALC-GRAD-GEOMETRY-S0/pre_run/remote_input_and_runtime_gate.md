@@ -123,3 +123,9 @@ source is unchanged except Python import caches; CUDA is unavailable with device
 NVIDIA GeForce RTX 4090 D with 0 MiB used and no compute applications; CUDA, exact source,
 corrected schema assertion, wrapper hash, formal/r1 freshness, session absence and shutdown
 availability all pass. The only authorized retry session is `tausb-malc-geometry-s0-r1`.
+
+The r1 run passed first health and completed all 16/24/8 frozen counts. Seven core JSON files
+were visible before shutdown. Its terminal status is `stopped`, `valid=false`, with no assigned
+first bad boundary and `allow_fresh_victim=false`. Automatic shutdown was confirmed by the
+subsequent refused connection. Exact validity flags and scientific interpretation are deferred
+until the files are pulled in no-card mode.
