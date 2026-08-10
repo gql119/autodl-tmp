@@ -654,3 +654,33 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
   must verify one idle device and record `pass / allow_run` before launch.
 - Validation gaps: the memory fix has not yet executed on GPU; no A1 mechanism report, frozen
   carrier, C0/M1 training or AP50 result exists.
+
+## PRERUN-REVIEW-07
+
+- Result: `pass`
+- Decision: `allow_run`
+- Gated run: `REMOTE-MECHANISM-01`; C0/M1 remain additionally gated by a passing mechanism
+  report with `allow_fresh_victim=true`.
+- Code snapshot: remote clean worktree is at exact reviewed commit
+  `fcf26cc24dc7e6943234cc3cdf7943fd957cb6cc`; dirty count is 0.
+- Intent, active code, parameter data flow, sinks, baseline/disable path and experiment protocol
+  are unchanged from PRERUN-REVIEW-06. The change remains limited to mechanism memory lifetime.
+- Runtime state: CUDA is available with one `NVIDIA GeForce RTX 4090 D`; `nvidia-smi` reports
+  24,564 MiB total, 0 MiB used, 0% utilization and no compute process.
+- Local/minimal validation: focused `15/15`, complete `141/141`, Python 3.8 AST/compile and
+  remote Python 3.8 import passed. The new GPU audit confirms the deployed snapshot and runtime.
+- Run command binding: `/root/autodl-tmp/tausb-malc-v2-formal-cost-guard-fcf26cc.sh` passes
+  `bash -n`, binds exact `fcf26cc`, distinct log/status files and the approved configs/method/
+  steps/seed/root; SHA256 is
+  `1a7a50aff158033cad7acdda9d8377e9e5a757a289772440ffad65aaabb3026b`.
+- Output non-overwrite: the OOM archive is present; the formal root and tmux session
+  `tausb-malc-v2-s0` are absent. The root filesystem has approximately 25 GB free.
+- Recoverability/secrecy: tmux, persistent logs/status, exact commit and artifact root are fixed;
+  no credentials are persisted. Completion, failure, or 20-minute no-progress plus idle compute
+  requests shutdown.
+- Blockers: none.
+- Validation gaps: the corrected memory path has not yet completed a GPU mechanism run; no A1
+  report, frozen carrier, C0/M1 or AP50 result exists before launch.
+
+- 2026-08-10: after GPU enablement, the runtime repeat audit passed on one idle RTX 4090 D.
+  `PRERUN-REVIEW-07` records `pass / allow_run` for the cost-guarded fcf26cc launch.
