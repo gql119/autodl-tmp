@@ -2,6 +2,10 @@
   "schema": "tausb.voc-input-audit.v1",
   "created": "2026-08-11",
   "dataset_root": "F:/dateset/VOC_0712_Kaggle_Ready/VOC_0712_Kaggle_Ready",
+  "manifest_hash_schemes": {
+    "image_path_size_manifest_sha256": "canonical_json_v1:[{name,size}] sorted by name",
+    "label_content_manifest_sha256": "canonical_json_v1:[{name,sha256(file_bytes)}] sorted by name"
+  },
   "splits": {
     "train": {
       "image_count": 16551,
@@ -39,8 +43,8 @@
         "18": 925,
         "19": 1108
       },
-      "image_path_size_manifest_sha256": "96feacf8d8299ad9e9135b7fb1d2bc4c90d6c94bf96ecc6453e660e805166e35",
-      "label_content_manifest_sha256": "98615b1ecdb2d45a7579c4dbafc83d88f193873ddd25c15afde29045d684cd00",
+      "image_path_size_manifest_sha256": "4954727df8686532a788668fd815092112ac3e3ee1414eba83b616e683708fbd",
+      "label_content_manifest_sha256": "3cd05ad1ab6a546bf2afd5e63cb6c3ff6667064d80af129dd819325625b9d848",
       "elapsed_seconds": 12.017
     },
     "val": {
@@ -79,8 +83,8 @@
         "18": 282,
         "19": 308
       },
-      "image_path_size_manifest_sha256": "b9c97539c88b85ff3fdbff155fcfe93a76b6202299a597570e8bc002ca687920",
-      "label_content_manifest_sha256": "4432843b2e1c4e346cf0607b344e40994fd02a186982b8e976238a95ed2453d2",
+      "image_path_size_manifest_sha256": "17a3f851807b8cc22e3e89bc1ed576b8b0e113fcc6ceaa909f4ada7be70bbbdf",
+      "label_content_manifest_sha256": "39a60f505cca78562d5e881df3300bb4d53ecb9513532ba2600f502120c8b53e",
       "elapsed_seconds": 4.115
     }
   },

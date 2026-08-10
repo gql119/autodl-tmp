@@ -69,5 +69,5 @@ methods:
     frozen_sdh_state: /root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0/mechanism/p1_frozen_sdh_state.pt
     secret_source_sha256: 66bd89ebef12b21d578341e945d56ed315372b213e52c2cc07d2110543cc6a48
     secret_tensor_sha256: cb4b9bba70701c118cc869738ca2713a049ec23b86e89238f32353b06bd4adaf
-    source_manifest_sha256: fd80353e6ab6d30f2e914aa732fa671e0d8bde339a3a58b583ca0c0547f8edbb
-    train_split_sha256: 98615b1ecdb2d45a7579c4dbafc83d88f193873ddd25c15afde29045d684cd00
+    source_manifest_sha256: a25277499e07310e68a39277461f176dd0d8666e69a4b890328d7b913601ac3e
+    train_split_sha256: 3cd05ad1ab6a546bf2afd5e63cb6c3ff6667064d80af129dd819325625b9d848

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 
 import pytest
@@ -8,7 +9,10 @@ import yaml
 
 from ue_framework.config import SUPPORTED_METHODS, load_config
 from ue_framework.methods.factory import build_generator
-from ue_framework.methods.sdh_experiment import validate_sdh_experiment_config
+from ue_framework.methods.sdh_experiment import (
+    _canonical_json_sha256,
+    validate_sdh_experiment_config,
+)
 
 
 FORMAL = (
@@ -96,3 +100,16 @@ def test_capped_mechanism_config_freezes_cost_and_protocol() -> None:
     assert config["mechanism"]["max_backtracks"] == 5
     assert config["mechanism"]["eot_enabled"] is False
     assert config["mechanism"]["jnd_enabled"] is False
+
+
+def test_secret_manifest_hash_is_line_ending_independent(tmp_path) -> None:
+    payload = {"schema": "test", "records": [{"source_id": "secret-1"}]}
+    lf_path = tmp_path / "lf.json"
+    crlf_path = tmp_path / "crlf.json"
+    text = json.dumps(payload, indent=2)
+    lf_path.write_bytes(text.replace("\r\n", "\n").encode("utf-8"))
+    crlf_path.write_bytes(text.replace("\r\n", "\n").replace("\n", "\r\n").encode("utf-8"))
+
+    lf_payload = json.loads(lf_path.read_text(encoding="utf-8"))
+    crlf_payload = json.loads(crlf_path.read_text(encoding="utf-8"))
+    assert _canonical_json_sha256(lf_payload) == _canonical_json_sha256(crlf_payload)

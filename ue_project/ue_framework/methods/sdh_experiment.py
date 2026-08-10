@@ -76,6 +76,16 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _canonical_json_sha256(payload: Any) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def _float_tensor_sha256(tensor: torch.Tensor) -> str:
     value = tensor.detach().cpu().float().contiguous().numpy().astype("<f4", copy=False)
     return hashlib.sha256(value.tobytes(order="C")).hexdigest()
@@ -356,10 +366,10 @@ def _resolve(base: Path, value: str) -> Path:
 
 def _load_secret_bank(config: Mapping[str, Any], base: Path) -> Tuple[torch.Tensor, int, Dict[str, Any]]:
     manifest_path = _resolve(base, str(config["secrets"]["manifest"]))
-    actual_manifest_sha256 = _file_sha256(manifest_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    actual_manifest_sha256 = _canonical_json_sha256(manifest)
     if actual_manifest_sha256 != str(config["secrets"]["manifest_sha256"]):
         raise ValueError("Secret manifest hash does not match SDH config.")
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     records = manifest["records"]
     pretrain = [item for item in records if item["role"] == "pretrain"]
     primary = [item for item in records if item["source_id"] == config["secrets"]["primary_id"]]
