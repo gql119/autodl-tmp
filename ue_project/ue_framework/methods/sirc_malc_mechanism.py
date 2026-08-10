@@ -23,6 +23,7 @@ from .malc_mechanism import (
     MALCMechanismBatch,
     aggregate_malc_mechanism_batches,
     assert_matched_mechanism_configs,
+    detach_malc_result,
     evaluate_malc_mechanism_gate,
     write_malc_mechanism_report,
 )
@@ -99,14 +100,14 @@ class SIRCMALCMechanismWorkflow:
         try:
             with torch.no_grad():
                 carrier.coefficients.copy_(candidate)
-            observation = self._observe(batch, carrier)
-            return {
-                term.name: float(term.margin.detach())
-                for term in class_probability_constraint_terms(
-                    observation.constraints,
-                    tolerance=float(self.optimization["cgr_tolerance"]),
-                )
-            }
+                observation = self._observe(batch, carrier)
+                return {
+                    term.name: float(term.margin)
+                    for term in class_probability_constraint_terms(
+                        observation.constraints,
+                        tolerance=float(self.optimization["cgr_tolerance"]),
+                    )
+                }
         finally:
             with torch.no_grad():
                 carrier.coefficients.copy_(original)
@@ -343,7 +344,7 @@ class SIRCMALCMechanismWorkflow:
             )
             records.append(
                 MALCMechanismBatch(
-                    malc=malc,
+                    malc=detach_malc_result(malc),
                     cgr_attack_retention=routed.route.attack_retention,
                     cgr_max_projected_row_dot=routed.route.max_projected_row_dot,
                     cgr_selected_mode=routed.selected_mode,
@@ -356,6 +357,7 @@ class SIRCMALCMechanismWorkflow:
             )
             if not torch.equal(carrier.coefficients.detach(), original):
                 raise RuntimeError("Held-out mechanism evaluation modified carrier state.")
+            del observation, malc, target_loss, routed
         return records
 
     def run(self, *, smoke: bool = False) -> dict[str, Any]:
@@ -431,6 +433,7 @@ class SIRCMALCMechanismWorkflow:
                     heldout,
                     split="heldout",
                 )
+                del heldout
                 summary.update(
                     {
                         "arm_id": arm_id,

@@ -10,6 +10,7 @@ from ue_framework.methods.malc_mechanism import (
     MALCMechanismBatch,
     aggregate_malc_mechanism_batches,
     assert_matched_mechanism_configs,
+    detach_malc_result,
     evaluate_malc_mechanism_gate,
     write_malc_mechanism_report,
 )
@@ -86,6 +87,43 @@ def test_heldout_aggregation_keeps_scale_and_group_diagnostics() -> None:
     assert "context:cooccur" in metrics["groups"]
     with pytest.raises(ValueError, match="heldout"):
         aggregate_malc_mechanism_batches([_batch(0.5, 0.2)], split="calibration")
+
+
+def test_heldout_result_copy_drops_autograd_graph_and_moves_to_cpu() -> None:
+    parameter = torch.tensor(0.2, requires_grad=True)
+    loss = parameter.square()
+    result = _result(0.5, 0.2)
+    result = MALCResult(
+        loss=loss,
+        direction_loss=loss + 1.0,
+        magnitude_loss=loss + 2.0,
+        floor_loss=loss + 3.0,
+        per_scale_loss=(loss, loss + 1.0, loss + 2.0),
+        per_scale_valid_count=result.per_scale_valid_count,
+        per_scale_assigned_count=result.per_scale_assigned_count,
+        scale_contribution_share=result.scale_contribution_share,
+        per_instance_cosine=torch.stack((loss, loss + 0.1)),
+        per_instance_log_energy=torch.stack((loss, loss - 0.1)),
+        valid_instance_count=result.valid_instance_count,
+        total_instance_count=result.total_instance_count,
+        valid_instance_coverage=result.valid_instance_coverage,
+        zero_norm_ratio=result.zero_norm_ratio,
+        floor_pass_ratio=result.floor_pass_ratio,
+        valid_scale_count=result.valid_scale_count,
+    )
+
+    detached = detach_malc_result(result)
+    tensors = (
+        detached.loss,
+        detached.direction_loss,
+        detached.magnitude_loss,
+        detached.floor_loss,
+        *detached.per_scale_loss,
+        detached.per_instance_cosine,
+        detached.per_instance_log_energy,
+    )
+    assert all(value.device.type == "cpu" for value in tensors)
+    assert all(not value.requires_grad and value.grad_fn is None for value in tensors)
 
 
 def test_gate_passes_only_when_all_success_and_leakage_checks_pass() -> None:

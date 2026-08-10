@@ -43,6 +43,32 @@ class MALCMechanismBatch:
             raise ValueError("Mechanism batch diagnostics must be finite and non-negative.")
 
 
+def detach_malc_result(result: MALCResult) -> MALCResult:
+    """Copy held-out diagnostics to CPU without retaining an autograd graph."""
+
+    def detached(tensor: torch.Tensor) -> torch.Tensor:
+        return tensor.detach().to(device="cpu")
+
+    return MALCResult(
+        loss=detached(result.loss),
+        direction_loss=detached(result.direction_loss),
+        magnitude_loss=detached(result.magnitude_loss),
+        floor_loss=detached(result.floor_loss),
+        per_scale_loss=tuple(detached(value) for value in result.per_scale_loss),
+        per_scale_valid_count=result.per_scale_valid_count,
+        per_scale_assigned_count=result.per_scale_assigned_count,
+        scale_contribution_share=result.scale_contribution_share,
+        per_instance_cosine=detached(result.per_instance_cosine),
+        per_instance_log_energy=detached(result.per_instance_log_energy),
+        valid_instance_count=result.valid_instance_count,
+        total_instance_count=result.total_instance_count,
+        valid_instance_coverage=result.valid_instance_coverage,
+        zero_norm_ratio=result.zero_norm_ratio,
+        floor_pass_ratio=result.floor_pass_ratio,
+        valid_scale_count=result.valid_scale_count,
+    )
+
+
 def _finite_values(values: Sequence[torch.Tensor]) -> torch.Tensor:
     if not values:
         return torch.empty((0,), dtype=torch.float64)
