@@ -90,13 +90,14 @@ def validate_sirc_config(config: Mapping[str, Any]) -> None:
         raise ValueError(f"Missing SIRC config sections: {missing}")
     spec_id = str(config["spec"].get("spec_id", ""))
     exp_id = str(config["spec"].get("exp_id", ""))
-    is_malc_v2 = spec_id == "TAUSB-SIRC-MALC-CGR-MAP50-v2"
+    malc_contracts = {
+        ("TAUSB-SIRC-MALC-CGR-MAP50-v2", "TAUSB-SIRC-MALC-CGR-MAP50-S0"),
+        ("TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1", "TAUSB-MALC-GRAD-GEOMETRY-S0"),
+    }
+    is_malc_v2 = (spec_id, exp_id) in malc_contracts
     valid_contract = (
         (spec_id == "TAUSB-SIRC-v1" and exp_id == "TAUSB-SIRC-MECH-S0")
-        or (
-            is_malc_v2
-            and exp_id == "TAUSB-SIRC-MALC-CGR-MAP50-S0"
-        )
+        or is_malc_v2
     )
     if not valid_contract:
         raise ValueError("SIRC spec_id/exp_id mismatch.")
