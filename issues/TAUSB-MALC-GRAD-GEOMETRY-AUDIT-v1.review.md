@@ -9,7 +9,7 @@
 - Initial implementation snapshot: `354ad58c067968e3e4b6dd220bfdf262fea1fa7a` (superseded by the single-projector pre-run fix).
 - Remote branch: pushed normally to `origin/codex/tausb-malc-grad-geometry-audit-v1`
 - Approval: user explicitly approved on 2026-08-10.
-- Active row: `GPU-ENABLE-01`.
+- Active row: `REMOTE-GEOMETRY-01`.
 
 ## Frozen scope
 
@@ -38,9 +38,11 @@ the formal/control roots and tmux session are absent; and the cost-guard wrapper
 local/remote SHA-256 and passes remote `bash -n`. Detailed evidence is in
 `research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/pre_run/`.
 
-`PRERUN-REVIEW-01` is complete with `blocked / do_not_run` solely because no-card mode reports
-CUDA unavailable and zero devices. Per the execution workflow, `GPU-ENABLE-01` and
-`PRERUN-REVIEW-02` were inserted before the gated remote row. The next action is for the user
-to enable GPU mode. The second review will recheck one idle RTX 4090 D, the exact commit,
-source-scoped clean state, wrapper hash, fresh roots and absent session. No probe may launch
-until that review records `pass / allow_run`.
+`PRERUN-REVIEW-01` recorded the no-card blocker. The user then enabled GPU mode and
+`GPU-ENABLE-01` passed with one idle NVIDIA GeForce RTX 4090 D, CUDA device count one, zero
+reported memory use and no compute applications. `PRERUN-REVIEW-02` is now `pass / allow_run`:
+the exact reviewed commit, source-scoped clean state, inputs, fresh roots, absent session,
+shutdown executable and final wrapper hash
+`7720af582f914b74fb63babea2d85fdf85dc711c167f95536a97346604cf464a` all pass. The wrapper
+allows only import-generated `__pycache__/*.pyc` as benign untracked paths and snapshots all
+seven required JSON files. The active action is the bounded `REMOTE-GEOMETRY-01` tmux probe.

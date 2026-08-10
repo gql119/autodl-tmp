@@ -42,7 +42,7 @@ recipe hash differs during GPU initialization.
 
 - Wrapper: `run_geometry_cost_guard.sh`
 - Local/remote SHA-256:
-  `3b132fcfb85c4ef76228bf13a5bf0f0d06d7329b951a1599126f7862757087cf`
+  `7720af582f914b74fb63babea2d85fdf85dc711c167f95536a97346604cf464a`
 - Remote wrapper: `/root/run_tausb_malc_geometry_cost_guard.sh`
 - Bash syntax: pass
 - tmux session: `tausb-malc-geometry-s0`
@@ -77,3 +77,19 @@ minutes with no log/artifact progress while both the probe CPU and GPU are idle.
 - Required next gate: enable the GPU instance, then run `PRERUN-REVIEW-02` to confirm one
   idle RTX 4090 D, unchanged exact commit, fresh roots, absent session, and identical
   wrapper hash before launch.
+
+## PRERUN-REVIEW-02 result
+
+- `pre_run_result`: `pass`
+- `decision`: `allow_run`
+- GPU: one idle `NVIDIA GeForce RTX 4090 D`; utilization 0%, memory 0 MiB;
+  no compute applications.
+- CUDA: available; device count 1; torch `2.0.0+cu118`; ultralytics `8.4.33`.
+- Reviewed source commit and source/config diff: unchanged and clean. The only untracked
+  paths are 36 Python import caches matching `__pycache__/*.pyc`; the gate allows exactly
+  that pattern and blocks every other untracked source/config path.
+- Formal/control roots: fresh. Tmux session: absent. Shutdown: executable.
+- Final wrapper SHA-256:
+  `7720af582f914b74fb63babea2d85fdf85dc711c167f95536a97346604cf464a`.
+- The wrapper snapshots all seven pre-registered JSON artifacts, including
+  `config_resolved.json`, before requesting shutdown.

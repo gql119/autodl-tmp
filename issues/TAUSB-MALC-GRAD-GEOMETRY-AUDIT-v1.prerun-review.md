@@ -36,3 +36,24 @@
 - Evidence: `research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/pre_run/remote_input_and_runtime_gate.md`, `remote_input_audit.json`, and `prior_v2_input_audit.json`.
 - Sole runtime blocker: no-card mode reports `torch.cuda.is_available() == False` and device count 0. Therefore no command was launched.
 - Required follow-up: `GPU-ENABLE-01`, then a new `PRERUN-REVIEW-02`. The second review must confirm one idle RTX 4090 D, unchanged commit/source scope, unchanged wrapper hash, fresh roots and absent tmux session before it may emit `pass / allow_run`.
+
+## PRERUN-REVIEW-02
+
+- Result: pass
+- Decision: allow_run
+- Gated run: `tmux new-session -d -s tausb-malc-geometry-s0 'bash /root/run_tausb_malc_geometry_cost_guard.sh'`
+- Code snapshot: `codex/tausb-malc-grad-geometry-audit-v1@18304b96c45360cfba5168d97d21d2961a13f390`
+- Intent: run the frozen seed-0 surrogate-only geometry diagnostic; do not train a victim, materialize poisoned data, compute AP50, enable EOT, resume or alter scientific hyperparameters.
+- Code location: the independent geometry tool/config/workflow under reviewed source commit `18304b96`; the external cost wrapper only asserts provenance/runtime gates, invokes that tool and snapshots evidence.
+- Parameter data flow: frozen YAML -> geometry tool -> SIRC observation -> easy/MALC/RMS component gradients -> one per-batch CGR projector -> detached G0 geometry -> matched eight-step A0/A1 microtrajectory -> ordered diagnostic decision.
+- Runtime state: exactly one trainable 16x3 carrier coefficient tensor; surrogate/prototype bank frozen; held-out read-only; A0 omits only MALC; `allow_fresh_victim=false` throughout.
+- Sink effect: focused and full regression evidence from the reviewed commit reaches component gradients, one shared projector, retention summaries, A0/A1 coefficient/pattern separation and the pre-registered decision sink.
+- Baseline/disable path: A0 is the matched MALC-off control; disabling microtrajectory preserves full G0 artifacts; old v2 entrypoint/config/root remain untouched.
+- Local validation: 31 focused and 159 full tests pass, plus compile, Python 3.8 grammar/import, config and CLI validation. These establish implementation mechanics only.
+- Minimal probe: the final remote read-only gate passed with Python 3.8.10, torch 2.0.0+cu118, ultralytics 8.4.33, CUDA available and one idle NVIDIA GeForce RTX 4090 D with 0 MiB used and no compute application.
+- Run command binding: exact tmux command above; remote source HEAD `18304b96c45360cfba5168d97d21d2961a13f390`; wrapper SHA-256 `7720af582f914b74fb63babea2d85fdf85dc711c167f95536a97346604cf464a`; seed 0; target class 14; unique formal root `/root/tausb-sirc-runs/TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1/geometry`.
+- Experiment validity: input counts/hashes and fixed 64/96 split pass; no robustness transform, victim, materialization or AP50 route is reachable.
+- Output non-overwrite: formal root, run-specific control root and tmux session are absent immediately before launch. Both roots are fail-closed; no resume is enabled.
+- Recoverability/secrecy: tmux `tausb-malc-geometry-s0`, external control log/status and seven-JSON snapshot are frozen. Success, exception or ten minutes with no log/artifact progress while CPU/GPU are idle requests `/usr/bin/shutdown`. No credential is in the command packet.
+- Blockers: none.
+- Validation gaps: scientific geometry values, real graph lifetime and wall-clock remain unknown until the bounded probe produces artifacts. The sparse repository contains 36 import-generated `__pycache__/*.pyc`; the gate allows only that exact untracked pattern and blocks all other untracked source/config paths.

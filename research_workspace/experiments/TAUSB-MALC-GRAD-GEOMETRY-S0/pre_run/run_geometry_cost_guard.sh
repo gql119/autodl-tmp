@@ -39,6 +39,7 @@ snapshot_evidence() {
   mkdir -p "${READY_ROOT}"
   for candidate in \
     status.json \
+    config_resolved.json \
     input_audit.json \
     prototype_geometry.json \
     gradient_geometry.json \
@@ -78,6 +79,7 @@ progress_mtime() {
     "${LOG_PATH}" \
     "${GUARD_STATE}" \
     "${ARTIFACT_ROOT}/status.json" \
+    "${ARTIFACT_ROOT}/config_resolved.json" \
     "${ARTIFACT_ROOT}/input_audit.json" \
     "${ARTIFACT_ROOT}/prototype_geometry.json" \
     "${ARTIFACT_ROOT}/gradient_geometry.json" \
@@ -152,7 +154,11 @@ test "$(git ls-files ue_framework configs | wc -l | tr -d ' ')" = "131"
 git diff-index --quiet HEAD -- ue_framework configs
 test -z "$(git diff --name-only -- ue_framework configs)"
 test -z "$(git diff --cached --name-only -- ue_framework configs)"
-test -z "$(git ls-files --others --exclude-standard -- ue_framework configs)"
+unexpected_untracked="$(
+  git ls-files --others --exclude-standard -- ue_framework configs \
+    | grep -Ev '(^|/)__pycache__/.*\.pyc$' || true
+)"
+test -z "${unexpected_untracked}"
 test ! -e "${ARTIFACT_ROOT}"
 test -x "${PYTHON_BIN}"
 test -f "${CONFIG_PATH}"
