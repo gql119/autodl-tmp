@@ -9,7 +9,7 @@
 - Initial implementation snapshot: `354ad58c067968e3e4b6dd220bfdf262fea1fa7a` (superseded by the single-projector pre-run fix).
 - Remote branch: pushed normally to `origin/codex/tausb-malc-grad-geometry-audit-v1`
 - Approval: user explicitly approved on 2026-08-10.
-- Active row: `COST-GUARD-FIX-01`.
+- Active row: `PRERUN-REVIEW-03` (awaiting GPU mode).
 
 ## Frozen scope
 
@@ -54,9 +54,13 @@ launch was accepted, SSH closed within the eight-second health window, and the s
 reconnect returned `Connection refused`, showing that the automatic shutdown path protected
 GPU cost. No geometry, victim, materialization or AP50 stage was reached.
 
-The local correction changes only those two key names and switches retry control/session to
-an `r1` suffix, preserving the old failure evidence. Corrected wrapper SHA-256 is
-`06fd902397867482cbdb0fc12a9261455be06e8c5dd0b1dd9724be4f2dc8187d`. The next action is
-`COST-GUARD-FIX-01`: reopen AutoDL in no-card mode, pull the old failure status/log, deploy and
-exercise the corrected assertion, and verify fresh formal/r1 roots. A new
-`PRERUN-REVIEW-03` is mandatory before any GPU retry.
+The correction changes only those two key names and switches retry control/session to an `r1`
+suffix, preserving the old failure evidence. Corrected wrapper SHA-256 is
+`06fd902397867482cbdb0fc12a9261455be06e8c5dd0b1dd9724be4f2dc8187d`.
+
+`COST-GUARD-FIX-01` is now complete. In no-card mode, the old status/log were pulled and
+confirm `failed/preflight` plus `KeyError: 'semantic_bank_sha256'`; the formal root and new r1
+control/session remain fresh; the corrected wrapper passes bash/schema/hash checks against the
+actual remote JSON; and CUDA is false with zero devices, proving no GPU probe was started. The
+active row is `PRERUN-REVIEW-03`, which requires GPU mode to recheck the idle device and then
+gate `REMOTE-GEOMETRY-02`.

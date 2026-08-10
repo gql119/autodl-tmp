@@ -62,10 +62,12 @@
 
 - Result: failed_prelaunch
 - Probe reached: false
-- Observed evidence: the tmux launch command was accepted, then SSH was closed by the remote host within the eight-second health window; one bounded reconnect returned `Connection refused`, consistent with the wrapper's automatic shutdown path.
+- Observed evidence: the tmux launch command was accepted, then SSH was closed by the remote host within the eight-second health window; one bounded reconnect returned `Connection refused`. After reopening in no-card mode, the pulled guard status is `failed/preflight/geometry_probe_exit_1_shutdown_requested`, and the log traceback is exactly `KeyError: 'semantic_bank_sha256'` followed by the shutdown request.
 - First bad boundary: wrapper input-audit schema, before construction of the geometry workflow.
 - Root cause: the wrapper asserted prior-audit keys `semantic_bank_sha256` and `c2lm_basis_sha256`, while the actual frozen prior JSON contains `semantic_bank_hash` and `c2lm_basis_hash`. The previously executed GPU gate used the correct keys, so it did not exercise the wrapper's duplicated assertion block.
-- Contamination: no geometry command was reached. No victim, materialization, AP50 or method parameter changed. The formal artifact root is expected to remain fresh but must be verified after the instance is reopened.
+- Contamination: no geometry command was reached. No victim, materialization, AP50 or method parameter changed. The no-card audit confirms the formal artifact root remains fresh.
 - Cost behavior: failure triggered shutdown as required; no repeated reconnect loop was used.
 - Correction: change only the two prior-audit key names, preserve the old failure control directory, and use new control/session suffix `r1`. Corrected local wrapper SHA-256: `06fd902397867482cbdb0fc12a9261455be06e8c5dd0b1dd9724be4f2dc8187d`.
-- Required next review: pull the old status/log in no-card mode, execute the corrected assertion against the real prior JSON, verify fresh formal/r1 roots and deploy the corrected wrapper. Then perform `PRERUN-REVIEW-03`; do not reuse the invalidated `PRERUN-REVIEW-02` decision.
+- Failure evidence: `research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/pre_run/failed_attempt_geometry_seed0/`; status SHA-256 `956938825e61971c181e5a4658469a63b3fa0f9b8c54efacb8f59f891f149dba`; log SHA-256 `be4e5fe3c66c41455591aa7ef5949767c2d2596da8fdab4eaf6f183ad8cef0b2`.
+- Corrected no-card verification: pass. Exact reviewed source is clean except import caches; old failure evidence is preserved; formal root, r1 control and r1 session are fresh/absent; corrected wrapper hash and schema pass against the actual remote JSON; CUDA is false with device count zero.
+- Required next review: perform `PRERUN-REVIEW-03` after GPU is enabled; do not reuse the invalidated `PRERUN-REVIEW-02` decision.

@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "<stdin>", line 18, in <module>
+KeyError: 'semantic_bank_sha256'
+[CostGuard] probe_exit=1; requesting AutoDL shutdown

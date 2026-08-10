@@ -108,6 +108,13 @@ The retry wrapper changes only those two key names and uses a new fail-closed co
 the corrected keys against `prior_v2_input_audit.json` passes. Corrected wrapper SHA-256:
 `06fd902397867482cbdb0fc12a9261455be06e8c5dd0b1dd9724be4f2dc8187d`.
 
-Before retry, the old remote status/log must be pulled in no-card mode, the corrected wrapper
-must pass against the actual remote JSON, and `PRERUN-REVIEW-03` must independently emit
-`pass / allow_run`.
+The no-card retry gate has now passed. The old status/log are preserved under
+`failed_attempt_geometry_seed0/` and confirm `failed/preflight` with
+`KeyError: 'semantic_bank_sha256'`. Their SHA-256 values are
+`956938825e61971c181e5a4658469a63b3fa0f9b8c54efacb8f59f891f149dba` and
+`be4e5fe3c66c41455591aa7ef5949767c2d2596da8fdab4eaf6f183ad8cef0b2` respectively.
+
+The corrected wrapper passes bash, hash and schema checks against the actual remote JSON. The
+old failure directory remains present; the formal root and r1 control/session are fresh; exact
+source is unchanged except Python import caches; CUDA is unavailable with device count zero.
+`PRERUN-REVIEW-03` still must independently emit `pass / allow_run` after GPU mode is enabled.
