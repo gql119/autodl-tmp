@@ -5,7 +5,8 @@
 - ExpID: `TAUSB-MALC-GRAD-GEOMETRY-S0`
 - Branch: `codex/tausb-malc-grad-geometry-audit-v1`
 - Base commit: `fe8697ab6fe00310db33182951fd8563dc301efc`
-- Code snapshot: `354ad58c067968e3e4b6dd220bfdf262fea1fa7a`
+- Reviewed code snapshot: `18304b96c45360cfba5168d97d21d2961a13f390`
+- Initial implementation snapshot: `354ad58c067968e3e4b6dd220bfdf262fea1fa7a` (superseded by the single-projector pre-run fix).
 - Remote branch: pushed normally to `origin/codex/tausb-malc-grad-geometry-audit-v1`
 - Approval: user explicitly approved on 2026-08-10.
 - Active row: `REMOTE-INPUTS-01`.
