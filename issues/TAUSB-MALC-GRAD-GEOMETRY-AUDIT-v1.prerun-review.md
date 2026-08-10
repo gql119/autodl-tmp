@@ -71,3 +71,24 @@
 - Failure evidence: `research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/pre_run/failed_attempt_geometry_seed0/`; status SHA-256 `956938825e61971c181e5a4658469a63b3fa0f9b8c54efacb8f59f891f149dba`; log SHA-256 `be4e5fe3c66c41455591aa7ef5949767c2d2596da8fdab4eaf6f183ad8cef0b2`.
 - Corrected no-card verification: pass. Exact reviewed source is clean except import caches; old failure evidence is preserved; formal root, r1 control and r1 session are fresh/absent; corrected wrapper hash and schema pass against the actual remote JSON; CUDA is false with device count zero.
 - Required next review: perform `PRERUN-REVIEW-03` after GPU is enabled; do not reuse the invalidated `PRERUN-REVIEW-02` decision.
+
+## PRERUN-REVIEW-03
+
+- Result: pass
+- Decision: allow_run
+- Gated run: `tmux new-session -d -s tausb-malc-geometry-s0-r1 'bash /root/run_tausb_malc_geometry_cost_guard.sh'`
+- Code snapshot: `codex/tausb-malc-grad-geometry-audit-v1@18304b96c45360cfba5168d97d21d2961a13f390`
+- Intent: retry the same frozen surrogate-only geometry diagnostic after correcting only the external wrapper's prior-audit key names; no method or scientific-parameter change.
+- Code location: reviewed geometry source/config are unchanged. The external wrapper now reads actual prior JSON keys `semantic_bank_hash` and `c2lm_basis_hash`, uses control suffix `r1`, and snapshots all seven required JSON files.
+- Parameter data flow: unchanged frozen config -> geometry tool -> SIRC observation -> easy/MALC/RMS gradients -> shared per-batch CGR projector -> detached G0 summaries -> matched eight-step A0/A1 -> ordered decision.
+- Runtime state: one trainable 16x3 carrier coefficient tensor; surrogate/prototypes/held-out frozen; no victim, materialization, AP50, EOT or resume path.
+- Sink effect: the previous attempt never reached this sink. The corrected wrapper assertion was executed against the actual remote prior JSON in no-card mode and again by the GPU gate; both pass.
+- Baseline/disable path: A0 remains MALC-off only; old v2 and first-failure control remain read-only.
+- Local validation: wrapper diff is exactly two JSON key names plus r1 control/session. Pulled log confirms the old key caused the first prelaunch failure. Corrected local and remote JSON assertions pass.
+- Minimal probe: final read-only GPU gate passes with exact HEAD/source scope, wrapper SHA-256 `06fd902397867482cbdb0fc12a9261455be06e8c5dd0b1dd9724be4f2dc8187d`, one idle NVIDIA GeForce RTX 4090 D at 0 MiB, no compute application, Python 3.8.10, torch 2.0.0+cu118 and ultralytics 8.4.33.
+- Run command binding: exact r1 tmux command above; seed 0; target class 14; formal root `/root/tausb-sirc-runs/TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1/geometry`; r1 control `/root/tausb-sirc-runs/TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1/control/geometry-seed0-18304b96-r1`.
+- Experiment validity: actual input hashes/counts, config validation, corrected schema assertion, source commit and no-EOT/claim boundary all pass.
+- Output non-overwrite: formal root and r1 control do not exist; r1 tmux session is absent. Old failed control remains preserved separately.
+- Recoverability/secrecy: r1 tmux/log/status paths are fixed; automatic shutdown applies on success, exception or ten minutes with no log/artifact progress while CPU/GPU are idle. No credential is persisted.
+- Blockers: none.
+- Validation gaps: scientific geometry values and real graph lifetime remain unknown until this bounded retry produces artifacts.

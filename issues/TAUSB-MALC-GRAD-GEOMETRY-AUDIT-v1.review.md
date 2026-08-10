@@ -9,7 +9,7 @@
 - Initial implementation snapshot: `354ad58c067968e3e4b6dd220bfdf262fea1fa7a` (superseded by the single-projector pre-run fix).
 - Remote branch: pushed normally to `origin/codex/tausb-malc-grad-geometry-audit-v1`
 - Approval: user explicitly approved on 2026-08-10.
-- Active row: `PRERUN-REVIEW-03` (awaiting GPU mode).
+- Active row: `REMOTE-GEOMETRY-02`.
 
 ## Frozen scope
 
@@ -64,3 +64,9 @@ control/session remain fresh; the corrected wrapper passes bash/schema/hash chec
 actual remote JSON; and CUDA is false with zero devices, proving no GPU probe was started. The
 active row is `PRERUN-REVIEW-03`, which requires GPU mode to recheck the idle device and then
 gate `REMOTE-GEOMETRY-02`.
+
+GPU mode was re-enabled and `PRERUN-REVIEW-03` passed. The final gate confirms exact reviewed
+HEAD/source, corrected wrapper hash/schema, preserved old failure, fresh formal/r1 roots,
+absent r1 session, one idle NVIDIA GeForce RTX 4090 D with 0 MiB used and no compute process,
+and the unchanged surrogate-only claim boundary. `REMOTE-GEOMETRY-02` is allowed to run in
+tmux `tausb-malc-geometry-s0-r1` with automatic shutdown protection.

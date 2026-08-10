@@ -118,3 +118,8 @@ The corrected wrapper passes bash, hash and schema checks against the actual rem
 old failure directory remains present; the formal root and r1 control/session are fresh; exact
 source is unchanged except Python import caches; CUDA is unavailable with device count zero.
 `PRERUN-REVIEW-03` still must independently emit `pass / allow_run` after GPU mode is enabled.
+
+`PRERUN-REVIEW-03` has now emitted `pass / allow_run`. The final GPU gate found one idle
+NVIDIA GeForce RTX 4090 D with 0 MiB used and no compute applications; CUDA, exact source,
+corrected schema assertion, wrapper hash, formal/r1 freshness, session absence and shutdown
+availability all pass. The only authorized retry session is `tausb-malc-geometry-s0-r1`.
