@@ -546,3 +546,34 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
   re-run the runtime portion of pre-run review. Do not launch before a new `pass / allow_run`.
 - Validation gaps: no mechanism effectiveness, frozen A1 carrier, C0/M1 training or AP50 result
   exists yet. The no-card instance was shut down after audit; connection refusal confirmed it.
+
+## PRERUN-REVIEW-05
+
+- Result: `pass`
+- Decision: `allow_run`
+- Gated run: `REMOTE-MECHANISM-01`; C0/M1 remain additionally gated by a passing mechanism
+  report with `allow_fresh_victim=true`.
+- Code snapshot: remote clean worktree `/root/tausb-malc-wt-039c7fc` is at exact reviewed
+  commit `a7df8684b0c8ccb767df9712c7bc88a4fde29321`; dirty count is 0.
+- Intent and parameter flow: unchanged approved VOC20/person SIRC-MALC-CGR experiment and
+  reviewed recipe-v1 provenance path. No EOT or robustness transform is enabled.
+- Runtime state: `/root/miniconda3/bin/python` reports CUDA available with one
+  `NVIDIA GeForce RTX 4090 D`. `nvidia-smi` reports 24,564 MiB total, 0 MiB used, 0% GPU
+  utilization and no compute process.
+- Run command binding: `/root/autodl-tmp/tausb-malc-v2-formal-cost-guard.sh` passes `bash -n`,
+  has SHA256 `430e80e02288bc8adc7b31e15c2ef5913784f57b8d711335803a0a32d68c4415`, and binds the
+  exact reviewed commit, method/config/steps/seed and unique formal root.
+- Output non-overwrite: `/root/tausb-sirc-runs/TAUSB-SIRC-MALC-CGR-MAP50-v2` is absent and
+  tmux session `tausb-malc-v2-s0` is absent. The root filesystem has approximately 25 GB free.
+- Recoverability and cost control: persistent external log/status are configured; completion,
+  any command failure, or a 20-minute no-progress plus idle-compute condition requests instance
+  shutdown. The wrapper is mandatory for launch.
+- Baseline/disable path, sinks, experiment validity and claim boundary are unchanged from
+  PRERUN-REVIEW-04. Mechanism evidence must pass before the wrapper may enter C0/M1, and a
+  mechanical run cannot be described as fresh-victim UE effectiveness.
+- Blockers: none.
+- Validation gaps: no mechanism, C0/M1 or AP50 result exists before launch.
+
+- 2026-08-10: after the user enabled GPU mode, the runtime-only repeat audit passed on one idle
+  RTX 4090 D. `PRERUN-REVIEW-05` records `pass / allow_run` for the reviewed cost-guarded
+  `REMOTE-MECHANISM-01` launch.
