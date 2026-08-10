@@ -9,7 +9,7 @@
 - Initial implementation snapshot: `354ad58c067968e3e4b6dd220bfdf262fea1fa7a` (superseded by the single-projector pre-run fix).
 - Remote branch: pushed normally to `origin/codex/tausb-malc-grad-geometry-audit-v1`
 - Approval: user explicitly approved on 2026-08-10.
-- Active row: `REMOTE-GEOMETRY-01`.
+- Active row: `COST-GUARD-FIX-01`.
 
 ## Frozen scope
 
@@ -45,4 +45,18 @@ the exact reviewed commit, source-scoped clean state, inputs, fresh roots, absen
 shutdown executable and final wrapper hash
 `7720af582f914b74fb63babea2d85fdf85dc711c167f95536a97346604cf464a` all pass. The wrapper
 allows only import-generated `__pycache__/*.pyc` as benign untracked paths and snapshots all
-seven required JSON files. The active action is the bounded `REMOTE-GEOMETRY-01` tmux probe.
+seven required JSON files.
+
+`REMOTE-GEOMETRY-01` then failed before the probe: the wrapper duplicated the prior-audit
+schema check using nonexistent `semantic_bank_sha256` / `c2lm_basis_sha256` keys. The actual
+prior JSON and the standalone gate use `semantic_bank_hash` / `c2lm_basis_hash`. The tmux
+launch was accepted, SSH closed within the eight-second health window, and the single bounded
+reconnect returned `Connection refused`, showing that the automatic shutdown path protected
+GPU cost. No geometry, victim, materialization or AP50 stage was reached.
+
+The local correction changes only those two key names and switches retry control/session to
+an `r1` suffix, preserving the old failure evidence. Corrected wrapper SHA-256 is
+`06fd902397867482cbdb0fc12a9261455be06e8c5dd0b1dd9724be4f2dc8187d`. The next action is
+`COST-GUARD-FIX-01`: reopen AutoDL in no-card mode, pull the old failure status/log, deploy and
+exercise the corrected assertion, and verify fresh formal/r1 roots. A new
+`PRERUN-REVIEW-03` is mandatory before any GPU retry.

@@ -4,10 +4,10 @@ set -Eeuo pipefail
 CODE_COMMIT="18304b96c45360cfba5168d97d21d2961a13f390"
 PROJECT_ROOT="/root/tausb-malc-geometry-wt-v2/ue_project"
 ARTIFACT_ROOT="/root/tausb-sirc-runs/TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1/geometry"
-CONTROL_ROOT="/root/tausb-sirc-runs/TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1/control/geometry-seed0-18304b96"
+CONTROL_ROOT="/root/tausb-sirc-runs/TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1/control/geometry-seed0-18304b96-r1"
 WRAPPER="/root/run_tausb_malc_geometry_cost_guard.sh"
-WRAPPER_SHA256="7720af582f914b74fb63babea2d85fdf85dc711c167f95536a97346604cf464a"
-SESSION="tausb-malc-geometry-s0"
+WRAPPER_SHA256="06fd902397867482cbdb0fc12a9261455be06e8c5dd0b1dd9724be4f2dc8187d"
+SESSION="tausb-malc-geometry-s0-r1"
 PYTHON_BIN="/root/miniconda3/bin/python"
 
 echo "HOSTNAME=$(hostname)"

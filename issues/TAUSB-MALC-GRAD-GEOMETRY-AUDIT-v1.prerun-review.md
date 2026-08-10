@@ -57,3 +57,15 @@
 - Recoverability/secrecy: tmux `tausb-malc-geometry-s0`, external control log/status and seven-JSON snapshot are frozen. Success, exception or ten minutes with no log/artifact progress while CPU/GPU are idle requests `/usr/bin/shutdown`. No credential is in the command packet.
 - Blockers: none.
 - Validation gaps: scientific geometry values, real graph lifetime and wall-clock remain unknown until the bounded probe produces artifacts. The sparse repository contains 36 import-generated `__pycache__/*.pyc`; the gate allows only that exact untracked pattern and blocks all other untracked source/config paths.
+
+## REMOTE-GEOMETRY-01 post-launch failure audit
+
+- Result: failed_prelaunch
+- Probe reached: false
+- Observed evidence: the tmux launch command was accepted, then SSH was closed by the remote host within the eight-second health window; one bounded reconnect returned `Connection refused`, consistent with the wrapper's automatic shutdown path.
+- First bad boundary: wrapper input-audit schema, before construction of the geometry workflow.
+- Root cause: the wrapper asserted prior-audit keys `semantic_bank_sha256` and `c2lm_basis_sha256`, while the actual frozen prior JSON contains `semantic_bank_hash` and `c2lm_basis_hash`. The previously executed GPU gate used the correct keys, so it did not exercise the wrapper's duplicated assertion block.
+- Contamination: no geometry command was reached. No victim, materialization, AP50 or method parameter changed. The formal artifact root is expected to remain fresh but must be verified after the instance is reopened.
+- Cost behavior: failure triggered shutdown as required; no repeated reconnect loop was used.
+- Correction: change only the two prior-audit key names, preserve the old failure control directory, and use new control/session suffix `r1`. Corrected local wrapper SHA-256: `06fd902397867482cbdb0fc12a9261455be06e8c5dd0b1dd9724be4f2dc8187d`.
+- Required next review: pull the old status/log in no-card mode, execute the corrected assertion against the real prior JSON, verify fresh formal/r1 roots and deploy the corrected wrapper. Then perform `PRERUN-REVIEW-03`; do not reuse the invalidated `PRERUN-REVIEW-02` decision.

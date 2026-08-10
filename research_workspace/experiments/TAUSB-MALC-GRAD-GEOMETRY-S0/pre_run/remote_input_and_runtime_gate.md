@@ -93,3 +93,21 @@ minutes with no log/artifact progress while both the probe CPU and GPU are idle.
   `7720af582f914b74fb63babea2d85fdf85dc711c167f95536a97346604cf464a`.
 - The wrapper snapshots all seven pre-registered JSON artifacts, including
   `config_resolved.json`, before requesting shutdown.
+
+## First launch failure and corrected wrapper
+
+The first launch did not reach the geometry tool. The wrapper's duplicated prior-input
+assertion referenced `semantic_bank_sha256` and `c2lm_basis_sha256`; the actual audited JSON
+keys are `semantic_bank_hash` and `c2lm_basis_hash`. The standalone gate had used the correct
+schema, which exposed a review coverage gap rather than a method-code failure. The remote host
+closed the connection and then refused the single bounded reconnect, consistent with the
+automatic failure shutdown.
+
+The retry wrapper changes only those two key names and uses a new fail-closed control root
+`geometry-seed0-18304b96-r1`, leaving the old failure directory untouched. Local execution of
+the corrected keys against `prior_v2_input_audit.json` passes. Corrected wrapper SHA-256:
+`06fd902397867482cbdb0fc12a9261455be06e8c5dd0b1dd9724be4f2dc8187d`.
+
+Before retry, the old remote status/log must be pulled in no-card mode, the corrected wrapper
+must pass against the actual remote JSON, and `PRERUN-REVIEW-03` must independently emit
+`pass / allow_run`.

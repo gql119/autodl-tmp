@@ -4,7 +4,7 @@ set -Eeuo pipefail
 CODE_COMMIT="18304b96c45360cfba5168d97d21d2961a13f390"
 PROJECT_ROOT="/root/tausb-malc-geometry-wt-v2/ue_project"
 ARTIFACT_ROOT="/root/tausb-sirc-runs/TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1/geometry"
-CONTROL_ROOT="/root/tausb-sirc-runs/TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1/control/geometry-seed0-18304b96"
+CONTROL_ROOT="/root/tausb-sirc-runs/TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1/control/geometry-seed0-18304b96-r1"
 LOG_PATH="${CONTROL_ROOT}/geometry-seed0.log"
 GUARD_STATE="${CONTROL_ROOT}/cost-guard-status.json"
 READY_ROOT="${CONTROL_ROOT}/ready"
@@ -185,8 +185,8 @@ assert current["calibration_images"] == 64
 assert current["heldout_images"] == 96
 for key, value in expected.items():
     assert current["actual"][key] == value, (key, current["actual"][key])
-assert prior["semantic_bank_sha256"] == "0b8a94efc55155bea20a1ec799bfac14c8a6f11fd6530538f3e0437b37c0dd4b"
-assert prior["c2lm_basis_sha256"] == "8350c0a608150839c98a8dad8db862d0c9dfaeca4714f05d1714afac0f30cfa5"
+assert prior["semantic_bank_hash"] == "0b8a94efc55155bea20a1ec799bfac14c8a6f11fd6530538f3e0437b37c0dd4b"
+assert prior["c2lm_basis_hash"] == "8350c0a608150839c98a8dad8db862d0c9dfaeca4714f05d1714afac0f30cfa5"
 print("[Harness] frozen input audit PASS")
 PY
 
