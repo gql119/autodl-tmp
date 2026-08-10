@@ -577,3 +577,20 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
 - 2026-08-10: after the user enabled GPU mode, the runtime-only repeat audit passed on one idle
   RTX 4090 D. `PRERUN-REVIEW-05` records `pass / allow_run` for the reviewed cost-guarded
   `REMOTE-MECHANISM-01` launch.
+
+## REMOTE-MECHANISM-01 second launch recovery state
+
+- The reviewed tmux launch command returned success. The next health SSH attempt was refused;
+  a second short confirmation attempt was also refused.
+- Cost outcome: the instance is off, so no GPU remains billable. The wrapper's shutdown-on-error
+  path is the likely explanation, but the exact stage and exception are not inferred without the
+  persisted evidence.
+- Evidence boundary: no health payload, mechanism report, C0/M1 status or AP50 result was read
+  before shutdown. No mechanism or UE effectiveness claim is made.
+- Debug state: `systematic-debugging / evidence_pending`. The required next step is no-card mode
+  and read-only retrieval of `cost-guard-status.json`, the full appended formal log, the formal
+  root status and any partial mechanism artifact. Do not patch or relaunch GPU before establishing
+  the first bad boundary from those files.
+
+- 2026-08-10: the second cost-guarded launch again shut the instance down during early remote
+  execution. GPU cost is stopped; root-cause work is deferred to persisted no-card evidence.
