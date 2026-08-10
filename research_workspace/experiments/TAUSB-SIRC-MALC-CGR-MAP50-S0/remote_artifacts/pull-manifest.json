@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-10T05:27:11.383891+00:00",
+  "exp_id": "TAUSB-SIRC-MALC-CGR-MAP50-S0",
+  "spec_id": "TAUSB-SIRC-MALC-CGR-MAP50-v2",
+  "run_id": "mechanism-fcf26cc-seed0",
+  "branch": "codex/tausb-sirc-malc-cgr-map50-v2",
+  "pre_run_code_commit": "fcf26cc24dc7e6943234cc3cdf7943fd957cb6cc",
+  "method": "sirc_malc_cgr",
+  "steps": 40,
+  "seed": 0,
+  "run_tag": "",
+  "remote_artifact_root": "/root/tausb-sirc-runs/TAUSB-SIRC-MALC-CGR-MAP50-v2/mechanism",
+  "local_destination": "research_workspace/experiments/TAUSB-SIRC-MALC-CGR-MAP50-S0/remote_artifacts",
+  "authentication": "Use SSH agent/config or an already authorized session; never persist passwords.",
+  "items": [
+    {
+      "relative_path": "status.json",
+      "required": true,
+      "reason": "mechanism completion and gate decision",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "mechanism_report.json",
+      "required": true,
+      "reason": "pre-registered A0/A1 success and failure signals",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "arms/A0_metrics.json",
+      "required": true,
+      "reason": "matched MALC-off held-out mechanism metrics",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "arms/A1_metrics.json",
+      "required": true,
+      "reason": "matched MALC-on held-out mechanism metrics",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "arms/A0_diagnostics.json",
+      "required": true,
+      "reason": "MALC-off optimization and CGR diagnostics",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "arms/A1_diagnostics.json",
+      "required": true,
+      "reason": "MALC-on optimization and CGR diagnostics",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "malc_calibration.json",
+      "required": true,
+      "reason": "frozen prototype and gradient-weight calibration",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "input_audit.json",
+      "required": true,
+      "reason": "input hashes and contamination audit",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "config_resolved.json",
+      "required": true,
+      "reason": "resolved mechanism configuration",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "source_manifest.json",
+      "required": true,
+      "reason": "authorized source provenance",
+      "size_policy": "small"
+    }
+  ],
+  "post_transfer_checks": [
+    "record present/missing for every required item",
+    "sha256 every selected mechanism evidence file",
+    "record remote_state=artifacts_pulled only after verification"
+  ]
+}

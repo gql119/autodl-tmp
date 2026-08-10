@@ -1,0 +1,56 @@
+{
+  "split": "heldout",
+  "heldout_batch_count": 24,
+  "residual_cosine_median": 0.14255860447883606,
+  "residual_cosine_q25": -0.0476340614259243,
+  "log_energy_mad": 0.5191364688798785,
+  "valid_instance_coverage": 0.9962121212121211,
+  "zero_norm_ratio": 0.0,
+  "floor_pass_ratio": 0.970651455026455,
+  "scale_validity_frequency": [
+    0.4583333333333333,
+    0.9583333333333334,
+    1.0
+  ],
+  "valid_scale_count_at_0_80": 2,
+  "cgr_max_projected_row_dot": 2.086162567138672e-07,
+  "cgr_attack_retention_median": 0.9697125256061554,
+  "cgr_repair_skip_ratio": 0.08333333333333333,
+  "non_target_target_energy_ratio_median": 0.2832495038436863,
+  "box_residual_energy_median": 0.49907305863286766,
+  "groups": {
+    "context:cooccur": {
+      "count": 129,
+      "coverage": 0.9922480620155039,
+      "residual_cosine_median": 0.11935754865407944,
+      "log_energy_mad": 0.48113293945789337
+    },
+    "context:person_only": {
+      "count": 55,
+      "coverage": 1.0,
+      "residual_cosine_median": 0.3028520345687866,
+      "log_energy_mad": 0.4893944635987282
+    },
+    "size:large": {
+      "count": 78,
+      "coverage": 1.0,
+      "residual_cosine_median": 0.21491722762584686,
+      "log_energy_mad": 0.4759879633784294
+    },
+    "size:medium": {
+      "count": 73,
+      "coverage": 0.9863013698630136,
+      "residual_cosine_median": 0.1305173933506012,
+      "log_energy_mad": 0.48311618715524673
+    },
+    "size:small": {
+      "count": 33,
+      "coverage": 1.0,
+      "residual_cosine_median": 0.0976223573088646,
+      "log_energy_mad": 0.40641825646162033
+    }
+  },
+  "arm_id": "A1",
+  "enable_malc": true,
+  "optimization_steps": 40
+}

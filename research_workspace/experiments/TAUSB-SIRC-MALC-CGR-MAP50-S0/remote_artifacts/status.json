@@ -1,0 +1,51 @@
+{
+  "state": "stopped",
+  "stage": "mechanism_gate",
+  "claim_boundary": "mechanism_only_not_fresh_victim_ue",
+  "smoke": false,
+  "mechanism_pass": false,
+  "allow_fresh_victim": false,
+  "frozen_carrier_state": null,
+  "warmup_diagnostics": [
+    {
+      "stage": "route_warmup",
+      "step": 0,
+      "route_loss": 1.2762705087661743,
+      "cgr_mode": "projected_target",
+      "cgr_accepted": true,
+      "cgr_attempts": 1,
+      "cgr_attack_retention": 0.9843425750732422,
+      "cgr_max_projected_row_dot": 3.3527612686157227e-08
+    },
+    {
+      "stage": "route_warmup",
+      "step": 1,
+      "route_loss": 0.9770510196685791,
+      "cgr_mode": "projected_target",
+      "cgr_accepted": true,
+      "cgr_attempts": 1,
+      "cgr_attack_retention": 0.9898382425308228,
+      "cgr_max_projected_row_dot": 0.0
+    },
+    {
+      "stage": "route_warmup",
+      "step": 2,
+      "route_loss": 0.843490481376648,
+      "cgr_mode": "target",
+      "cgr_accepted": true,
+      "cgr_attempts": 1,
+      "cgr_attack_retention": 1.0,
+      "cgr_max_projected_row_dot": 0.0
+    },
+    {
+      "stage": "route_warmup",
+      "step": 3,
+      "route_loss": 0.8965179920196533,
+      "cgr_mode": "projected_target",
+      "cgr_accepted": true,
+      "cgr_attempts": 1,
+      "cgr_attack_retention": 0.9867208003997803,
+      "cgr_max_projected_row_dot": 4.6566128730773926e-09
+    }
+  ]
+}

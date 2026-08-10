@@ -1,0 +1,802 @@
+[
+  {
+    "arm_id": "A0",
+    "step": 0,
+    "enable_malc": false,
+    "target_loss": 1.2959545850753784,
+    "easy_cls_loss": 1.2718265056610107,
+    "malc_loss": 1.1818368434906006,
+    "rms_loss": 0.002412810456007719,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.37320321798324585,
+      0.37672141194343567,
+      0.25007539987564087
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9959895014762878,
+    "cgr_max_projected_row_dot": 2.9802322387695312e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 1,
+    "enable_malc": false,
+    "target_loss": 1.0006422996520996,
+    "easy_cls_loss": 0.9768426418304443,
+    "malc_loss": 1.0486606359481812,
+    "rms_loss": 0.0023799617774784565,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.33308863639831543,
+      0.32348355650901794,
+      0.34342774748802185
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9813553690910339,
+    "cgr_max_projected_row_dot": 1.1175870895385742e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 2,
+    "enable_malc": false,
+    "target_loss": 0.8655732274055481,
+    "easy_cls_loss": 0.8418482542037964,
+    "malc_loss": 0.8982516527175903,
+    "rms_loss": 0.0023724946659058332,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.2628327012062073,
+      0.30345484614372253,
+      0.4337124526500702
+    ],
+    "cgr_mode": "target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 1.0,
+    "cgr_max_projected_row_dot": 0.0
+  },
+  {
+    "arm_id": "A0",
+    "step": 3,
+    "enable_malc": false,
+    "target_loss": 0.9180173277854919,
+    "easy_cls_loss": 0.8945576548576355,
+    "malc_loss": 1.023655652999878,
+    "rms_loss": 0.00234596966765821,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.26519376039505005,
+      0.2075738161802292,
+      0.5272324085235596
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9497706890106201,
+    "cgr_max_projected_row_dot": 1.6763806343078613e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 4,
+    "enable_malc": false,
+    "target_loss": 1.0288070440292358,
+    "easy_cls_loss": 1.005518913269043,
+    "malc_loss": 1.1252098083496094,
+    "rms_loss": 0.002328817965462804,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.0,
+      0.5329804420471191,
+      0.46701955795288086
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9158616662025452,
+    "cgr_max_projected_row_dot": 9.12696123123169e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 5,
+    "enable_malc": false,
+    "target_loss": 0.9612742066383362,
+    "easy_cls_loss": 0.9381887912750244,
+    "malc_loss": 1.0575354099273682,
+    "rms_loss": 0.002308543538674712,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.0,
+      0.3511125147342682,
+      0.6488873958587646
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9996561408042908,
+    "cgr_max_projected_row_dot": 9.313225746154785e-10
+  },
+  {
+    "arm_id": "A0",
+    "step": 6,
+    "enable_malc": false,
+    "target_loss": 0.7083633542060852,
+    "easy_cls_loss": 0.6854681968688965,
+    "malc_loss": 1.0312093496322632,
+    "rms_loss": 0.0022895154543220997,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.3392922580242157,
+      0.31586816906929016,
+      0.34483957290649414
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9865797162055969,
+    "cgr_max_projected_row_dot": 3.4924596548080444e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 7,
+    "enable_malc": false,
+    "target_loss": 0.8205518126487732,
+    "easy_cls_loss": 0.79796302318573,
+    "malc_loss": 1.1949923038482666,
+    "rms_loss": 0.0022588795982301235,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.3468593657016754,
+      0.32399782538414,
+      0.32914280891418457
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9954829216003418,
+    "cgr_max_projected_row_dot": 3.725290298461914e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 8,
+    "enable_malc": false,
+    "target_loss": 0.9928728342056274,
+    "easy_cls_loss": 0.9705696702003479,
+    "malc_loss": 0.7509540319442749,
+    "rms_loss": 0.0022303187288343906,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.39506766200065613,
+      0.3166215419769287,
+      0.28831085562705994
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9938371777534485,
+    "cgr_max_projected_row_dot": 2.2351741790771484e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 9,
+    "enable_malc": false,
+    "target_loss": 0.9214553833007812,
+    "easy_cls_loss": 0.8993997573852539,
+    "malc_loss": 1.3519548177719116,
+    "rms_loss": 0.0022055604495108128,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.28507667779922485,
+      0.3909609913825989,
+      0.3239622712135315
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9932289719581604,
+    "cgr_max_projected_row_dot": 1.0710209608078003e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 10,
+    "enable_malc": false,
+    "target_loss": 0.6811507344245911,
+    "easy_cls_loss": 0.6593442559242249,
+    "malc_loss": 1.0726666450500488,
+    "rms_loss": 0.002180650597438216,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.3080114424228668,
+      0.31917765736579895,
+      0.37281087040901184
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9975261092185974,
+    "cgr_max_projected_row_dot": 1.979060471057892e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 11,
+    "enable_malc": false,
+    "target_loss": 0.7556872963905334,
+    "easy_cls_loss": 0.7341930866241455,
+    "malc_loss": 1.1317811012268066,
+    "rms_loss": 0.0021494224201887846,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "cgr_mode": "skip",
+    "cgr_accepted": false,
+    "cgr_attempts": 6,
+    "cgr_attack_retention": 0.9788594245910645,
+    "cgr_max_projected_row_dot": 1.3969838619232178e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 12,
+    "enable_malc": false,
+    "target_loss": 0.6029744148254395,
+    "easy_cls_loss": 0.5814802050590515,
+    "malc_loss": 0.7269508242607117,
+    "rms_loss": 0.0021494224201887846,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.0,
+      0.4854382276535034,
+      0.5145617723464966
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9999619722366333,
+    "cgr_max_projected_row_dot": 2.7939677238464355e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 13,
+    "enable_malc": false,
+    "target_loss": 1.1321067810058594,
+    "easy_cls_loss": 1.110925316810608,
+    "malc_loss": 0.9790059924125671,
+    "rms_loss": 0.0021181448828428984,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.25558894872665405,
+      0.435769259929657,
+      0.3086417615413666
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9790630340576172,
+    "cgr_max_projected_row_dot": 7.450580596923828e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 14,
+    "enable_malc": false,
+    "target_loss": 1.0851787328720093,
+    "easy_cls_loss": 1.0642156600952148,
+    "malc_loss": 1.1735057830810547,
+    "rms_loss": 0.0020963107235729694,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.36947381496429443,
+      0.3137294352054596,
+      0.31679674983024597
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9901872277259827,
+    "cgr_max_projected_row_dot": 2.0489096641540527e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 15,
+    "enable_malc": false,
+    "target_loss": 1.1132619380950928,
+    "easy_cls_loss": 1.0926499366760254,
+    "malc_loss": 0.6108533143997192,
+    "rms_loss": 0.0020612054504454136,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.0,
+      0.36616525053977966,
+      0.6338347792625427
+    ],
+    "cgr_mode": "repair_only",
+    "cgr_accepted": true,
+    "cgr_attempts": 2,
+    "cgr_attack_retention": 0.9760764837265015,
+    "cgr_max_projected_row_dot": 7.450580596923828e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 16,
+    "enable_malc": false,
+    "target_loss": 1.2900233268737793,
+    "easy_cls_loss": 1.2694110870361328,
+    "malc_loss": 1.1804845333099365,
+    "rms_loss": 0.0020612271036952734,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.373047798871994,
+      0.3771558701992035,
+      0.24979634582996368
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9957292079925537,
+    "cgr_max_projected_row_dot": 4.470348358154297e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 17,
+    "enable_malc": false,
+    "target_loss": 0.9978523254394531,
+    "easy_cls_loss": 0.9775203466415405,
+    "malc_loss": 1.050966501235962,
+    "rms_loss": 0.002033195924013853,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.33338019251823425,
+      0.3247683644294739,
+      0.3418514132499695
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.982204258441925,
+    "cgr_max_projected_row_dot": 3.725290298461914e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 18,
+    "enable_malc": false,
+    "target_loss": 0.8626015186309814,
+    "easy_cls_loss": 0.8423174619674683,
+    "malc_loss": 0.8982016444206238,
+    "rms_loss": 0.0020284040365368128,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.26276594400405884,
+      0.3055686950683594,
+      0.4316653609275818
+    ],
+    "cgr_mode": "target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 1.0,
+    "cgr_max_projected_row_dot": 0.0
+  },
+  {
+    "arm_id": "A0",
+    "step": 19,
+    "enable_malc": false,
+    "target_loss": 0.9154481291770935,
+    "easy_cls_loss": 0.8953868746757507,
+    "malc_loss": 1.0233572721481323,
+    "rms_loss": 0.0020061254035681486,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.2635011672973633,
+      0.2087946981191635,
+      0.527704119682312
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9542268514633179,
+    "cgr_max_projected_row_dot": 2.421438694000244e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 20,
+    "enable_malc": false,
+    "target_loss": 1.0230695009231567,
+    "easy_cls_loss": 1.0031483173370361,
+    "malc_loss": 1.1275365352630615,
+    "rms_loss": 0.001992112724110484,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.0,
+      0.533662736415863,
+      0.4663373529911041
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9128305912017822,
+    "cgr_max_projected_row_dot": 3.91155481338501e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 21,
+    "enable_malc": false,
+    "target_loss": 0.9604314565658569,
+    "easy_cls_loss": 0.9406746625900269,
+    "malc_loss": 1.0513286590576172,
+    "rms_loss": 0.0019756793044507504,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.0,
+      0.34988266229629517,
+      0.6501173973083496
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9993674159049988,
+    "cgr_max_projected_row_dot": 9.313225746154785e-10
+  },
+  {
+    "arm_id": "A0",
+    "step": 22,
+    "enable_malc": false,
+    "target_loss": 0.7053213715553284,
+    "easy_cls_loss": 0.6857177019119263,
+    "malc_loss": 1.0320755243301392,
+    "rms_loss": 0.001960364170372486,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.33949020504951477,
+      0.31598007678985596,
+      0.3445297181606293
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9856765866279602,
+    "cgr_max_projected_row_dot": 5.122274160385132e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 23,
+    "enable_malc": false,
+    "target_loss": 0.8170053958892822,
+    "easy_cls_loss": 0.7976637482643127,
+    "malc_loss": 1.1961679458618164,
+    "rms_loss": 0.0019341619918122888,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.3460579216480255,
+      0.324421226978302,
+      0.3295208811759949
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9948918223381042,
+    "cgr_max_projected_row_dot": 9.778887033462524e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 24,
+    "enable_malc": false,
+    "target_loss": 0.9924535751342773,
+    "easy_cls_loss": 0.9733555316925049,
+    "malc_loss": 0.7513906955718994,
+    "rms_loss": 0.0019098029006272554,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.3956884443759918,
+      0.3163736164569855,
+      0.2879379689693451
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9929166436195374,
+    "cgr_max_projected_row_dot": 7.450580596923828e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 25,
+    "enable_malc": false,
+    "target_loss": 0.917993426322937,
+    "easy_cls_loss": 0.8991076946258545,
+    "malc_loss": 1.3504157066345215,
+    "rms_loss": 0.0018885757308453321,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.28510570526123047,
+      0.3913782238960266,
+      0.3235161006450653
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9942882657051086,
+    "cgr_max_projected_row_dot": 6.51925802230835e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 26,
+    "enable_malc": false,
+    "target_loss": 0.67807936668396,
+    "easy_cls_loss": 0.6594052314758301,
+    "malc_loss": 1.068748116493225,
+    "rms_loss": 0.0018674106104299426,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.3078603148460388,
+      0.3179706037044525,
+      0.37416908144950867
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9967753887176514,
+    "cgr_max_projected_row_dot": 2.561137080192566e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 27,
+    "enable_malc": false,
+    "target_loss": 0.7600215673446655,
+    "easy_cls_loss": 0.7416168451309204,
+    "malc_loss": 1.1311297416687012,
+    "rms_loss": 0.0018404736183583736,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "cgr_mode": "repair_only",
+    "cgr_accepted": true,
+    "cgr_attempts": 4,
+    "cgr_attack_retention": 0.9791989326477051,
+    "cgr_max_projected_row_dot": 1.0244548320770264e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 28,
+    "enable_malc": false,
+    "target_loss": 0.5995811820030212,
+    "easy_cls_loss": 0.5811763405799866,
+    "malc_loss": 0.7289829254150391,
+    "rms_loss": 0.0018404838629066944,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.0,
+      0.4862339198589325,
+      0.5137661099433899
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9999428391456604,
+    "cgr_max_projected_row_dot": 9.313225746154785e-10
+  },
+  {
+    "arm_id": "A0",
+    "step": 29,
+    "enable_malc": false,
+    "target_loss": 1.1278976202011108,
+    "easy_cls_loss": 1.10976243019104,
+    "malc_loss": 0.9785515666007996,
+    "rms_loss": 0.0018135190475732088,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.25558286905288696,
+      0.43533191084861755,
+      0.3090852200984955
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.97934889793396,
+    "cgr_max_projected_row_dot": 8.847564458847046e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 30,
+    "enable_malc": false,
+    "target_loss": 1.083425760269165,
+    "easy_cls_loss": 1.0654735565185547,
+    "malc_loss": 1.1744496822357178,
+    "rms_loss": 0.0017952237976714969,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.36988621950149536,
+      0.31336069107055664,
+      0.316753089427948
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9902377128601074,
+    "cgr_max_projected_row_dot": 4.6566128730773926e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 31,
+    "enable_malc": false,
+    "target_loss": 1.111307144165039,
+    "easy_cls_loss": 1.0936572551727295,
+    "malc_loss": 0.611977219581604,
+    "rms_loss": 0.0017649860819801688,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.0,
+      0.3677594065666199,
+      0.6322405338287354
+    ],
+    "cgr_mode": "skip",
+    "cgr_accepted": false,
+    "cgr_attempts": 6,
+    "cgr_attack_retention": 0.9763123393058777,
+    "cgr_max_projected_row_dot": 7.450580596923828e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 32,
+    "enable_malc": false,
+    "target_loss": 1.2894309759140015,
+    "easy_cls_loss": 1.271781086921692,
+    "malc_loss": 1.1843047142028809,
+    "rms_loss": 0.0017649860819801688,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.37075868248939514,
+      0.3776746690273285,
+      0.25156664848327637
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.995478093624115,
+    "cgr_max_projected_row_dot": 3.3527612686157227e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 33,
+    "enable_malc": false,
+    "target_loss": 0.9946166276931763,
+    "easy_cls_loss": 0.9772056937217712,
+    "malc_loss": 1.0526546239852905,
+    "rms_loss": 0.0017410933505743742,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.3343890607357025,
+      0.32444894313812256,
+      0.3411619961261749
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9830169677734375,
+    "cgr_max_projected_row_dot": 9.313225746154785e-09
+  },
+  {
+    "arm_id": "A0",
+    "step": 34,
+    "enable_malc": false,
+    "target_loss": 0.8603094220161438,
+    "easy_cls_loss": 0.842922568321228,
+    "malc_loss": 0.8989548087120056,
+    "rms_loss": 0.001738686696626246,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.2627165913581848,
+      0.3054737448692322,
+      0.4318096935749054
+    ],
+    "cgr_mode": "target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 1.0,
+    "cgr_max_projected_row_dot": 0.0
+  },
+  {
+    "arm_id": "A0",
+    "step": 35,
+    "enable_malc": false,
+    "target_loss": 0.9125086069107056,
+    "easy_cls_loss": 0.8953077793121338,
+    "malc_loss": 1.023998498916626,
+    "rms_loss": 0.0017200815491378307,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.2659544050693512,
+      0.21022547781467438,
+      0.5238201022148132
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9601579904556274,
+    "cgr_max_projected_row_dot": 1.30385160446167e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 36,
+    "enable_malc": false,
+    "target_loss": 1.0223026275634766,
+    "easy_cls_loss": 1.0052164793014526,
+    "malc_loss": 1.1265482902526855,
+    "rms_loss": 0.0017086205771192908,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.0,
+      0.5344080328941345,
+      0.46559199690818787
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.914344072341919,
+    "cgr_max_projected_row_dot": 9.96515154838562e-08
+  },
+  {
+    "arm_id": "A0",
+    "step": 37,
+    "enable_malc": false,
+    "target_loss": 0.9592593908309937,
+    "easy_cls_loss": 0.9423073530197144,
+    "malc_loss": 1.0572259426116943,
+    "rms_loss": 0.0016952045261859894,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.0,
+      0.3494204580783844,
+      0.6505795121192932
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9996453523635864,
+    "cgr_max_projected_row_dot": 9.313225746154785e-10
+  },
+  {
+    "arm_id": "A0",
+    "step": 38,
+    "enable_malc": false,
+    "target_loss": 0.7022733688354492,
+    "easy_cls_loss": 0.6854456067085266,
+    "malc_loss": 1.0337895154953003,
+    "rms_loss": 0.0016827753279358149,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.3391362726688385,
+      0.3156870901584625,
+      0.3451766073703766
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9858477711677551,
+    "cgr_max_projected_row_dot": 4.656612873077393e-10
+  },
+  {
+    "arm_id": "A0",
+    "step": 39,
+    "enable_malc": false,
+    "target_loss": 0.8131841421127319,
+    "easy_cls_loss": 0.7965814471244812,
+    "malc_loss": 1.1964319944381714,
+    "rms_loss": 0.001660268404521048,
+    "valid_instance_coverage": 1.0,
+    "scale_contribution_share": [
+      0.346049427986145,
+      0.3246500492095947,
+      0.32930055260658264
+    ],
+    "cgr_mode": "projected_target",
+    "cgr_accepted": true,
+    "cgr_attempts": 1,
+    "cgr_attack_retention": 0.9941834807395935,
+    "cgr_max_projected_row_dot": 4.6566128730773926e-09
+  }
+]

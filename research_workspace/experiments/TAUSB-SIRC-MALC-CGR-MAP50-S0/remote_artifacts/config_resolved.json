@@ -1,0 +1,120 @@
+{
+  "spec": {
+    "spec_id": "TAUSB-SIRC-MALC-CGR-MAP50-v2",
+    "exp_id": "TAUSB-SIRC-MALC-CGR-MAP50-S0",
+    "seed": 0,
+    "source_manifest_sha256": "3a13b0f38b06006fd7f68ae03c7206b4b047d4b6129ee7357b05b966641d47af",
+    "shared_split_sha256": "e2542517af00830147117582d69ff15a62fbeae1f8583bf0c9d01fbff120cae1",
+    "label_sha256": "0c8b6f6424061bc31b84ddf42b7370dcbd074f26805433d0ba275c24815e3248",
+    "surrogate_checkpoint_sha256": "8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89",
+    "c2lm_basis_hash_mode": "recipe-v1",
+    "c2lm_basis_sha256": "8350c0a608150839c98a8dad8db862d0c9dfaeca4714f05d1714afac0f30cfa5",
+    "semantic_bank_hash_mode": "recipe-v1",
+    "semantic_bank_sha256": "0b8a94efc55155bea20a1ec799bfac14c8a6f11fd6530538f3e0437b37c0dd4b"
+  },
+  "dataset": {
+    "root": "/root/autodl-tmp/ue_project/VOC_0712_Kaggle_Ready",
+    "train_images": "images/train",
+    "train_labels": "labels/train",
+    "val_images": "images/val",
+    "target_class_id": 14
+  },
+  "model": {
+    "surrogate_checkpoint": "/root/autodl-tmp/ue_project/checkpoints/voc20_surrogate.pt",
+    "num_classes": 20,
+    "image_size": 640
+  },
+  "background": {
+    "source_manifest": "/root/.local/share/tausb/TAUSB-SIRC-MALC-CGR-MAP50-v2/bsc_background_manifest.json",
+    "source_local_map": "/root/.local/share/tausb/TAUSB-SIRC-MALC-CGR-MAP50-v2/bsc_background_local_map.json"
+  },
+  "carrier": {
+    "epsilon": 0.06274509803921569,
+    "resolution": 640,
+    "num_bases": 16,
+    "num_variants": 4,
+    "radial_edges": [
+      2.0,
+      5.5,
+      10.0,
+      16.0,
+      24.0
+    ],
+    "baseline_basis_seed": 0,
+    "phase_seed": 2101,
+    "variant_seed": 2102,
+    "initial_seed": 2103,
+    "gamma_seed": 2104,
+    "gamma_directions": 256,
+    "gamma_bisection_iterations": 32,
+    "gamma_chunk_size": 2,
+    "coefficient_max_abs": 0.25,
+    "target_rms_ratio": 0.35
+  },
+  "split": {
+    "manifest": "/root/.local/share/tausb/TAUSB-SIRC-MALC-CGR-MAP50-v2/TAUSB-ALCE-CTX-AUDIT-v1.json",
+    "required_protocol_prefix": "TAUSB-ALCE-CTX-AUDIT-v1"
+  },
+  "method": {
+    "enable_sirc_carrier": true,
+    "enable_malc": true,
+    "enable_cgr": true,
+    "jnd_floor": 0.5
+  },
+  "optimization": {
+    "warmup_steps": 4,
+    "optimization_steps": 40,
+    "learning_rate": 0.01,
+    "batch_size": 4,
+    "target_route": "easy_cls",
+    "lambda_route": 1.0,
+    "lambda_rms": 1.0,
+    "prototype_momentum": 0.9,
+    "box_teacher_weight": 1.0,
+    "align_alpha": 0.5,
+    "align_beta": 6.0,
+    "assignment_topk": 100,
+    "pag_layer_ratios": [
+      0.7,
+      0.6,
+      0.4
+    ],
+    "pag_min_pos": [
+      8,
+      6,
+      4
+    ],
+    "tau_cls": 0.005,
+    "tau_box": 0.02,
+    "cgr_tolerance": 0.005,
+    "cgr_near_boundary": 0.005,
+    "cgr_svd_relative_tolerance": 0.0001,
+    "cgr_max_backtracks": 5
+  },
+  "eot": {
+    "enabled": false,
+    "seed": 2105,
+    "samples": 1,
+    "scale": [
+      0.9,
+      1.1
+    ],
+    "translate": [
+      -0.05,
+      0.05
+    ],
+    "blur_sigma": [
+      0.4,
+      0.8
+    ],
+    "grayscale_probability": 0.25
+  },
+  "bootstrap": {
+    "seed": 2110,
+    "iterations": 10000
+  },
+  "runtime": {
+    "artifact_root": "/root/tausb-sirc-runs/TAUSB-SIRC-MALC-CGR-MAP50-v2/mechanism",
+    "device": 0
+  }
+}

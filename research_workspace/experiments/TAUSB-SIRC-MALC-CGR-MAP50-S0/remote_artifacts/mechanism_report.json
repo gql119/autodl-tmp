@@ -1,0 +1,137 @@
+{
+  "A0": {
+    "arm_id": "A0",
+    "box_residual_energy_median": 0.4982565427199006,
+    "cgr_attack_retention_median": 0.9626879394054413,
+    "cgr_max_projected_row_dot": 8.195638656616211e-08,
+    "cgr_repair_skip_ratio": 0.08333333333333333,
+    "enable_malc": false,
+    "floor_pass_ratio": 0.970651455026455,
+    "groups": {
+      "context:cooccur": {
+        "count": 129,
+        "coverage": 0.9922480620155039,
+        "log_energy_mad": 0.48278120160102844,
+        "residual_cosine_median": 0.11889451742172241
+      },
+      "context:person_only": {
+        "count": 55,
+        "coverage": 1.0,
+        "log_energy_mad": 0.4803479015827179,
+        "residual_cosine_median": 0.30419299006462097
+      },
+      "size:large": {
+        "count": 78,
+        "coverage": 1.0,
+        "log_energy_mad": 0.4735797122120857,
+        "residual_cosine_median": 0.2140311673283577
+      },
+      "size:medium": {
+        "count": 73,
+        "coverage": 0.9863013698630136,
+        "log_energy_mad": 0.4802212193608284,
+        "residual_cosine_median": 0.1311105191707611
+      },
+      "size:small": {
+        "count": 33,
+        "coverage": 1.0,
+        "log_energy_mad": 0.4021100178360939,
+        "residual_cosine_median": 0.0971490666270256
+      }
+    },
+    "heldout_batch_count": 24,
+    "log_energy_mad": 0.5210535563528538,
+    "non_target_target_energy_ratio_median": 0.2838064553933368,
+    "optimization_steps": 40,
+    "residual_cosine_median": 0.13771972060203552,
+    "residual_cosine_q25": -0.05051669478416443,
+    "scale_validity_frequency": [
+      0.4583333333333333,
+      0.9583333333333334,
+      1.0
+    ],
+    "split": "heldout",
+    "valid_instance_coverage": 0.9962121212121211,
+    "valid_scale_count_at_0_80": 2,
+    "zero_norm_ratio": 0.0
+  },
+  "A1": {
+    "arm_id": "A1",
+    "box_residual_energy_median": 0.49907305863286766,
+    "cgr_attack_retention_median": 0.9697125256061554,
+    "cgr_max_projected_row_dot": 2.086162567138672e-07,
+    "cgr_repair_skip_ratio": 0.08333333333333333,
+    "enable_malc": true,
+    "floor_pass_ratio": 0.970651455026455,
+    "groups": {
+      "context:cooccur": {
+        "count": 129,
+        "coverage": 0.9922480620155039,
+        "log_energy_mad": 0.48113293945789337,
+        "residual_cosine_median": 0.11935754865407944
+      },
+      "context:person_only": {
+        "count": 55,
+        "coverage": 1.0,
+        "log_energy_mad": 0.4893944635987282,
+        "residual_cosine_median": 0.3028520345687866
+      },
+      "size:large": {
+        "count": 78,
+        "coverage": 1.0,
+        "log_energy_mad": 0.4759879633784294,
+        "residual_cosine_median": 0.21491722762584686
+      },
+      "size:medium": {
+        "count": 73,
+        "coverage": 0.9863013698630136,
+        "log_energy_mad": 0.48311618715524673,
+        "residual_cosine_median": 0.1305173933506012
+      },
+      "size:small": {
+        "count": 33,
+        "coverage": 1.0,
+        "log_energy_mad": 0.40641825646162033,
+        "residual_cosine_median": 0.0976223573088646
+      }
+    },
+    "heldout_batch_count": 24,
+    "log_energy_mad": 0.5191364688798785,
+    "non_target_target_energy_ratio_median": 0.2832495038436863,
+    "optimization_steps": 40,
+    "residual_cosine_median": 0.14255860447883606,
+    "residual_cosine_q25": -0.0476340614259243,
+    "scale_validity_frequency": [
+      0.4583333333333333,
+      0.9583333333333334,
+      1.0
+    ],
+    "split": "heldout",
+    "valid_instance_coverage": 0.9962121212121211,
+    "valid_scale_count_at_0_80": 2,
+    "zero_norm_ratio": 0.0
+  },
+  "evidence_scope": "heldout_mechanism_only_not_fresh_victim_ue",
+  "gate": {
+    "allow_fresh_victim": false,
+    "failure_signals": {
+      "box_residual_energy_leakage": false,
+      "non_target_target_energy_leakage": false
+    },
+    "pass": false,
+    "success_signals": {
+      "cgr_attack_retention": true,
+      "cgr_orthogonality": true,
+      "cgr_repair_skip": true,
+      "cosine_gain": false,
+      "cosine_q25_positive": false,
+      "coverage": true,
+      "floor_pass": true,
+      "log_energy_mad": false,
+      "scale_validity": true,
+      "zero_norm": true
+    }
+  },
+  "schema_version": 1,
+  "split_hash": "e2542517af00830147117582d69ff15a62fbeae1f8583bf0c9d01fbff120cae1"
+}

@@ -1,0 +1,17 @@
+[Harness] stage=mechanism detail=matched_A0_A1_gate time=2026-08-10T04:34:52Z
+
+======================================================================
+🎯 [STRICT AL-SVC PROBE] Intercepted Real TAL Assigner Outputs
+======================================================================
+  - target_labels  : shape=(4, 8400), dtype=torch.int64, min=6.00, max=18.00
+  - target_scores  : shape=(4, 8400, 20), dtype=torch.float32, min=0.00, max=0.99
+  - fg_mask        : shape=(4, 8400), dtype=torch.bool, min=0.00, max=1.00
+  - target_gt_idx  : shape=(4, 8400), dtype=torch.int64, min=0.00, max=2.00
+======================================================================
+
+{'state': 'stopped', 'stage': 'mechanism_gate', 'claim_boundary': 'mechanism_only_not_fresh_victim_ue', 'smoke': False, 'mechanism_pass': False, 'allow_fresh_victim': False, 'frozen_carrier_state': None, 'warmup_diagnostics': [{'stage': 'route_warmup', 'step': 0, 'route_loss': 1.2762705087661743, 'cgr_mode': 'projected_target', 'cgr_accepted': True, 'cgr_attempts': 1, 'cgr_attack_retention': 0.9843425750732422, 'cgr_max_projected_row_dot': 3.3527612686157227e-08}, {'stage': 'route_warmup', 'step': 1, 'route_loss': 0.9770510196685791, 'cgr_mode': 'projected_target', 'cgr_accepted': True, 'cgr_attempts': 1, 'cgr_attack_retention': 0.9898382425308228, 'cgr_max_projected_row_dot': 0.0}, {'stage': 'route_warmup', 'step': 2, 'route_loss': 0.843490481376648, 'cgr_mode': 'target', 'cgr_accepted': True, 'cgr_attempts': 1, 'cgr_attack_retention': 1.0, 'cgr_max_projected_row_dot': 0.0}, {'stage': 'route_warmup', 'step': 3, 'route_loss': 0.8965179920196533, 'cgr_mode': 'projected_target', 'cgr_accepted': True, 'cgr_attempts': 1, 'cgr_attack_retention': 0.9867208003997803, 'cgr_max_projected_row_dot': 4.6566128730773926e-09}]}
+[Harness] stage=mechanism_gate_check detail=require_pass_and_frozen_A1 time=2026-08-10T04:36:17Z
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+AssertionError: {'state': 'stopped', 'stage': 'mechanism_gate', 'claim_boundary': 'mechanism_only_not_fresh_victim_ue', 'smoke': False, 'mechanism_pass': False, 'allow_fresh_victim': False, 'frozen_carrier_state': None, 'warmup_diagnostics': [{'stage': 'route_warmup', 'step': 0, 'route_loss': 1.2762705087661743, 'cgr_mode': 'projected_target', 'cgr_accepted': True, 'cgr_attempts': 1, 'cgr_attack_retention': 0.9843425750732422, 'cgr_max_projected_row_dot': 3.3527612686157227e-08}, {'stage': 'route_warmup', 'step': 1, 'route_loss': 0.9770510196685791, 'cgr_mode': 'projected_target', 'cgr_accepted': True, 'cgr_attempts': 1, 'cgr_attack_retention': 0.9898382425308228, 'cgr_max_projected_row_dot': 0.0}, {'stage': 'route_warmup', 'step': 2, 'route_loss': 0.843490481376648, 'cgr_mode': 'target', 'cgr_accepted': True, 'cgr_attempts': 1, 'cgr_attack_retention': 1.0, 'cgr_max_projected_row_dot': 0.0}, {'stage': 'route_warmup', 'step': 3, 'route_loss': 0.8965179920196533, 'cgr_mode': 'projected_target', 'cgr_accepted': True, 'cgr_attempts': 1, 'cgr_attack_retention': 0.9867208003997803, 'cgr_max_projected_row_dot': 4.6566128730773926e-09}]}
+[CostGuard] pipeline_exit=1; requesting AutoDL shutdown

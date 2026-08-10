@@ -1,0 +1,22 @@
+{
+  "prototype_hash": "19a2f8db965d7fe4e5f98dc1329436d612c829e63648b1cf7acecf49edd303a4",
+  "prototype_split_hash": "e2542517af00830147117582d69ff15a62fbeae1f8583bf0c9d01fbff120cae1",
+  "prototype_counts": [
+    36,
+    43,
+    88
+  ],
+  "gradient_hash": "14aedc750cd36210cda1e3e30aec995947b5f087b6223ee1652098b13442106a",
+  "gradient_median_norms": {
+    "easy_cls": 0.21433928512414624,
+    "malc": 0.23588874117896633,
+    "rms": 0.01886114557924057
+  },
+  "gradient_weights": {
+    "malc": 0.9086456778393701,
+    "rms": 10.0
+  },
+  "gradient_clipped_components": [
+    "rms"
+  ]
+}

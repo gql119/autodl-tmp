@@ -704,3 +704,59 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
 
 - 2026-08-10: the fcf26cc run passed first GPU health and reached A1 with about 14.4 GiB process
   memory, then the cost wrapper shut the instance down. Final classification is evidence-pending.
+
+## REMOTE-MECHANISM-01 final classification and artifact pull
+
+- Final classification: `scientific_gate_fail`, not a runtime failure. Exact commit
+  `fcf26cc24dc7e6943234cc3cdf7943fd957cb6cc` completed A0 and A1, each with 40 optimization
+  steps and 24 held-out batches. Mechanism status is `stopped / mechanism_gate`,
+  `mechanism_pass=false`, `allow_fresh_victim=false`, and no A1 carrier was frozen.
+- The wrapper then entered `mechanism_gate_check`, intentionally rejected the stopped status,
+  exited 1 and requested shutdown. The external cost-guard status is
+  `failed / mechanism_gate_check / formal_pipeline_exit_1_shutdown_requested`. This behavior
+  enforces the approved stop condition; it is not a third code bug.
+- A mechanism-only pull manifest selected ten exact small JSON files. Transfer verification has
+  `selected_files=10`, all ten in `present`, no transfer failure and `missing_required=[]`.
+  Every selected file has a recorded SHA-256 in `remote_artifacts/transfer-report.json`.
+- Exact external control files were also pulled. SHA-256 values are
+  `d023acb7c06eb7b1f0bb67381b2b200003810bd56dda8a9725906c823fa9725d` for the guard status and
+  `cfb3496724e9247019bbceca30290b834b13fe31d11596402a3e0c4c9e6f0970` for the formal log.
+- Input audit passed contamination/provenance checks and matched the frozen source, split,
+  semantic-bank, C2LM-basis and surrogate checkpoint hashes. The claim boundary remains
+  surrogate held-out mechanism evidence only.
+
+## MECHANISM-GATE-01
+
+- Result: `FAIL`; `REMOTE-C0-01` and `REMOTE-M1-01` remain forbidden.
+- Failed success signals:
+  - residual cosine median gain is `0.004839` (`0.137720 -> 0.142559`), below `0.10`;
+  - A1 cosine Q25 is `-0.047634`, not positive;
+  - A1/A0 log-energy MAD is `0.99632`, above the maximum `0.90`.
+- Passing safeguards: coverage `0.9962`, zero-norm ratio `0`, floor pass `0.9707`, 2/3 valid
+  scales, CGR projected-row dot `2.09e-7`, CGR attack retention `0.9697`, repair+skip `0.0833`,
+  and no non-target/target or box residual-energy leakage failure.
+- Key evidence: MALC is active in A1's scalar objective, but A0/A1 remain almost identical over
+  40 matched steps. Mean absolute paired differences are `0.001708` for easy-cls loss,
+  `0.001813` for observed MALC loss and `0.0000482` for RMS loss. Per size/context cosine changes
+  are all below absolute `0.0014`.
+- Root-cause boundary: the current design calibrates gradient norms only; it does not measure
+  prototype angular stability, cross-batch MALC gradient agreement, component conflict, or
+  component-wise survival after CGR. Combined CGR retention rules out global null-space
+  exhaustion but cannot yet rule out selective MALC removal. Carrier signed expressivity is a
+  secondary unisolated hypothesis, not an established cause.
+- Analysis artifacts:
+  `research_workspace/experiments/TAUSB-SIRC-MALC-CGR-MAP50-S0/analysis/mechanism_gate.md`,
+  `analysis/HEN.md`, and `analysis/metrics_summary.md`.
+- `exp-results-ingest-local` was inspected but not executed because its required victim
+  `metrics/metrics.json` does not exist. No AP50 value was fabricated. C0/M1 AP50, per-class
+  metrics, poisoned count, PSNR, LPIPS and materialized Linf are explicit controlled validation
+  gaps caused by the pre-registered mechanism stop.
+- Smallest next experiment: one calibration-only gradient-geometry audit recording prototype
+  resultant/angular stability, component and cross-batch gradient cosines, per-component
+  post-CGR retention, and A0/A1 coefficient/pattern separation. Do not rerun C0/M1 or tune
+  several controls together before that probe identifies the first directional bottleneck.
+- Current Best / STATE decision: no promotion and no Current Best change is supported by this
+  mechanism failure. A follow-up method or diagnostic requires a separately frozen plan.
+- Cost closure: after all required mechanism/control evidence was pulled and verified locally,
+  `/usr/bin/shutdown` returned success. A follow-up `BatchMode` SSH check was refused, confirming
+  that the no-card instance is no longer reachable and no further remote work was launched.
