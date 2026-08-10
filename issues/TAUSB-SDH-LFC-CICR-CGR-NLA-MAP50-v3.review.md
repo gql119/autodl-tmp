@@ -184,3 +184,20 @@ seed, if eventually run, remains tentative.
   `/usr/bin/shutdown` are executable. CUDA remained unavailable and no GPU job started.
   AutoDL lacks pytest, so the active Linux runtime path was validated directly: mechanism
   config, canonical manifest hash, and `(4,3,256,256)` secret-bank loading all passed.
+- 2026-08-11: The first hiding pre-run review was `blocked/do_not_run`: the mechanism YAML
+  still resolved VOC and surrogate inputs relative to the clean checkout, where those large
+  inputs are intentionally absent. `PRERUN-FIX-PATHS-01` changed only those two values to the
+  audited AutoDL absolute paths. Commit `e3f6744` passed seven local config tests and remote
+  no-card existence/checkpoint-hash validation from a clean exact checkout.
+- 2026-08-11: The second hiding pre-run review was also blocked before GPU: direct file
+  execution of `ue_framework/tools/run_tausb_sdh.py` failed to resolve the current checkout's
+  package. `PRERUN-FIX-ENTRYPOINT-01` binds the wrapper to
+  `python -m ue_framework.tools.run_tausb_sdh` from the reviewed project root. Module help now
+  passes locally and remotely; this avoids importing an absent or stale installed package.
+- 2026-08-11: Prepared `PRERUN-REVIEW-HIDING-1` with result `pass/allow_run`, conditional on
+  its launch-time GPU gate. The reviewed code commit is `e3f6744`; wrapper SHA-256 is
+  `99fe8cbcac2a82d8af20b7df5f165688a1b090c586261233e3ec231e3c3f6419`; launch-gate SHA-256
+  is `39a07c572554e1b0e9b4199a20405118ded9369fec9a51e2299d6c5329ca8baa`.
+  Both scripts pass remote `bash -n`. The wrapper invokes hiding only, enforces an external
+  1200-second timeout and idle watchdog, snapshots minimal evidence, and requests shutdown on
+  success or failure. CUDA remains unavailable and no experiment has started.
