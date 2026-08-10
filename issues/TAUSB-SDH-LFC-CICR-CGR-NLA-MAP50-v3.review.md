@@ -167,3 +167,20 @@ seed, if eventually run, remains tentative.
   user-authorized endpoint returned `Connection refused`; no remote command, GPU process, or
   paid experiment started. `REMOTE-INPUTS-01` remains the recoverable active row pending an
   online instance or updated SSH endpoint.
+- 2026-08-11: Resumed `REMOTE-INPUTS-01` in no-card mode. A structural CSV audit found and
+  repaired five notes fields whose unquoted commas had shifted later columns; the corrected
+  CSV parses as 31 rows with exactly 28 fields each.
+- 2026-08-11: The remote input audit exposed a real cross-platform provenance bug: the secret
+  manifest was hashed as raw bytes, so Windows CRLF and Linux LF checkouts disagreed. Commit
+  `7cd60f9` now hashes canonical parsed JSON and freezes
+  `a25277499e07310e68a39277461f176dd0d8666e69a4b890328d7b913601ac3e`.
+  A CRLF/LF regression test was added; the focused SDH suite now passes 56 tests.
+- 2026-08-11: Local and AutoDL audits independently matched all VOC counts, all 20 per-class
+  instance counts, train/val person-image counts `6095/2007`, canonical label-content hashes,
+  image path-size hashes, all four authorized secret source hashes, and surrogate SHA-256
+  `8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89`.
+  Hashing all 21,503 remote VOC images found zero secret overlap. The agent-owned worktree is
+  clean at `7cd60f9366652a60df0830579a25cd2ef54a13e9`; the formal artifact root is fresh; tmux and
+  `/usr/bin/shutdown` are executable. CUDA remained unavailable and no GPU job started.
+  AutoDL lacks pytest, so the active Linux runtime path was validated directly: mechanism
+  config, canonical manifest hash, and `(4,3,256,256)` secret-bank loading all passed.
