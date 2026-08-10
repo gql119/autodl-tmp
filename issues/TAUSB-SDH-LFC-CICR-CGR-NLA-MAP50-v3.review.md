@@ -201,3 +201,8 @@ seed, if eventually run, remains tentative.
   Both scripts pass remote `bash -n`. The wrapper invokes hiding only, enforces an external
   1200-second timeout and idle watchdog, snapshots minimal evidence, and requests shutdown on
   success or failure. CUDA remains unavailable and no experiment has started.
+- 2026-08-11: Pushed pre-run packet commit `59253ba`, then uploaded the reviewed wrapper and
+  launch gate to new commit-suffixed AutoDL paths. Remote bytes match the frozen hashes and
+  both files pass `bash -n`. `PRERUN-HIDING-01` is closed. The only authorized next command is
+  `/bin/bash /root/verify_and_launch_sdh_hiding_e3f6744.sh` after GPU mode is enabled; executing
+  any inner Python or tmux command directly would bypass the reviewed cost guard.
