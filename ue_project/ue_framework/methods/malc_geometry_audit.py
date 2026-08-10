@@ -215,26 +215,75 @@ def component_gradient_geometry(
 ) -> ComponentGeometryBatch:
     if tuple(losses) != COMPONENT_NAMES:
         raise ValueError(f"Component losses must be ordered as {COMPONENT_NAMES}.")
-    routes = {}
-    gradients = {}
-    matrices = []
-    for name in COMPONENT_NAMES:
-        route = route_coefficient_gradient(
-            parameter=parameter,
-            target_loss=losses[name],
-            constraints=constraints,
-            near_boundary=near_boundary,
-            svd_relative_tolerance=svd_relative_tolerance,
-            epsilon=epsilon,
-        )
-        raw = route.target_gradient.detach().to(device="cpu", dtype=torch.float64).reshape(-1)
-        projected = route.projected_target_gradient.detach().to(
+    easy_route = route_coefficient_gradient(
+        parameter=parameter,
+        target_loss=losses["easy_cls"],
+        constraints=constraints,
+        near_boundary=near_boundary,
+        svd_relative_tolerance=svd_relative_tolerance,
+        epsilon=epsilon,
+    )
+    gradients = {
+        "easy_cls": easy_route.target_gradient.detach().to(
             device="cpu", dtype=torch.float64
         ).reshape(-1)
+    }
+    for name in ("malc", "rms"):
+        gradient = torch.autograd.grad(
+            losses[name],
+            parameter,
+            retain_graph=True,
+            create_graph=False,
+            allow_unused=True,
+        )[0]
+        if gradient is None:
+            raise ValueError(
+                f"Target loss {name} is disconnected from the coefficient parameter."
+            )
+        if not torch.isfinite(gradient).all():
+            raise ValueError(f"Component {name} has a non-finite gradient.")
+        gradients[name] = gradient.detach().to(
+            device="cpu", dtype=torch.float64
+        ).reshape(-1)
+
+    matrix = easy_route.constraint_matrix.detach().to(
+        device="cpu", dtype=torch.float64
+    )
+    if (
+        easy_route.mode == "skip"
+        and easy_route.active_constraints
+        and matrix.shape[0] == 0
+    ):
+        project = lambda value: torch.zeros_like(value)
+    elif easy_route.rank == 0:
+        project = lambda value: value.clone()
+    else:
+        _, _, vh = torch.linalg.svd(matrix, full_matrices=False)
+        row_space = vh[: easy_route.rank]
+
+        def project(value: torch.Tensor) -> torch.Tensor:
+            return value - row_space.T @ (row_space @ value)
+
+    easy_reference = easy_route.projected_target_gradient.detach().to(
+        device="cpu", dtype=torch.float64
+    ).reshape(-1)
+    if not torch.allclose(
+        project(gradients["easy_cls"]),
+        easy_reference,
+        atol=1e-6,
+        rtol=1e-5,
+    ):
+        raise RuntimeError("Audit projector differs from the active CGR projector.")
+
+    routes = {}
+    for name in COMPONENT_NAMES:
+        raw = gradients[name]
+        projected = project(raw)
         raw_norm = float(raw.norm())
         if not math.isfinite(raw_norm) or raw_norm <= epsilon:
             raise RuntimeError(f"Component {name} has a zero or non-finite gradient.")
         projected_norm = float(projected.norm())
+        row_dot = matrix @ projected
         routes[name] = {
             "raw_norm": raw_norm,
             "projected_norm": projected_norm,
@@ -244,35 +293,17 @@ def component_gradient_geometry(
                 if projected_norm > epsilon
                 else None
             ),
-            "rank": int(route.rank),
-            "null_dimension": int(route.null_dimension),
-            "active_constraints": list(route.active_constraints),
-            "violated_constraints": list(route.violated_constraints),
-            "max_projected_row_dot": float(route.max_projected_row_dot),
+            "rank": int(easy_route.rank),
+            "null_dimension": int(easy_route.null_dimension),
+            "active_constraints": list(easy_route.active_constraints),
+            "violated_constraints": list(easy_route.violated_constraints),
+            "max_projected_row_dot": (
+                float(row_dot.abs().max()) if row_dot.numel() else 0.0
+            ),
             "raw_gradient": raw.tolist(),
             "projected_gradient": projected.tolist(),
         }
-        gradients[name] = raw
-        matrices.append(route.constraint_matrix.detach().to(device="cpu", dtype=torch.float64))
-
-    reference_matrix = matrices[0]
-    for matrix in matrices[1:]:
-        if matrix.shape != reference_matrix.shape or not torch.equal(
-            matrix, reference_matrix
-        ):
-            raise RuntimeError("Components did not reuse an identical CGR row matrix.")
-    route_metadata = [
-        (
-            routes[name]["rank"],
-            routes[name]["null_dimension"],
-            routes[name]["active_constraints"],
-            routes[name]["violated_constraints"],
-        )
-        for name in COMPONENT_NAMES
-    ]
-    if any(item != route_metadata[0] for item in route_metadata[1:]):
-        raise RuntimeError("Components did not reuse identical CGR active rows.")
-    matrix_hash = tensor_sha256(reference_matrix.float())
+    matrix_hash = tensor_sha256(matrix.float())
     pairwise = {
         "malc_vs_easy": detached_cosine(gradients["malc"], gradients["easy_cls"]),
         "malc_vs_rms": detached_cosine(gradients["malc"], gradients["rms"]),
@@ -282,8 +313,9 @@ def component_gradient_geometry(
         record={
             "components": routes,
             "pairwise_cosines": pairwise,
-            "constraint_matrix_shape": list(reference_matrix.shape),
+            "constraint_matrix_shape": list(matrix.shape),
             "constraint_matrix_hash": matrix_hash,
+            "projector_source": "single_easy_cls_CGR_route_reused_for_all_components",
         },
         gradients=gradients,
     )

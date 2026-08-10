@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
+import ue_framework.methods.malc_geometry_audit as geometry_module
 from ue_framework.methods.constraint_gradient_router import ConstraintTerm
 from ue_framework.methods.malc_geometry_audit import (
     PrototypeGeometryAccumulator,
@@ -83,6 +84,33 @@ def test_component_geometry_reuses_one_row_space_and_exposes_selective_suppressi
         result["components"][name]["max_projected_row_dot"]
         for name in ("easy_cls", "malc", "rms")
     ) <= 1e-5
+
+
+def test_component_geometry_builds_the_cgr_projector_once(monkeypatch) -> None:
+    calls = 0
+    original = geometry_module.route_coefficient_gradient
+
+    def counted(**kwargs):
+        nonlocal calls
+        calls += 1
+        return original(**kwargs)
+
+    monkeypatch.setattr(geometry_module, "route_coefficient_gradient", counted)
+    parameter = torch.nn.Parameter(torch.tensor([0.2, 0.3]))
+    component_gradient_geometry(
+        parameter=parameter,
+        losses={
+            "easy_cls": parameter[0],
+            "malc": parameter[1],
+            "rms": parameter.sum(),
+        },
+        constraints=(
+            ConstraintTerm("class_3_cls", parameter[1] + 1.0, 0.005),
+        ),
+        near_boundary=0.005,
+        svd_relative_tolerance=1e-4,
+    )
+    assert calls == 1
 
 
 def test_component_geometry_rank_zero_and_disconnected_component() -> None:

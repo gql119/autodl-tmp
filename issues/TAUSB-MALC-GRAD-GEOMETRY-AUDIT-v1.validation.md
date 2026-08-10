@@ -5,8 +5,8 @@ Date: 2026-08-10
 ## Passed checks
 
 - Formal CSV: 18 rows, 28 canonical columns, one active dependency, pre-run row before every remote row, final row `REVIEW-01`.
-- Focused tests: 27 passed for prototype geometry, component/cross-batch gradients, rank-0/full-rank/selective CGR projection, decision order, matched microtrajectory, frozen config, old v2 config, calibration and graph-free nonlinear margin evaluation.
-- Full local regression: 158 passed using a fresh workspace-local pytest base temp. The first run produced 18 fixture setup errors because the Windows default pytest temp root was unreadable; rerouting only the temp root removed all 18 without any code change.
+- Focused routing/config regression after pre-run optimization: 31 passed for prototype geometry, component/cross-batch gradients, one-projector reuse, rank-0/full-rank/selective CGR projection, decision order, matched microtrajectory, frozen config, old v2 config and CGR behavior.
+- Full local regression: 159 passed using a fresh workspace-local pytest base temp. The first run produced 18 fixture setup errors because the Windows default pytest temp root was unreadable; rerouting only the temp root removed all 18 without any code change.
 - CLI: `probe_tausb_malc_geometry.py --help` passes and exposes only config/device/source override arguments.
 - Compile: all three new active Python modules pass `py_compile`.
 - Python 3.8 grammar audit: all three new active Python modules pass `ast.parse(..., feature_version=(3, 8))`.
@@ -20,6 +20,7 @@ Date: 2026-08-10
 - Prototype collection and held-out collection run under `torch.no_grad()`.
 - Held-out carrier coefficients and the frozen prototype bank are hash-checked before/after the audit.
 - G0 component projection calls the existing CGR router and never calls nonlinear candidate evaluation or updates the carrier.
+- G0 constructs the active non-target row space and SVD exactly once per batch, then projects all three component gradients through that same projector; a call-count regression test enforces this cost and semantics property.
 - The matched trajectory alone calls the existing nonlinear backtracking route; A0/A1 share the same warm state and batch object at every step.
 
 ## Validation gap
