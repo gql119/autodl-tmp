@@ -28,3 +28,7 @@ The ordered output is exactly one `first_bad_boundary`: `prototype_incoherence`,
 ## Worktree boundary
 
 The worktree already contains unrelated user modifications and untracked research assets. Preserve them: no reset, stash, clean, bulk deletion, or broad staging. Only files attributable to this Spec may be committed.
+
+## Current remote blocker
+
+On 2026-08-10 a single read-only SSH availability check to the authorized AutoDL endpoint returned `Connection refused`. The instance therefore remains off and is not accruing GPU cost. No repeated reconnect loop was attempted. Start the AutoDL instance before resuming `REMOTE-INPUTS-01`; the next run must first verify commit, environment, frozen hashes and the fresh artifact root, then complete the formal pre-run review before any probe is launched.
