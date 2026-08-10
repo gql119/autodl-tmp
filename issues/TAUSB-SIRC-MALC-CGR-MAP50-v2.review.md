@@ -684,3 +684,23 @@ exist in `launch_one.py`, `paths.py`, `runtime.py`, `stages/aggregate.py`,
 
 - 2026-08-10: after GPU enablement, the runtime repeat audit passed on one idle RTX 4090 D.
   `PRERUN-REVIEW-07` records `pass / allow_run` for the cost-guarded fcf26cc launch.
+
+## REMOTE-MECHANISM-01 fcf26cc launch recovery state
+
+- Launch marker: `2026-08-10T04:34:52Z`; tmux pane was alive and guard state was
+  `running / mechanism / matched_A0_A1_gate` on exact `fcf26cc`.
+- The next health check reached real GPU execution: mechanism status was `running / optimize_A1`,
+  the Python process used approximately 14,442 MiB, GPU utilization was nonzero, and captured
+  TAL tensors for batch 4 were finite. This is materially below the prior 22.66 GiB live-memory
+  failure and is mechanical evidence that the graph-lifetime fix changed the active path.
+- The following SSH health request was refused; a confirmation request was also refused. The
+  instance is off, so GPU cost is stopped.
+- Evidence boundary: shutdown may represent a mechanism gate rejection enforced by the wrapper
+  or a new runtime exception. No final status/report was retrieved before shutdown, so neither
+  outcome is inferred and no mechanism/C0/M1/AP50 claim is made.
+- Recovery action: start no-card mode and read the distinct fcf26cc guard status/log plus formal
+  mechanism status/report and file manifest. Do not patch or relaunch until the final boundary is
+  established from persisted evidence.
+
+- 2026-08-10: the fcf26cc run passed first GPU health and reached A1 with about 14.4 GiB process
+  memory, then the cost wrapper shut the instance down. Final classification is evidence-pending.
