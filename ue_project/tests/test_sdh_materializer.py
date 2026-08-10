@@ -1,0 +1,100 @@
+from __future__ import annotations
+
+import copy
+
+import numpy as np
+import pytest
+import torch
+
+from ue_framework.methods.sdh_materializer import (
+    SDHMaterializer,
+    build_frozen_sdh_state_payload,
+    load_frozen_sdh_state,
+)
+from ue_framework.methods.semantic_hiding_carrier import SemanticHidingCarrier
+
+
+HASHES = {
+    "secret_source_sha256": "a" * 64,
+    "secret_tensor_sha256": "b" * 64,
+    "source_manifest_sha256": "c" * 64,
+    "train_split_sha256": "d" * 64,
+}
+
+
+def _payload(*, hiding=True, mechanism=True):
+    torch.manual_seed(7)
+    carrier = SemanticHidingCarrier(input_size=32, width=8, coupling_blocks=2)
+    secret = torch.rand((1, 3, 32, 32))
+    return build_frozen_sdh_state_payload(
+        carrier=carrier,
+        secret=secret,
+        target_class_id=14,
+        hiding_gate_passed=hiding,
+        mechanism_gate_passed=mechanism,
+        **HASHES,
+    )
+
+
+def _cfg(path):
+    return {
+        "experiment": {"target_class_id": 14, "eps": 16 / 255},
+        "surrogate": {"num_classes": 20, "imgsz": 640, "eot_samples": 1},
+    }, {"support_type": "bbox", "frozen_sdh_state": str(path), **HASHES}
+
+
+def test_state_gates_and_content_hash_fail_closed(tmp_path) -> None:
+    failed = tmp_path / "failed.pt"
+    torch.save(_payload(hiding=False), failed)
+    with pytest.raises(ValueError, match="hiding_gate_passed"):
+        load_frozen_sdh_state(
+            str(failed), device=torch.device("cpu"), expected_target_class_id=14,
+            expected_epsilon=16 / 255, expected_hashes=HASHES,
+        )
+    payload = _payload()
+    first_key = next(iter(payload["model_state"]))
+    payload["model_state"][first_key] = payload["model_state"][first_key].clone()
+    payload["model_state"][first_key].reshape(-1)[0] += 1.0
+    tampered = tmp_path / "tampered.pt"
+    torch.save(payload, tampered)
+    with pytest.raises(ValueError, match="content hash mismatch"):
+        load_frozen_sdh_state(
+            str(tampered), device=torch.device("cpu"), expected_target_class_id=14,
+            expected_epsilon=16 / 255, expected_hashes=HASHES,
+        )
+
+
+def test_materializer_is_deterministic_bounded_and_gt_box_local(tmp_path) -> None:
+    path = tmp_path / "p1.pt"
+    torch.save(_payload(), path)
+    cfg, method_cfg = _cfg(path)
+    materializer = SDHMaterializer(cfg, method_cfg, torch.device("cpu"), torch.nn.Identity())
+    image = np.full((40, 48, 3), 0.5, dtype=np.float32)
+    annotations = [
+        {"cls": 14, "bbox": [0.5, 0.5, 0.4, 0.6]},
+        {"cls": 7, "bbox": [0.2, 0.2, 0.1, 0.1]},
+    ]
+    kwargs = dict(
+        image=image, annotations=annotations, seed=1, steps=40,
+        eps=16 / 255, support_type="bbox", image_path="000001.jpg",
+    )
+    first = materializer.generate(**kwargs)
+    second = materializer.generate(**kwargs)
+    assert np.array_equal(first.poisoned_image, second.poisoned_image)
+    assert np.array_equal(first.perturbation, second.perturbation)
+    assert first.extras["support_source"] == "person_gt_bbox"
+    assert np.max(np.abs(first.perturbation[first.support_mask == 0])) == 0
+    assert np.max(np.abs(first.perturbation)) <= 16 / 255 + 1e-7
+
+
+def test_materializer_rejects_non_bbox_support(tmp_path) -> None:
+    path = tmp_path / "p1.pt"
+    torch.save(_payload(), path)
+    cfg, method_cfg = _cfg(path)
+    materializer = SDHMaterializer(cfg, method_cfg, torch.device("cpu"), torch.nn.Identity())
+    with pytest.raises(ValueError, match="person GT boxes"):
+        materializer.generate(
+            np.zeros((32, 32, 3), dtype=np.float32),
+            [{"cls": 14, "bbox": [0.5, 0.5, 0.5, 0.5]}],
+            0, 40, 16 / 255, "mask",
+        )

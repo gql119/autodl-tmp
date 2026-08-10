@@ -1,0 +1,104 @@
+{
+  "schema": "tausb.voc-input-audit.v1",
+  "created": "2026-08-11",
+  "dataset_root": "F:/dateset/VOC_0712_Kaggle_Ready/VOC_0712_Kaggle_Ready",
+  "splits": {
+    "train": {
+      "image_count": 16551,
+      "label_count": 16551,
+      "image_extensions": {
+        ".jpg": 16551
+      },
+      "label_extensions": {
+        ".txt": 16551
+      },
+      "missing_label_stems": [],
+      "missing_image_stems": [],
+      "empty_label_count": 0,
+      "invalid_rows": [],
+      "person_image_count": 6095,
+      "instance_count_by_class_id": {
+        "0": 1171,
+        "1": 1064,
+        "2": 1605,
+        "3": 1140,
+        "4": 1764,
+        "5": 822,
+        "6": 3267,
+        "7": 1593,
+        "8": 3152,
+        "9": 847,
+        "10": 824,
+        "11": 2025,
+        "12": 1072,
+        "13": 1052,
+        "14": 13256,
+        "15": 1487,
+        "16": 1070,
+        "17": 814,
+        "18": 925,
+        "19": 1108
+      },
+      "image_path_size_manifest_sha256": "96feacf8d8299ad9e9135b7fb1d2bc4c90d6c94bf96ecc6453e660e805166e35",
+      "label_content_manifest_sha256": "98615b1ecdb2d45a7579c4dbafc83d88f193873ddd25c15afde29045d684cd00",
+      "elapsed_seconds": 12.017
+    },
+    "val": {
+      "image_count": 4952,
+      "label_count": 4952,
+      "image_extensions": {
+        ".jpg": 4952
+      },
+      "label_extensions": {
+        ".txt": 4952
+      },
+      "missing_label_stems": [],
+      "missing_image_stems": [],
+      "empty_label_count": 0,
+      "invalid_rows": [],
+      "person_image_count": 2007,
+      "instance_count_by_class_id": {
+        "0": 285,
+        "1": 337,
+        "2": 459,
+        "3": 263,
+        "4": 469,
+        "5": 213,
+        "6": 1201,
+        "7": 358,
+        "8": 756,
+        "9": 244,
+        "10": 206,
+        "11": 489,
+        "12": 348,
+        "13": 325,
+        "14": 4528,
+        "15": 480,
+        "16": 242,
+        "17": 239,
+        "18": 282,
+        "19": 308
+      },
+      "image_path_size_manifest_sha256": "b9c97539c88b85ff3fdbff155fcfe93a76b6202299a597570e8bc002ca687920",
+      "label_content_manifest_sha256": "4432843b2e1c4e346cf0607b344e40994fd02a186982b8e976238a95ed2453d2",
+      "elapsed_seconds": 4.115
+    }
+  },
+  "secret_source_overlap": [],
+  "secret_hashes": {
+    "bg-building-sky-09": "66bd89ebef12b21d578341e945d56ed315372b213e52c2cc07d2110543cc6a48",
+    "bg-field-04": "42cb21ff8b0605a25932871dd63a4b340092c54810bb31e747aaad442f9a092f",
+    "bg-landscape-05": "55f4e32732d4f1c17ea794433694e090a251ec901fdb61fb2f95cd410f091830",
+    "bg-tree-08": "dc8ffacadaa07cae3aa38658099574f81787b8803a56b1962c6ccc68a332f310"
+  },
+  "checks": {
+    "counts_expected": true,
+    "stems_exact": true,
+    "labels_valid": true,
+    "class_space_20": true,
+    "train_person_images_6095": true,
+    "val_person_images_2007": true,
+    "secret_source_hash_zero_overlap": true
+  },
+  "overall_pass": true
+}

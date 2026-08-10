@@ -1,0 +1,125 @@
+{
+  "schema": "tausb.secret-assets.v1",
+  "created": "2026-08-11",
+  "spec_id": "TAUSB-SDH-LFC-CICR-CGR-NLA-MAP50-v3",
+  "preprocess": {
+    "mode": "deterministic_center_square",
+    "resize": [
+      256,
+      256
+    ],
+    "interpolation": "PIL.Image.Resampling.LANCZOS",
+    "color": "RGB",
+    "pillow_version": "12.2.0"
+  },
+  "final_secret_count": 1,
+  "pretrain_secret_count": 3,
+  "records": [
+    {
+      "source_id": "bg-building-sky-09",
+      "role": "final_unseen_primary",
+      "source_file": "research_workspace/sources/secret_assets/bg-building-sky-09.source.jpg",
+      "processed_file": "research_workspace/sources/secret_assets/bg-building-sky-09.center256.png",
+      "source_size": [
+        1706,
+        1279
+      ],
+      "crop_box": [
+        213,
+        0,
+        1492,
+        1279
+      ],
+      "processed_size": [
+        256,
+        256
+      ],
+      "source_sha256": "66bd89ebef12b21d578341e945d56ed315372b213e52c2cc07d2110543cc6a48",
+      "processed_png_sha256": "4cd6fef0886ef87e61d4d64fb6b17e52a560afa64fea62b18502cd6933c3749e",
+      "uint8_rgb_hwc_sha256": "0a25df6a1c651c717d9d362cffc69058ef0c0801946c6e57748ee133b95308ab",
+      "float32_chw_0_1_le_sha256": "cb4b9bba70701c118cc869738ca2713a049ec23b86e89238f32353b06bd4adaf"
+    },
+    {
+      "source_id": "bg-field-04",
+      "role": "pretrain",
+      "source_file": "research_workspace/sources/secret_assets/bg-field-04.source.jpg",
+      "processed_file": "research_workspace/sources/secret_assets/bg-field-04.center256.png",
+      "source_size": [
+        960,
+        643
+      ],
+      "crop_box": [
+        158,
+        0,
+        801,
+        643
+      ],
+      "processed_size": [
+        256,
+        256
+      ],
+      "source_sha256": "42cb21ff8b0605a25932871dd63a4b340092c54810bb31e747aaad442f9a092f",
+      "processed_png_sha256": "95e3718f7235e6b9839de76e9cd9fa5b9c7c567f4d5c2daf286e5f5d73f041d4",
+      "uint8_rgb_hwc_sha256": "131af740ffe320e98a15b72798ace5b7cbfa8f7d1da3cd11f6b5bcfc28e4618b",
+      "float32_chw_0_1_le_sha256": "b082946a5764a9eff877127eaf71969f02ec6dfdb287f56c436ffbe700b18b59"
+    },
+    {
+      "source_id": "bg-landscape-05",
+      "role": "pretrain",
+      "source_file": "research_workspace/sources/secret_assets/bg-landscape-05.source.jpg",
+      "processed_file": "research_workspace/sources/secret_assets/bg-landscape-05.center256.png",
+      "source_size": [
+        960,
+        641
+      ],
+      "crop_box": [
+        159,
+        0,
+        800,
+        641
+      ],
+      "processed_size": [
+        256,
+        256
+      ],
+      "source_sha256": "55f4e32732d4f1c17ea794433694e090a251ec901fdb61fb2f95cd410f091830",
+      "processed_png_sha256": "07c01478df551010bb80b1210007b15ce2ccc91a74536f0873c5f6f2df65db7e",
+      "uint8_rgb_hwc_sha256": "cbad0e2a84a9ef7fab6eb887d129e96d09886e9d615c3b00d2ef09b4ebcb561a",
+      "float32_chw_0_1_le_sha256": "e677b124beba3bde36fcd4be7d2afe4ec9c89565a9240a498a08b1326117f563"
+    },
+    {
+      "source_id": "bg-tree-08",
+      "role": "pretrain",
+      "source_file": "research_workspace/sources/secret_assets/bg-tree-08.source.jpg",
+      "processed_file": "research_workspace/sources/secret_assets/bg-tree-08.center256.png",
+      "source_size": [
+        960,
+        638
+      ],
+      "crop_box": [
+        161,
+        0,
+        799,
+        638
+      ],
+      "processed_size": [
+        256,
+        256
+      ],
+      "source_sha256": "dc8ffacadaa07cae3aa38658099574f81787b8803a56b1962c6ccc68a332f310",
+      "processed_png_sha256": "ea2e0ba811739317cdfbd4a916df1174575a707c040d34bbd988b01d2a2221d3",
+      "uint8_rgb_hwc_sha256": "d7f196cc7aec15c8eef2ad85c0b7ead1df5e193b11150b899454ecf77f0803e5",
+      "float32_chw_0_1_le_sha256": "1789642cff8f71ab61c03f7bafd0f7de35d20901bf8ae4fe62e4c1acc7bb92ff"
+    }
+  ],
+  "voc_hash_audit": {
+    "dataset_root": "F:/dateset/VOC_0712_Kaggle_Ready/VOC_0712_Kaggle_Ready",
+    "status": "pass",
+    "evidence": "research_workspace/sources/voc_input_audit_v1.json",
+    "secret_source_hash_overlap_count": 0,
+    "train_image_count": 16551,
+    "val_image_count": 4952,
+    "train_person_image_count": 6095,
+    "val_person_image_count": 2007
+  }
+}

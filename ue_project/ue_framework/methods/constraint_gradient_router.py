@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Mapping, Sequence
+from typing import Callable, Dict, Mapping, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -38,6 +38,259 @@ class BacktrackingResult:
     step_size: float
     values: dict[str, float]
     status: str
+
+
+@dataclass(frozen=True)
+class MultiParameterGradientRouteResult:
+    mode: str
+    gradient: torch.Tensor
+    parameter_gradients: Tuple[torch.Tensor, ...]
+    target_gradient: torch.Tensor
+    projected_target_gradient: torch.Tensor
+    nla_gradient: torch.Tensor
+    constraint_matrix: torch.Tensor
+    singular_values: torch.Tensor
+    rank: int
+    null_dimension: int
+    attack_retention: float
+    max_projected_row_dot: float
+    max_final_row_dot: float
+    active_classes: Tuple[str, ...]
+    target_norm: float
+    projected_target_norm: float
+    nla_norm: float
+    combined_norm: float
+
+
+@dataclass(frozen=True)
+class MultiParameterBacktrackingResult:
+    candidate: Tuple[torch.Tensor, ...]
+    accepted: bool
+    attempts: int
+    step_size: float
+    values: Dict[str, float]
+    status: str
+
+
+def _validate_parameters(parameters: Sequence[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+    frozen = tuple(parameters)
+    if not frozen:
+        raise ValueError("At least one omega parameter is required.")
+    if any(not parameter.requires_grad for parameter in frozen):
+        raise ValueError("Every routed omega parameter must require gradients.")
+    if len({id(parameter) for parameter in frozen}) != len(frozen):
+        raise ValueError("Routed omega parameters must be unique.")
+    devices = {parameter.device for parameter in frozen}
+    dtypes = {parameter.dtype for parameter in frozen}
+    if len(devices) != 1 or len(dtypes) != 1:
+        raise ValueError("All routed omega parameters must share device and dtype.")
+    return frozen
+
+
+def flatten_parameter_tensors(
+    tensors: Sequence[torch.Tensor],
+    parameters: Sequence[torch.Tensor],
+) -> torch.Tensor:
+    if len(tensors) != len(parameters):
+        raise ValueError("Tensor and parameter sequences must have equal length.")
+    pieces = []
+    for tensor, parameter in zip(tensors, parameters):
+        if tensor.shape != parameter.shape:
+            raise ValueError("Gradient shape does not match its omega parameter.")
+        pieces.append(tensor.reshape(-1))
+    return torch.cat(pieces)
+
+
+def unflatten_parameter_tensor(
+    flattened: torch.Tensor,
+    parameters: Sequence[torch.Tensor],
+) -> Tuple[torch.Tensor, ...]:
+    expected = sum(parameter.numel() for parameter in parameters)
+    if flattened.ndim != 1 or flattened.numel() != expected:
+        raise ValueError("Flattened gradient dimension does not match omega parameters.")
+    output = []
+    offset = 0
+    for parameter in parameters:
+        count = parameter.numel()
+        output.append(flattened[offset : offset + count].reshape_as(parameter))
+        offset += count
+    return tuple(output)
+
+
+def _multi_parameter_gradient(
+    value: torch.Tensor,
+    parameters: Sequence[torch.Tensor],
+) -> torch.Tensor:
+    if not torch.is_tensor(value) or value.numel() != 1:
+        raise ValueError("Routed losses must be scalar tensors.")
+    if not value.requires_grad:
+        return torch.cat([torch.zeros_like(item).reshape(-1) for item in parameters])
+    gradients = torch.autograd.grad(
+        value,
+        parameters,
+        retain_graph=True,
+        allow_unused=True,
+    )
+    materialized = tuple(
+        torch.zeros_like(parameter) if gradient is None else gradient
+        for parameter, gradient in zip(parameters, gradients)
+    )
+    if any(not torch.isfinite(gradient).all() for gradient in materialized):
+        raise ValueError("Non-finite omega gradient.")
+    return flatten_parameter_tensors(materialized, parameters)
+
+
+def route_multi_parameter_gradients(
+    *,
+    parameters: Sequence[torch.Tensor],
+    target_loss: torch.Tensor,
+    per_class_nla_losses: Mapping[str, torch.Tensor],
+    nla_loss: torch.Tensor,
+    nla_weight: float,
+    svd_relative_tolerance: float = 1.0e-4,
+    epsilon: float = 1.0e-12,
+) -> MultiParameterGradientRouteResult:
+    """Project the target component, then add explicit NLA descent.
+
+    All active non-target classes participate in the row space. Orthogonality
+    applies only to ``projected_target_gradient``; the final update deliberately
+    contains the NLA component and therefore need not be orthogonal.
+    """
+
+    omega = _validate_parameters(parameters)
+    if nla_weight < 0:
+        raise ValueError("nla_weight must be non-negative.")
+    if svd_relative_tolerance <= 0:
+        raise ValueError("svd_relative_tolerance must be positive.")
+    target = _multi_parameter_gradient(target_loss, omega)
+    target_norm_tensor = target.norm()
+    if float(target_norm_tensor.detach()) <= epsilon:
+        raise ValueError("Target loss has a zero omega gradient.")
+
+    rows = []
+    row_names = []
+    for name in sorted(per_class_nla_losses):
+        gradient = _multi_parameter_gradient(per_class_nla_losses[name], omega)
+        norm = gradient.norm()
+        if float(norm.detach()) <= epsilon:
+            continue
+        rows.append(gradient / norm)
+        row_names.append(str(name))
+    dimension = int(target.numel())
+    if rows:
+        matrix = torch.stack(rows)
+        _, singular_values, vh = torch.linalg.svd(matrix, full_matrices=False)
+        if not torch.isfinite(singular_values).all():
+            raise ValueError("Non-finite singular values in multi-parameter CGR.")
+        rank = int(
+            (
+                singular_values / singular_values[0].clamp_min(epsilon)
+                >= float(svd_relative_tolerance)
+            ).sum().item()
+        )
+        row_space = vh[:rank]
+        projected = target - row_space.T @ (row_space @ target)
+        max_projected_dot = float((matrix @ projected).abs().max().detach())
+    else:
+        matrix = target.new_zeros((0, dimension))
+        singular_values = target.new_zeros((0,))
+        rank = 0
+        projected = target
+        max_projected_dot = 0.0
+    nla_gradient = _multi_parameter_gradient(nla_loss, omega)
+    combined = projected + float(nla_weight) * nla_gradient
+    max_final_dot = (
+        float((matrix @ combined).abs().max().detach()) if rows else 0.0
+    )
+    projected_norm = projected.norm()
+    retention = float((projected_norm / target_norm_tensor.clamp_min(epsilon)).detach())
+    if float(combined.norm().detach()) <= epsilon:
+        mode = "skip"
+    elif float(projected_norm.detach()) <= epsilon:
+        mode = "protection_only"
+    elif rows:
+        mode = "projected_target_plus_nla"
+    else:
+        mode = "target_plus_nla"
+    return MultiParameterGradientRouteResult(
+        mode=mode,
+        gradient=combined,
+        parameter_gradients=unflatten_parameter_tensor(combined, omega),
+        target_gradient=target,
+        projected_target_gradient=projected,
+        nla_gradient=nla_gradient,
+        constraint_matrix=matrix,
+        singular_values=singular_values,
+        rank=rank,
+        null_dimension=dimension - rank,
+        attack_retention=retention,
+        max_projected_row_dot=max_projected_dot,
+        max_final_row_dot=max_final_dot,
+        active_classes=tuple(row_names),
+        target_norm=float(target_norm_tensor.detach()),
+        projected_target_norm=float(projected_norm.detach()),
+        nla_norm=float(nla_gradient.norm().detach()),
+        combined_norm=float(combined.norm().detach()),
+    )
+
+
+def backtrack_multi_parameter_update(
+    *,
+    parameters: Sequence[torch.Tensor],
+    flattened_gradient: torch.Tensor,
+    step_size: float,
+    evaluate_probability_drops: Callable[[Tuple[torch.Tensor, ...]], Mapping[str, float]],
+    tolerance: float = 0.005,
+    max_backtracks: int = 5,
+    epsilon: float = 1.0e-9,
+) -> MultiParameterBacktrackingResult:
+    """Accept only updates whose nonlinear per-class probability drops are safe."""
+
+    omega = _validate_parameters(parameters)
+    if step_size <= 0 or tolerance < 0:
+        raise ValueError("Invalid CGR backtracking step or tolerance.")
+    if max_backtracks != 5:
+        raise ValueError("SDH-CGR requires exactly five nonlinear backtracks.")
+    gradients = unflatten_parameter_tensor(flattened_gradient, omega)
+    originals = tuple(parameter.detach().clone() for parameter in omega)
+    current_step = float(step_size)
+    last_values: Dict[str, float] = {}
+    for attempt in range(max_backtracks + 1):
+        candidate = tuple(
+            original - current_step * gradient.detach()
+            for original, gradient in zip(originals, gradients)
+        )
+        evaluated = dict(evaluate_probability_drops(candidate))
+        if not evaluated:
+            return MultiParameterBacktrackingResult(
+                candidate=candidate,
+                accepted=True,
+                attempts=attempt + 1,
+                step_size=current_step,
+                values={},
+                status="accepted_no_active_class",
+            )
+        if not all(torch.isfinite(torch.tensor(value)) for value in evaluated.values()):
+            raise ValueError("CGR probability-drop evaluator returned non-finite values.")
+        last_values = {str(name): float(value) for name, value in evaluated.items()}
+        if all(value <= float(tolerance) + epsilon for value in last_values.values()):
+            return MultiParameterBacktrackingResult(
+                candidate=candidate,
+                accepted=True,
+                attempts=attempt + 1,
+                step_size=current_step,
+                values=last_values,
+                status="accepted",
+            )
+        current_step *= 0.5
+    return MultiParameterBacktrackingResult(
+        candidate=originals,
+        accepted=False,
+        attempts=max_backtracks + 1,
+        step_size=0.0,
+        values=last_values,
+        status="skip",
+    )
 
 
 def _gradient(

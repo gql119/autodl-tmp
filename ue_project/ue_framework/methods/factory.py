@@ -2,6 +2,7 @@
 from .ours import OursPoisonGenerator
 from .rem import REMPoisonGenerator
 from .sirc_malc_cgr import SIRCMALCCGRMaterializer
+from .sdh_materializer import SDHMaterializer
 
 
 
@@ -19,4 +20,6 @@ def build_generator(method: str, cfg, method_cfg, device, surrogate):
         )
     if method == "sirc_malc_cgr":
         return SIRCMALCCGRMaterializer(cfg, method_cfg, device, surrogate)
+    if method == "tausb_sdh":
+        return SDHMaterializer(cfg, method_cfg, device, surrogate)
     raise ValueError(f"Unsupported method: {method}")

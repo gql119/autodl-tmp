@@ -462,6 +462,97 @@ def _sirc_mechanism_evidence(ctx: RunContext) -> Dict:
     }
 
 
+def _sdh_manifest_provenance(ctx: RunContext, manifest_rows: List[Dict]) -> Dict:
+    """Fail closed when a formal SDH victim is evaluated with the wrong carrier."""
+
+    if ctx.method != "tausb_sdh":
+        return {}
+    poisoned = [
+        row
+        for row in manifest_rows
+        if _is_true_like(row.get("is_poisoned", row.get("poisoned", "0")))
+    ]
+    if not poisoned:
+        return {"materializer_provenance": "not_applicable_clean_arm"}
+    expected = ctx.cfg["methods"]["tausb_sdh"]
+    output = {}
+    for key in (
+        "state_content_hash",
+        "semantic_bank_hash",
+        "source_manifest_hash",
+        "split_hash",
+        "secret_source_sha256",
+    ):
+        values = {str(row.get(key, "")).strip() for row in poisoned}
+        if len(values) != 1 or "" in values:
+            raise ValueError("SDH manifest has inconsistent %s values." % key)
+        value = next(iter(values))
+        if len(value) != 64:
+            raise ValueError("SDH manifest %s is not a SHA-256 digest." % key)
+        output[key] = value
+    expected_hashes = {
+        "semantic_bank_hash": expected["secret_tensor_sha256"],
+        "source_manifest_hash": expected["source_manifest_sha256"],
+        "split_hash": expected["train_split_sha256"],
+        "secret_source_sha256": expected["secret_source_sha256"],
+    }
+    for key, expected_value in expected_hashes.items():
+        if output[key] != str(expected_value):
+            raise ValueError("SDH manifest %s differs from formal config." % key)
+    support_sources = {str(row.get("support_source", "")) for row in poisoned}
+    if support_sources != {"person_gt_bbox"}:
+        raise ValueError("Formal SDH must use only person_gt_bbox support.")
+    output["support_source"] = "person_gt_bbox"
+    output["single_final_secret"] = True
+    return output
+
+
+def _sdh_mechanism_evidence(ctx: RunContext) -> Dict:
+    """Load only the passing held-out mechanism gate for the SDH poison arm."""
+
+    if ctx.method != "tausb_sdh" or ctx.run_tag not in {"M1", "P1-V", "P1V"}:
+        return {"sdh_mechanism_diagnostics": "not_applicable_clean_or_legacy_arm"}
+    method_cfg = ctx.cfg["methods"]["tausb_sdh"]
+    frozen_state_value = str(method_cfg.get("frozen_sdh_state", "")).strip()
+    if not frozen_state_value:
+        raise ValueError("Formal SDH poison arm requires frozen_sdh_state.")
+    frozen_state = os.path.abspath(frozen_state_value)
+    report_path = os.path.join(os.path.dirname(frozen_state), "mechanism_metrics.json")
+    if not os.path.isfile(report_path):
+        raise FileNotFoundError("Formal SDH mechanism metrics are missing: %s" % report_path)
+    with open(report_path, "r", encoding="utf-8") as handle:
+        report = json.load(handle)
+    if report.get("schema") != "tausb.sdh-mechanism-pilot.v1":
+        raise ValueError("Unsupported SDH mechanism report schema.")
+    decision = report.get("decision")
+    if not isinstance(decision, dict) or decision.get("pass") is not True:
+        raise ValueError("Formal SDH poison arm requires a passing mechanism decision.")
+    if decision.get("target_pass") is not True or decision.get("protection_pass") is not True:
+        raise ValueError("SDH mechanism target/protection sub-gates must both pass.")
+    arms = report.get("arms")
+    if not isinstance(arms, dict):
+        raise ValueError("SDH mechanism report is missing arm diagnostics.")
+    for arm in ("T0", "T1", "P0", "P1"):
+        if not isinstance(arms.get(arm), dict):
+            raise ValueError("SDH mechanism report is missing %s diagnostics." % arm)
+    split_hash = str(report.get("split_hash", ""))
+    if len(split_hash) != 64:
+        raise ValueError("SDH mechanism report split hash is invalid.")
+    return {
+        "sdh_mechanism_diagnostics": {
+            "report_path": report_path,
+            "schema": report["schema"],
+            "split_hash": split_hash,
+            "T0": arms["T0"],
+            "T1": arms["T1"],
+            "P0": arms["P0"],
+            "P1": arms["P1"],
+            "decision": decision,
+            "evidence_scope": "heldout_mechanism_only_not_fresh_victim_ue",
+        }
+    }
+
+
 def run_evaluate(ctx: RunContext) -> None:
     cfg = ctx.cfg
     exp_cfg = cfg["experiment"]
@@ -558,7 +649,9 @@ def run_evaluate(ctx: RunContext) -> None:
     manifest_rows = read_csv_rows(ctx.paths.manifest_csv)
     quality_metrics = _compute_image_quality(ctx, manifest_rows)
     provenance = _sirc_manifest_provenance(ctx, manifest_rows)
+    provenance.update(_sdh_manifest_provenance(ctx, manifest_rows))
     mechanism_evidence = _sirc_mechanism_evidence(ctx)
+    mechanism_evidence.update(_sdh_mechanism_evidence(ctx))
     if not all(
         np.isfinite(value)
         for value in (

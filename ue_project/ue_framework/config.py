@@ -11,6 +11,7 @@ SUPPORTED_METHODS = [
     "tausb_mask",
     "ours_mask",
     "sirc_malc_cgr",
+    "tausb_sdh",
 ]
 SUPPORTED_STAGES = [
     "generate_poisoned_dataset",
@@ -138,6 +139,21 @@ def _default_config() -> Dict[str, Any]:
                 "variant_seed": 2102,
                 "jnd_floor": 0.5,
             },
+            "tausb_sdh": {
+                "support_type": "bbox",
+                "enable_deep_hiding": True,
+                "enable_dlfc": True,
+                "enable_cicr": True,
+                "enable_cgr": True,
+                "enable_nla_loss": True,
+                "require_hiding_gate_pass": True,
+                "require_mechanism_gate_pass": True,
+                "frozen_sdh_state": "",
+                "secret_source_sha256": "",
+                "secret_tensor_sha256": "",
+                "source_manifest_sha256": "",
+                "train_split_sha256": "",
+            },
             "ours_mask": {
                 "support_type": "mask",
                 "ring_width": 4,
@@ -253,6 +269,27 @@ def _ensure_method_defaults(cfg: Dict[str, Any]) -> None:
             if key not in sirc_malc:
                 sirc_malc[key] = value
 
+    sdh = methods.get("tausb_sdh", {})
+    if isinstance(sdh, dict):
+        required = {
+            "support_type": "bbox",
+            "enable_deep_hiding": True,
+            "enable_dlfc": True,
+            "enable_cicr": True,
+            "enable_cgr": True,
+            "enable_nla_loss": True,
+            "require_hiding_gate_pass": True,
+            "require_mechanism_gate_pass": True,
+            "frozen_sdh_state": "",
+            "secret_source_sha256": "",
+            "secret_tensor_sha256": "",
+            "source_manifest_sha256": "",
+            "train_split_sha256": "",
+        }
+        for key, value in required.items():
+            if key not in sdh:
+                sdh[key] = value
+
 
 
 def load_config(config_path: str) -> Dict[str, Any]:
@@ -263,6 +300,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
     with open(config_path, "r", encoding="utf-8") as f:
         user_cfg = yaml.safe_load(f) or {}
     sirc_malc_requested = "sirc_malc_cgr" in user_cfg.get("methods", {})
+    sdh_requested = "tausb_sdh" in user_cfg.get("methods", {})
 
     cfg = _deep_update(copy.deepcopy(defaults), user_cfg)
     _ensure_method_defaults(cfg)
@@ -315,5 +353,54 @@ def load_config(config_path: str) -> Dict[str, Any]:
         ):
             if not str(method_cfg.get(key, "")).strip():
                 raise ValueError(f"SIRC-MALC-CGR methods config requires {key}.")
+
+    if sdh_requested:
+        method_cfg = cfg.get("methods", {}).get("tausb_sdh", {})
+        switches = (
+            "enable_deep_hiding",
+            "enable_dlfc",
+            "enable_cicr",
+            "enable_cgr",
+            "enable_nla_loss",
+            "require_hiding_gate_pass",
+            "require_mechanism_gate_pass",
+        )
+        if not all(method_cfg.get(key) is True for key in switches):
+            raise ValueError("TAUSB-SDH formal config requires all method gates enabled.")
+        if method_cfg.get("support_type") != "bbox":
+            raise ValueError("TAUSB-SDH formal support must be person GT bbox.")
+        if target_id != 14 or int(cfg["surrogate"]["num_classes"]) != 20:
+            raise ValueError("TAUSB-SDH requires VOC20 person class id 14.")
+        if abs(float(cfg["experiment"]["eps"]) - 16.0 / 255.0) > 1e-9:
+            raise ValueError("TAUSB-SDH epsilon must remain 16/255.")
+        if int(cfg["surrogate"].get("imgsz", -1)) != 640:
+            raise ValueError("TAUSB-SDH surrogate imgsz must remain 640.")
+        if int(cfg["surrogate"].get("eot_samples", -1)) != 1:
+            raise ValueError("TAUSB-SDH first round forbids EOT.")
+        if int(cfg["experiment"].get("expected_poisoned_count", -1)) != 6095:
+            raise ValueError("TAUSB-SDH expected_poisoned_count must remain 6095.")
+        if [int(value) for value in cfg["experiment"].get("seeds", [])] != [0]:
+            raise ValueError("TAUSB-SDH first experiment must remain seed 0.")
+        if float(cfg["experiment"].get("poisoning_ratio", -1)) != 1.0:
+            raise ValueError("TAUSB-SDH poisoning_ratio must remain 1.0.")
+        victim = cfg["victim"]
+        frozen_victim = {
+            "epochs": 200,
+            "imgsz": 640,
+            "batch": 36,
+            "optimizer": "SGD",
+        }
+        for key, expected in frozen_victim.items():
+            if victim.get(key) != expected:
+                raise ValueError("TAUSB-SDH victim.%s must remain %s." % (key, expected))
+        for key in (
+            "frozen_sdh_state",
+            "secret_source_sha256",
+            "secret_tensor_sha256",
+            "source_manifest_sha256",
+            "train_split_sha256",
+        ):
+            if not str(method_cfg.get(key, "")).strip():
+                raise ValueError("TAUSB-SDH methods config requires %s." % key)
 
     return cfg
