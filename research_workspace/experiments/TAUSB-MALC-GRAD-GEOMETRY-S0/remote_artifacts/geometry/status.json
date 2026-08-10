@@ -1,0 +1,13 @@
+{
+  "state": "stopped",
+  "stage": "diagnostic_decision",
+  "claim_boundary": "seed0_surrogate_geometry_only_not_fresh_victim_ue",
+  "allow_fresh_victim": false,
+  "cuda_memory_allocated": 375451648,
+  "batch_index": 24,
+  "batch_count": 24,
+  "step": 8,
+  "step_count": 8,
+  "first_bad_boundary": null,
+  "valid": false
+}

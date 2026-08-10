@@ -9,7 +9,7 @@
 - Initial implementation snapshot: `354ad58c067968e3e4b6dd220bfdf262fea1fa7a` (superseded by the single-projector pre-run fix).
 - Remote branch: pushed normally to `origin/codex/tausb-malc-grad-geometry-audit-v1`
 - Approval: user explicitly approved on 2026-08-10.
-- Active row: `ARTIFACT-PULL-01` (awaiting no-card mode).
+- Active row: completed (`REVIEW-01` closed after artifact ingest and claim review).
 
 ## Frozen scope
 
@@ -78,3 +78,38 @@ first_bad_boundary=None`; this is a scientific validity failure, not a crash, an
 interpreted before the decision artifact is pulled. The instance then automatically shut down,
 confirmed by `Connection refused`. The next action is a no-card artifact pull and checksum
 audit; no further GPU work is authorized.
+
+## Final claim/evidence review
+
+- Review result: `gaps_found`.
+- Execution result: the reviewed probe reached all frozen counts (`16 / 24 / 8`), exited 0,
+  produced the seven core JSONs, and triggered automatic shutdown. The later no-card pull
+  transferred 10/10 required files with `missing_required=[]`, `failed=[]`, and verified
+  SHA-256 values in
+  `research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/remote_artifacts/transfer-report.json`.
+- Scientific gap: every calibration and held-out prototype scale has coverage below the
+  preregistered `0.80` gate. Effective scale count is zero, effective primary medians are null,
+  and the frozen classifier therefore returns `valid=false` and `first_bad_boundary=null`.
+  This satisfies the invalid-probe Failure Signal and does not satisfy the Success Signal.
+- Descriptive evidence only: cross-batch MALC Q25 is `-0.129668`, MALC-vs-RMS median is
+  `-0.140263`, per-component MALC CGR retention median is `0.981178`, `D_theta=0.537088`, and
+  `D_pattern=0.000365778`. These values are preserved for the next measurement audit but are
+  not promoted to formal mechanism triggers because validity is false.
+- Resolved issue: the first GPU attempt's cost wrapper used two nonexistent `*_sha256` input
+  keys. Its old status/log are preserved; the r1 wrapper corrected only the schema keys and
+  was independently re-reviewed before the successful retry.
+- Regression/immutability: the run used reviewed code commit
+  `18304b96c45360cfba5168d97d21d2961a13f390`; prototype before/after hashes are identical;
+  `allow_fresh_victim=false`; no victim, poisoned dataset, AP50, EOT or old-v2 write occurred.
+- Cost closure: GPU execution auto-shut down after evidence snapshot. After the no-card artifact
+  pull and local commit, `/usr/bin/shutdown` returned success and one bounded reconnect returned
+  `Connection refused`. No further GPU or no-card start is required for this Spec.
+- Claim boundary: single-seed surrogate geometry only. No AP50, UE effectiveness, robustness,
+  transfer, visual-quality, causal-contribution or SOTA claim is supported.
+- State decision: Current Best remains unchanged. A candidate failure-path entry is written to
+  `research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/analysis/state_candidate.md`, but
+  `research_workspace/STATE.md` is intentionally unchanged pending the user's scientific truth
+  decision.
+- Single next action: audit prototype pooling coverage reasons/denominator and rerun the same
+  read-only 64/96/8 diagnostic with all method parameters frozen. Do not select a new method
+  module or start victim training before at least one primary scale becomes valid.

@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-10T11:28:19.531930+00:00",
+  "exp_id": "TAUSB-MALC-GRAD-GEOMETRY-S0",
+  "remote_artifact_root": "/root/tausb-sirc-runs/TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1",
+  "local_destination": "research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/remote_artifacts",
+  "selected_files": 10,
+  "transferred": [
+    "control/geometry-seed0-18304b96-r1/cost-guard-status.json",
+    "control/geometry-seed0-18304b96-r1/geometry-seed0.log",
+    "geometry/config_resolved.json",
+    "geometry/diagnostic_decision.json",
+    "geometry/gradient_geometry.json",
+    "geometry/input_audit.json",
+    "geometry/microtrajectory.json",
+    "geometry/prototype_geometry.json",
+    "geometry/source_manifest.json",
+    "geometry/status.json"
+  ],
+  "existing_skipped": [],
+  "failed": [],
+  "verification": {
+    "present": [
+      {
+        "relative_path": "control/geometry-seed0-18304b96-r1/cost-guard-status.json",
+        "bytes": 189,
+        "sha256": "ac4dec198ea0ae35e694fc181dd441718485c91b1a3f1b44e6e990319cdc9808"
+      },
+      {
+        "relative_path": "control/geometry-seed0-18304b96-r1/geometry-seed0.log",
+        "bytes": 1363,
+        "sha256": "5d60c46dcfb13962bb598aa60b49d1e74972fb661d9496a9218df88e3d459246"
+      },
+      {
+        "relative_path": "geometry/config_resolved.json",
+        "bytes": 3407,
+        "sha256": "fecaf584b03449677e1c597521d416b2bf6a15fb3cd1713d7d253d15e7cef18a"
+      },
+      {
+        "relative_path": "geometry/diagnostic_decision.json",
+        "bytes": 2239,
+        "sha256": "4b2e6b963b6ed6c7c5a7f0b57402102e1f26c3dcddfc07bf973bc09ea04b4943"
+      },
+      {
+        "relative_path": "geometry/gradient_geometry.json",
+        "bytes": 201407,
+        "sha256": "e3be9ce1b3fb20b4744631dc6c1b35fb80bcd8005dad530bbafb310ef4763fba"
+      },
+      {
+        "relative_path": "geometry/input_audit.json",
+        "bytes": 3104,
+        "sha256": "9c96e3ccfcdc603e92b968d50ac0d9e80e187ea1c53de5682a4f69a6b374893f"
+      },
+      {
+        "relative_path": "geometry/microtrajectory.json",
+        "bytes": 42046,
+        "sha256": "5b5bd2b6bb939c777de491aa94d8fcb0c430b1a464eac9891d71031a3c7290bd"
+      },
+      {
+        "relative_path": "geometry/prototype_geometry.json",
+        "bytes": 7011,
+        "sha256": "d09f9419b342ffdf8e10f8886fc86f8e7b26ab0ad1243c9f608dc576e33bf331"
+      },
+      {
+        "relative_path": "geometry/source_manifest.json",
+        "bytes": 1973,
+        "sha256": "74255f40e10f9556b044736d02f2d7af231d8367f200bf858b2f48c8ca4c58e7"
+      },
+      {
+        "relative_path": "geometry/status.json",
+        "bytes": 322,
+        "sha256": "20f30a13b9038df247cb331b3b5401b2ac25759a292176878df45a605014d83c"
+      }
+    ],
+    "missing_required": []
+  },
+  "credentials_persisted": false
+}

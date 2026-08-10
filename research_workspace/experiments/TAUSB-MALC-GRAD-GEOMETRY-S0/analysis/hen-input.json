@@ -1,0 +1,27 @@
+{
+  "artifact_root": "research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/remote_artifacts",
+  "status_evidence": [
+    "research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/remote_artifacts/geometry/status.json",
+    "research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/remote_artifacts/geometry/diagnostic_decision.json"
+  ],
+  "seed_summary": {
+    "distinct_seeds": [0],
+    "representative_records": [
+      {
+        "seed": 0,
+        "metrics": {
+          "mAP50_target": null,
+          "mAP50_non_target": null,
+          "mAP50_all": null,
+          "AP_person_free_non_target": null,
+          "AP_person_cooccur_non_target": null,
+          "PSNR": null,
+          "LPIPS": null,
+          "poisoned_count": null
+        }
+      }
+    ]
+  },
+  "diagnostic_summary": "research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/analysis/diagnostic_summary.json",
+  "not_applicable_reason": "Calibration-only surrogate geometry probe; no victim training or dataset materialization."
+}

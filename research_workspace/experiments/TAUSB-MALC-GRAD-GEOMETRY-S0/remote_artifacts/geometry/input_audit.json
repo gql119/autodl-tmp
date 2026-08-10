@@ -1,0 +1,95 @@
+{
+  "source_contamination": {
+    "records": [
+      {
+        "source_id": "bg-tree-08",
+        "person_confidence": 0.00022788312344346195,
+        "voc20_confidence": 0.09524611383676529,
+        "pass": true
+      },
+      {
+        "source_id": "bg-waves-01",
+        "person_confidence": 0.008983534760773182,
+        "voc20_confidence": 0.07553289830684662,
+        "pass": true
+      },
+      {
+        "source_id": "bg-bubbles-02",
+        "person_confidence": 0.028316186740994453,
+        "voc20_confidence": 0.03543591871857643,
+        "pass": true
+      },
+      {
+        "source_id": "bg-beach-03",
+        "person_confidence": 8.51872973726131e-05,
+        "voc20_confidence": 0.008768065832555294,
+        "pass": true
+      },
+      {
+        "source_id": "bg-field-04",
+        "person_confidence": 0.001001260126940906,
+        "voc20_confidence": 0.019786464050412178,
+        "pass": true
+      }
+    ],
+    "pass": true,
+    "person_threshold": 0.05,
+    "voc20_threshold": 0.25
+  },
+  "voc_source_hash_duplicates": [],
+  "structure": {
+    "semantic_pair_gradient_ncc": [
+      0.7079305676524325,
+      0.7710644895464406,
+      0.747509020028742,
+      0.6411696187727225,
+      0.7467453035778845,
+      0.7092079639470596
+    ],
+    "semantic_pair_gradient_ncc_median": 0.727976633762472,
+    "semantic_anchor_gradient_ncc": [
+      0.7285181190094105,
+      0.7936497594473595,
+      0.6599613663703952,
+      0.7941430262241814
+    ],
+    "semantic_anchor_gradient_ncc_median": 0.761083939228385,
+    "control_anchor_gradient_ncc": [
+      0.039894256455176136,
+      0.06696870958848436,
+      0.058700362290644105,
+      0.12328143760063404
+    ],
+    "control_anchor_gradient_ncc_median": 0.06283453593956423,
+    "pairwise_normalized_amplitude_distance": [
+      0.7960010188446871,
+      0.4720317169411721,
+      0.7069802679750844,
+      0.8190614617584278,
+      0.6949523025231646,
+      0.7258157323634589
+    ],
+    "pairwise_normalized_amplitude_distance_median": 0.7163980001692716
+  },
+  "semantic_bank_hash": "0b8a94efc55155bea20a1ec799bfac14c8a6f11fd6530538f3e0437b37c0dd4b",
+  "semantic_bank_hash_mode": "recipe-v1",
+  "c2lm_basis_hash": "8350c0a608150839c98a8dad8db862d0c9dfaeca4714f05d1714afac0f30cfa5",
+  "c2lm_basis_hash_mode": "recipe-v1",
+  "source_manifest_hash": "3a13b0f38b06006fd7f68ae03c7206b4b047d4b6129ee7357b05b966641d47af",
+  "split_hash": "e2542517af00830147117582d69ff15a62fbeae1f8583bf0c9d01fbff120cae1",
+  "surrogate_checkpoint_sha256": "8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89",
+  "gamma": 256.56456346238633,
+  "gamma_direction_hash": "0768da17466a73d32065a08eb3d60c978f2e030a9347b30023a083224a0864ab",
+  "claim_boundary": "surrogate-only semantic residual mechanism probe; forced pseudo fallback support; not victim UE evidence",
+  "geometry_protocol": {
+    "calibration_images": 64,
+    "calibration_batches": 16,
+    "heldout_images": 96,
+    "heldout_batches": 24,
+    "batch_size": 4,
+    "warmup_steps": 4,
+    "microtrajectory_steps": 8,
+    "run_microtrajectory": true,
+    "eot_enabled": false
+  }
+}

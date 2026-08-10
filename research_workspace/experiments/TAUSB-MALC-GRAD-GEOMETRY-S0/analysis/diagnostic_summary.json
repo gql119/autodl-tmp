@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "spec_id": "TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1",
+  "exp_id": "TAUSB-MALC-GRAD-GEOMETRY-S0",
+  "run_id": "geometry-seed0-r1",
+  "branch": "codex/tausb-malc-grad-geometry-audit-v1",
+  "code_commit": "18304b96c45360cfba5168d97d21d2961a13f390",
+  "claim_boundary": "seed0_surrogate_geometry_only_not_fresh_victim_ue",
+  "protocol": {
+    "calibration_images": 64,
+    "calibration_batches": 16,
+    "heldout_images": 96,
+    "heldout_batches": 24,
+    "batch_size": 4,
+    "warmup_steps": 4,
+    "microtrajectory_steps": 8,
+    "eot_enabled": false,
+    "victim_training": false,
+    "dataset_materialization": false
+  },
+  "artifact_integrity": {
+    "selected_files": 10,
+    "missing_required": [],
+    "failed_transfers": [],
+    "nonfinite_numeric_values": [],
+    "transfer_report": "research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/remote_artifacts/transfer-report.json"
+  },
+  "terminal_status": {
+    "state": "stopped",
+    "stage": "diagnostic_decision",
+    "valid": false,
+    "first_bad_boundary": null,
+    "allow_fresh_victim": false
+  },
+  "validity": {
+    "valid": false,
+    "issues": [
+      "no_effective_prototype_scale",
+      "missing_or_nonfinite_primary_metric"
+    ],
+    "reason": "No calibration or held-out scale reached the preregistered coverage threshold of 0.80, so effective prototype medians are null."
+  },
+  "prototype_geometry": {
+    "coverage_threshold": 0.8,
+    "prototype_bank_unchanged": true,
+    "prototype_bank_hash_before": "c7d9d6512dc8542351fa02da3b6ee93bbf124866f39a20ecb6154670990ba0b2",
+    "prototype_bank_hash_after": "c7d9d6512dc8542351fa02da3b6ee93bbf124866f39a20ecb6154670990ba0b2",
+    "calibration": {
+      "effective_scale_count": 0,
+      "effective_resultant_median": null,
+      "effective_loo_q25_median": null,
+      "scales": [
+        {"scale": 0, "total_vector_count": 133, "valid_count": 36, "coverage": 0.2706766917293233, "resultant": 0.21952506949676004, "loo_q25": 0.9637569365935501},
+        {"scale": 1, "total_vector_count": 133, "valid_count": 43, "coverage": 0.3233082706766917, "resultant": 0.250374909681654, "loo_q25": 0.9824726424697302},
+        {"scale": 2, "total_vector_count": 133, "valid_count": 88, "coverage": 0.6616541353383458, "resultant": 0.20877363259901813, "loo_q25": 0.9910977205658273}
+      ]
+    },
+    "heldout": {
+      "effective_scale_count": 0,
+      "effective_resultant_median": null,
+      "effective_loo_q25_median": null,
+      "scales": [
+        {"scale": 0, "total_vector_count": 184, "valid_count": 31, "coverage": 0.16847826086956522, "resultant": 0.34871414306153725, "loo_q25": 0.9944144603660876, "reference_cosine": 0.40391495501587227},
+        {"scale": 1, "total_vector_count": 184, "valid_count": 73, "coverage": 0.3967391304347826, "resultant": 0.2518362701520494, "loo_q25": 0.9949720364340076, "reference_cosine": 0.6190971209343135},
+        {"scale": 2, "total_vector_count": 184, "valid_count": 127, "coverage": 0.6902173913043478, "resultant": 0.21818173910816221, "loo_q25": 0.9960702864044139, "reference_cosine": 0.9076208260317552}
+      ]
+    }
+  },
+  "gradient_geometry": {
+    "batch_count": 16,
+    "cross_batch_pair_count": 120,
+    "cross_batch_malc_median": 0.003893792120193652,
+    "cross_batch_malc_q25": -0.12966814689985512,
+    "malc_vs_easy_median": 0.15140454745328802,
+    "malc_vs_rms_median": -0.1402625176911409,
+    "components": {
+      "easy_cls": {"raw_norm_median": 0.21433928432900567, "projected_norm_median": 0.2104064949460523, "retention_median": 0.9880748848069916, "retention_q25": 0.9810307406484775},
+      "malc": {"raw_norm_median": 0.23588872975430006, "projected_norm_median": 0.2244441847357167, "retention_median": 0.9811784975727716, "retention_q25": 0.9589432504871669},
+      "rms": {"raw_norm_median": 0.01886114557924057, "projected_norm_median": 0.0187117928892649, "retention_median": 0.9920814624250578, "retention_q25": 0.9713007540499953}
+    },
+    "gradient_weights": {"malc": 0.9086457398739338, "rms": 10.0},
+    "gradient_clipped_components": ["rms"]
+  },
+  "microtrajectory": {
+    "steps": 8,
+    "D_theta": 0.537087566742744,
+    "D_pattern": 0.0003657779188870336,
+    "final_update_cosine": 0.8270411172042065,
+    "final_coefficient_distance": 0.006476068869233131,
+    "final_A0_update_norm": 0.0036403391184428877,
+    "final_A1_update_norm": 0.004140948959011278,
+    "final_A0_cgr_retention": 0.9954829216003418,
+    "final_A1_cgr_retention": 0.9987982511520386,
+    "final_pattern_separation_rms": 0.000022950771381147206,
+    "allow_fresh_victim": false
+  },
+  "preregistered_decision": {
+    "valid": false,
+    "first_bad_boundary": null,
+    "triggered_boundaries": [],
+    "all_trigger_flags": {
+      "prototype_incoherence": false,
+      "cross_batch_malc_conflict": false,
+      "objective_gradient_conflict": false,
+      "cgr_selective_suppression": false,
+      "carrier_update_sink": false
+    },
+    "descriptive_only_counterfactual_signals": {
+      "cross_batch_malc_q25_below_frozen_threshold": true,
+      "malc_vs_rms_median_below_frozen_threshold": true,
+      "reason_not_classified": "The decision classifier correctly applies validity gates before mechanism thresholds."
+    }
+  },
+  "not_applicable": {
+    "mAP50_target": "N/A_no_victim_training",
+    "mAP50_non_target": "N/A_no_victim_training",
+    "PSNR": "N/A_no_materialization",
+    "LPIPS": "N/A_no_materialization",
+    "poisoned_count": "N/A_no_materialization"
+  },
+  "raw_evidence": {
+    "diagnostic_decision": {"path": "research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/remote_artifacts/geometry/diagnostic_decision.json", "sha256": "4b2e6b963b6ed6c7c5a7f0b57402102e1f26c3dcddfc07bf973bc09ea04b4943"},
+    "gradient_geometry": {"path": "research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/remote_artifacts/geometry/gradient_geometry.json", "sha256": "e3be9ce1b3fb20b4744631dc6c1b35fb80bcd8005dad530bbafb310ef4763fba"},
+    "prototype_geometry": {"path": "research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/remote_artifacts/geometry/prototype_geometry.json", "sha256": "d09f9419b342ffdf8e10f8886fc86f8e7b26ab0ad1243c9f608dc576e33bf331"},
+    "microtrajectory": {"path": "research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/remote_artifacts/geometry/microtrajectory.json", "sha256": "5b5bd2b6bb939c777de491aa94d8fcb0c430b1a464eac9891d71031a3c7290bd"},
+    "status": {"path": "research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/remote_artifacts/geometry/status.json", "sha256": "20f30a13b9038df247cb331b3b5401b2ac25759a292176878df45a605014d83c"}
+  }
+}

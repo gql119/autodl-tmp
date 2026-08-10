@@ -1,0 +1,76 @@
+{
+  "valid": false,
+  "validity_issues": [
+    "no_effective_prototype_scale",
+    "missing_or_nonfinite_primary_metric"
+  ],
+  "first_bad_boundary": null,
+  "triggered_boundaries": [],
+  "all_trigger_flags": {
+    "prototype_incoherence": false,
+    "cross_batch_malc_conflict": false,
+    "objective_gradient_conflict": false,
+    "cgr_selective_suppression": false,
+    "carrier_update_sink": false
+  },
+  "boundary_order": [
+    "prototype_incoherence",
+    "cross_batch_malc_conflict",
+    "objective_gradient_conflict",
+    "cgr_selective_suppression",
+    "carrier_update_sink",
+    "unresolved_by_probe"
+  ],
+  "claim_boundary": "seed0_surrogate_geometry_only_not_fresh_victim_ue",
+  "spec_id": "TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1",
+  "exp_id": "TAUSB-MALC-GRAD-GEOMETRY-S0",
+  "split_hash": "e2542517af00830147117582d69ff15a62fbeae1f8583bf0c9d01fbff120cae1",
+  "warmup_diagnostics": [
+    {
+      "stage": "route_warmup",
+      "step": 0,
+      "route_loss": 1.2762705087661743,
+      "cgr_mode": "projected_target",
+      "cgr_accepted": true,
+      "cgr_attempts": 1,
+      "cgr_attack_retention": 0.984342634677887,
+      "cgr_max_projected_row_dot": 2.9802322387695312e-08
+    },
+    {
+      "stage": "route_warmup",
+      "step": 1,
+      "route_loss": 0.9770510196685791,
+      "cgr_mode": "projected_target",
+      "cgr_accepted": true,
+      "cgr_attempts": 1,
+      "cgr_attack_retention": 0.9898382425308228,
+      "cgr_max_projected_row_dot": 2.0489096641540527e-08
+    },
+    {
+      "stage": "route_warmup",
+      "step": 2,
+      "route_loss": 0.843490481376648,
+      "cgr_mode": "target",
+      "cgr_accepted": true,
+      "cgr_attempts": 1,
+      "cgr_attack_retention": 1.0,
+      "cgr_max_projected_row_dot": 0.0
+    },
+    {
+      "stage": "route_warmup",
+      "step": 3,
+      "route_loss": 0.8965179920196533,
+      "cgr_mode": "projected_target",
+      "cgr_accepted": true,
+      "cgr_attempts": 1,
+      "cgr_attack_retention": 0.9867206811904907,
+      "cgr_max_projected_row_dot": 4.6566128730773926e-09
+    }
+  ],
+  "prototype_bank_unchanged": true,
+  "quality_metrics": {
+    "PSNR": "N/A_no_materialization",
+    "LPIPS": "N/A_no_materialization",
+    "poisoned_count": "N/A_no_materialization"
+  }
+}

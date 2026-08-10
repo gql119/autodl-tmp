@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-10T11:26:41.253825+00:00",
+  "exp_id": "TAUSB-MALC-GRAD-GEOMETRY-S0",
+  "spec_id": "TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1",
+  "run_id": "geometry-seed0-r1",
+  "branch": "codex/tausb-malc-grad-geometry-audit-v1",
+  "pre_run_code_commit": "18304b96c45360cfba5168d97d21d2961a13f390",
+  "method": "malc_geometry",
+  "steps": 8,
+  "seed": 0,
+  "run_tag": "geometry-seed0-r1",
+  "remote_artifact_root": "/root/tausb-sirc-runs/TAUSB-MALC-GRAD-GEOMETRY-AUDIT-v1",
+  "local_destination": "research_workspace/experiments/TAUSB-MALC-GRAD-GEOMETRY-S0/remote_artifacts",
+  "authentication": "Use SSH agent/config or an already authorized session; never persist passwords.",
+  "items": [
+    {
+      "relative_path": "geometry/status.json",
+      "required": true,
+      "reason": "geometry terminal state and claim boundary",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "geometry/config_resolved.json",
+      "required": true,
+      "reason": "frozen runtime configuration",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "geometry/input_audit.json",
+      "required": true,
+      "reason": "input hashes and geometry protocol counts",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "geometry/prototype_geometry.json",
+      "required": true,
+      "reason": "prototype calibration and held-out stability evidence",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "geometry/gradient_geometry.json",
+      "required": true,
+      "reason": "raw and projected component gradient geometry",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "geometry/microtrajectory.json",
+      "required": true,
+      "reason": "matched eight-step A0/A1 carrier trajectory",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "geometry/diagnostic_decision.json",
+      "required": true,
+      "reason": "pre-registered validity flags and boundary decision",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "geometry/source_manifest.json",
+      "required": true,
+      "reason": "source provenance used by the diagnostic",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "control/geometry-seed0-18304b96-r1/cost-guard-status.json",
+      "required": true,
+      "reason": "cost-guard terminal state and shutdown request",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "control/geometry-seed0-18304b96-r1/geometry-seed0.log",
+      "required": true,
+      "reason": "bounded probe and automatic-shutdown log",
+      "size_policy": "small"
+    }
+  ],
+  "post_transfer_checks": [
+    "record present/missing for every required item",
+    "sha256 every selected geometry and control file",
+    "confirm no datasets, weights, checkpoints, or binary parameters were selected",
+    "record remote_state=artifacts_pulled only after verification"
+  ]
+}
