@@ -162,3 +162,8 @@ seed, if eventually run, remains tentative.
   41 approved task files, including the four user-authorized source carriers and deterministic
   256px derivatives (<1 MiB total), but excludes VOC, weights, checkpoints, smoke artifacts,
   credentials, temporary outputs, and every unrelated dirty-worktree file.
+- 2026-08-11: Normal non-force push succeeded; remote branch tip was `5f61c00` and the code
+  snapshot remains `a781e1f`. The first read-only AutoDL input-audit connection to the
+  user-authorized endpoint returned `Connection refused`; no remote command, GPU process, or
+  paid experiment started. `REMOTE-INPUTS-01` remains the recoverable active row pending an
+  online instance or updated SSH endpoint.
