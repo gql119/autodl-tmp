@@ -269,3 +269,7 @@ seed, if eventually run, remains tentative.
 - 2026-08-11: The r2 pre-run packet and frozen scripts were committed as `70a27dc`.
   `REMOTE-HIDING-02` remains not started; no CUDA gate or paid GPU process has run in this
   no-card phase.
+- 2026-08-11: The user enabled GPU mode after the independent r2 review passed. Execution of
+  `REMOTE-HIDING-02` is selected at reviewed code commit `20c35b6`, using only the frozen
+  launch gate, session, control root and fresh r2 formal root recorded above. This is a
+  launch-pending recovery point; no claim is made that the gate or experiment has started yet.
