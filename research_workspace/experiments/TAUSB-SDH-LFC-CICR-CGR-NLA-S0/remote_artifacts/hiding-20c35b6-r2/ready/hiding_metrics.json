@@ -1,0 +1,77 @@
+{
+  "checkpoint": "/root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-r2/hiding/hiding_checkpoint.pt",
+  "checkpoint_sha256": "a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36",
+  "elapsed_seconds": 17.382956884801388,
+  "gate": {
+    "checks": {
+      "delta_high_frequency": false,
+      "dlfc_leakage_probe": true,
+      "finite": true,
+      "linf": true,
+      "pixel_diversity": true,
+      "primary_l1_margin": true,
+      "primary_recovery_ssim": true,
+      "retrieval_top1": true,
+      "rms_diversity": false,
+      "support": true
+    },
+    "claim_boundary": "hiding mechanics only; no detector or victim efficacy",
+    "leakage_probe": {
+      "cooccur_balanced_accuracy": 0.53125,
+      "cooccur_excess": 0.03125,
+      "cooccur_majority_balanced_baseline": 0.5,
+      "evaluated_non_target_classes": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        10,
+        11,
+        12,
+        13,
+        15,
+        17,
+        18
+      ],
+      "non_target_macro_auroc": 0.5502368075847046,
+      "pass": true
+    },
+    "metrics": {
+      "all_finite": true,
+      "channel_rms_cv": [
+        0.01859903708100319,
+        0.010226376354694366,
+        0.01543367188423872
+      ],
+      "high_frequency_energy_median": 0.6717917323112488,
+      "linf": 0.062745101749897,
+      "pairwise_pixel_cosine_median": 0.9585551619529724,
+      "primary_recovery_ssim_median": 0.6674354076385498,
+      "primary_relative_l1_margin_median": 0.3557649552822113,
+      "retrieval_top1": 1.0,
+      "support_outside_max": 0.0
+    },
+    "pass": false,
+    "schema": "tausb.sdh-hiding-gate.v1",
+    "status": "fail"
+  },
+  "history_first": {
+    "cover": 1.668396362219937e-05,
+    "gradient_l1": 20.246816635131836,
+    "reveal": 0.33254021406173706,
+    "step": 1,
+    "total": 0.3325403928756714
+  },
+  "history_last": {
+    "cover": 0.0029249810613691807,
+    "gradient_l1": 63.32670974731445,
+    "reveal": 0.19140861928462982,
+    "step": 120,
+    "total": 0.19143787026405334
+  },
+  "schema": "tausb.sdh-hiding-pilot.v1",
+  "spec_id": "TAUSB-SDH-LFC-CICR-CGR-NLA-MAP50-v3",
+  "split_hash": "9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280"
+}

@@ -281,3 +281,17 @@ seed, if eventually run, remains tentative.
   This is an inference only: completion, finite hiding metrics and artifacts remain unverified
   until the instance is reopened in no-card mode and the r2 evidence is pulled. No retry was
   attempted.
+- 2026-08-11: No-card artifact recovery closed the uncertainty. The r2 formal status is
+  `completed`, the wrapper exited 0 after 17.38 seconds, and the five required small artifacts
+  passed local verification. Formal and `ready/` status, metrics and split hashes match; the r1
+  status hash is unchanged. No checkpoint, dataset, weight or poisoned image tree was pulled.
+- 2026-08-11: The pre-registered hiding gate failed only `rms_diversity` and
+  `delta_high_frequency`: channel RMS CV is `0.018599/0.010226/0.015434` against a per-channel
+  floor of `0.05`, while high-frequency energy is `0.671792` against a cap of `0.40`.
+  Recovery, retrieval, L1 margin, pixel cosine, Linf, support, finite and D-LFC leakage checks
+  pass. Per the Spec, mechanism and victim stages are blocked and no AP/UE claim is made.
+- 2026-08-11: The H→E→N report selects one smallest follow-up: a fixed Haar spectral
+  bottleneck with LH/HL/HH scale `0.25`, compared to the frozen r2 baseline. The draft
+  `TAUSB-SDH-HIDING-SB-v1` changes no loss, split, secret, step count, epsilon or downstream
+  detector component and has an exact `scale=1.0` rollback. It requires explicit user approval
+  before implementation or another GPU run.
