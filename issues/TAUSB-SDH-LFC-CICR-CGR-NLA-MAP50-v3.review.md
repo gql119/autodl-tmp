@@ -266,3 +266,6 @@ seed, if eventually run, remains tentative.
   launch-gate SHA-256 is `f82bac8fd119cfd5527155b6a91d194b4f8227ec24117e775fdef1b1ba907389`.
   The only authorized future command is
   `/bin/bash /root/verify_and_launch_sdh_hiding_20c35b6_r2.sh` after GPU mode is enabled.
+- 2026-08-11: The r2 pre-run packet and frozen scripts were committed as `70a27dc`.
+  `REMOTE-HIDING-02` remains not started; no CUDA gate or paid GPU process has run in this
+  no-card phase.
