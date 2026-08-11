@@ -114,12 +114,19 @@ learning rate、secret bank 训练/primary held-out 语义或 64/96 split。
 
 ## 7. Pre-run Review
 
-- reviewed branch / commit：`pending after approval and implementation`。
-- exact command：`pending`。
-- parameter sink probe：`pending`。
-- baseline/disable-path evidence：r2 hash-verified artifacts + `scale=1.0` equivalence test。
-- output non-overwrite check：`pending`。
-- result：`pending`。
+- reviewed branch / commit：`codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3` /
+  `d244c3270eb24d7a6515e79ff643cb015ebb0bb9`。
+- exact command：GPU 开启后仅允许
+  `bash /root/verify_and_launch_sdh_hiding_sb25.sh`；gate hash、wrapper hash 和完整命令绑定见
+  `research_workspace/experiments/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/pre_run/prerun.md`。
+- parameter sink probe：本地与 AutoDL 无卡 probe 均通过 `config 0.25 -> Haar high bands ->
+  inverse -> tanh`，且 finite backward 通过。
+- baseline/disable-path evidence：r2 hash-verified checkpoint 与新默认架构哈希兼容；
+  `scale=1.0` 精确输出/输入梯度/参数梯度回退测试通过。
+- output non-overwrite check：SB25 artifact/control/worktree/tmux 使用独立名称；正式 root、
+  control root 和 session 在预审时均为空，launch gate 将在 GPU 启动前再次 fail-closed 检查。
+- result：`pass / allow_run`，仅在用户开启 GPU 后通过上述 exact launch gate 执行；当前无卡
+  模式未启动任何实验进程。
 
 ## 8. 结果落盘
 

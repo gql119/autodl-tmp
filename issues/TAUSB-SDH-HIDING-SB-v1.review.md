@@ -53,3 +53,11 @@ independent gate and user decision.
   credential scan passed; datasets, weights, checkpoints, test basetemps and unrelated dirty
   files were excluded. Independent pre-run review is the active gate; no GPU work is authorized
   by this snapshot alone.
+- 2026-08-11: `PRERUN-REVIEW-01` passed for exact clean run commit
+  `d244c3270eb24d7a6515e79ff643cb015ebb0bb9`. AutoDL no-card probes verified config/secret-bank
+  loading, the active quarter-scale Haar sink, finite backward, r2 scale-1 checkpoint
+  compatibility, VOC/checkpoint counts and hashes, and fresh SB25 worktree/artifact/control/tmux
+  paths. The cost wrapper, input audit and launch gate were uploaded and matched SHA-256
+  `1ab2898...c6a6`, `83aa3db...aad9`, and `80020b15...b5e`; both scripts passed local and remote
+  `bash -n`. GPU mode was unavailable by design, the launch gate was not executed, and no
+  experiment process started. The remote row now waits for the user to enable GPU mode.
