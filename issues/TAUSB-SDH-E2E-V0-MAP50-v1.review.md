@@ -5,7 +5,7 @@
 - Approved Spec: `docs/research/specs/TAUSB-SDH-E2E-V0-MAP50-v1.md`.
 - Durable state source: `issues/TAUSB-SDH-E2E-V0-MAP50-v1.csv`.
 - Active row: none; next gated row is `REMOTE-MECH-01`, which requires GPU mode.
-- GPU state: no GPU job started; the required no-card audit completed and the instance is being shut down after evidence persistence.
+- GPU state: no GPU job started; the required no-card audit completed and instance shutdown was confirmed by a refused follow-up SSH connection.
 - Branch: `codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3`.
 - Reviewed code snapshot: `3a7a1aa`.
 
@@ -95,3 +95,4 @@ Obtain one real, paired, single-seed 20-epoch VOC AP50 result for the current co
 - 2026-08-11: Created clean detached worktree `/root/tausb-sdh-checkouts/e2e-v0-3a7a1aa-worktree` at exact code commit `3a7a1aaff912d0904794a91a4d3512d18b5c69fa`; no existing file or artifact was deleted, reset, or cleaned.
 - 2026-08-11: Remote CPU sink probe passed the real V0 loader and content binding: VOC counts/manifests, person=6095, r2 hashes/split, secret manifest/tensor, and surrogate hash all match. The unique mechanism root is fresh; tmux, timeout, shutdown, environment, and disk checks pass.
 - 2026-08-11: Closed `PRERUN-MECH-01` as `pass / allow_run` for mechanism only. The audit and 20-minute auto-shutdown run contract were committed as `27e434d`; no GPU process was started.
+- 2026-08-11: The no-card instance was shut down after evidence persistence. The shutdown command closed SSH from the remote side and a follow-up connection returned `connection refused`.

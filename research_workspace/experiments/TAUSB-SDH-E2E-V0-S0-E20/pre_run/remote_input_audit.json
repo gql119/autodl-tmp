@@ -50,7 +50,9 @@
     "artifact_root_fresh": true,
     "active_experiment_process": false,
     "active_tmux_session": false,
-    "gpu_device_present": false
+    "gpu_device_present": false,
+    "shutdown_requested": true,
+    "shutdown_confirmed_by_connection_refused": true
   },
   "checks": {
     "clean_exact_commit_checkout": true,
@@ -70,6 +72,7 @@
     "The pre-existing dirty repository was audited read-only and was not used for execution.",
     "A new detached worktree was created without deleting, resetting, or cleaning any existing file.",
     "The real E2E V0 loader and runtime input binding function passed on CPU in no-card mode.",
-    "No mechanism, victim, materialization, smoke, evaluation, or GPU process was started."
+    "No mechanism, victim, materialization, smoke, evaluation, or GPU process was started.",
+    "After evidence persistence, shutdown closed the SSH connection and the follow-up probe returned connection refused."
   ]
 }
