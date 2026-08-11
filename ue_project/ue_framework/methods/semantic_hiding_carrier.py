@@ -120,6 +120,7 @@ class SemanticHidingCarrier(nn.Module):
         width: int = 64,
         coupling_blocks: int = 4,
         epsilon: float = 16.0 / 255.0,
+        hf_subband_scale: float = 1.0,
     ) -> None:
         super().__init__()
         if input_size <= 0 or input_size % 2:
@@ -128,10 +129,16 @@ class SemanticHidingCarrier(nn.Module):
             raise ValueError("width and coupling_blocks must be positive.")
         if not math.isfinite(epsilon) or epsilon <= 0:
             raise ValueError("epsilon must be positive and finite.")
+        if (
+            not math.isfinite(hf_subband_scale)
+            or not 0.0 <= hf_subband_scale <= 1.0
+        ):
+            raise ValueError("hf_subband_scale must be finite in [0,1].")
         self.input_size = int(input_size)
         self.width = int(width)
         self.coupling_blocks = int(coupling_blocks)
         self.epsilon = float(epsilon)
+        self.hf_subband_scale = float(hf_subband_scale)
         self.dwt = FixedHaarDWT()
         self.hiding_trunk = nn.ModuleList(
             AffineCouplingBlock(24, self.width, swap=bool(index % 2))
@@ -139,6 +146,17 @@ class SemanticHidingCarrier(nn.Module):
         )
         self.adapter = ResidualAdapter(self.width)
         self.reveal_decoder = SecretRevealDecoder(self.width, self.dwt)
+
+    def _filter_residual_subbands(self, raw_residual: torch.Tensor) -> torch.Tensor:
+        # The identity branch deliberately avoids a DWT round trip so scale=1.0
+        # is an exact output/gradient rollback for existing checkpoints.
+        if self.hf_subband_scale == 1.0:
+            return raw_residual
+        ll, lh, hl, hh = self.dwt(raw_residual).chunk(4, dim=1)
+        scale = self.hf_subband_scale
+        return self.dwt.inverse(
+            torch.cat((ll, lh * scale, hl * scale, hh * scale), dim=1)
+        )
 
     def _validate_inputs(
         self, host: torch.Tensor, secret: torch.Tensor
@@ -165,7 +183,8 @@ class SemanticHidingCarrier(nn.Module):
             features = block(features)
         mixed_spatial = self.dwt.inverse(features[:, :12])
         raw_residual = self.adapter(mixed_spatial)
-        delta = self.epsilon * torch.tanh(raw_residual)
+        filtered_residual = self._filter_residual_subbands(raw_residual)
+        delta = self.epsilon * torch.tanh(filtered_residual)
         stego = torch.clamp(host + delta, 0.0, 1.0)
         recovered = self.reveal_decoder(stego)
         return SemanticHidingOutput(raw_residual, delta, stego, recovered)
@@ -183,7 +202,7 @@ class SemanticHidingCarrier(nn.Module):
             parameter.requires_grad_(True)
 
     def architecture_descriptor(self) -> Dict[str, object]:
-        return {
+        descriptor = {
             "input_size": self.input_size,
             "dwt": "fixed_haar_one_level",
             "host_wavelet_channels": 12,
@@ -206,6 +225,10 @@ class SemanticHidingCarrier(nn.Module):
                 "total": sum(p.numel() for p in self.parameters()),
             },
         }
+        # Preserve the legacy architecture hash for the exact scale=1 rollback.
+        if self.hf_subband_scale != 1.0:
+            descriptor["hf_subband_scale"] = self.hf_subband_scale
+        return descriptor
 
     def architecture_sha256(self) -> str:
         payload = json.dumps(

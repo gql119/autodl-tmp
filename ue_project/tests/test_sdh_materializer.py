@@ -22,9 +22,14 @@ HASHES = {
 }
 
 
-def _payload(*, hiding=True, mechanism=True):
+def _payload(*, hiding=True, mechanism=True, hf_subband_scale=1.0):
     torch.manual_seed(7)
-    carrier = SemanticHidingCarrier(input_size=32, width=8, coupling_blocks=2)
+    carrier = SemanticHidingCarrier(
+        input_size=32,
+        width=8,
+        coupling_blocks=2,
+        hf_subband_scale=hf_subband_scale,
+    )
     secret = torch.rand((1, 3, 32, 32))
     return build_frozen_sdh_state_payload(
         carrier=carrier,
@@ -98,3 +103,16 @@ def test_materializer_rejects_non_bbox_support(tmp_path) -> None:
             [{"cls": 14, "bbox": [0.5, 0.5, 0.5, 0.5]}],
             0, 40, 16 / 255, "mask",
         )
+
+
+def test_frozen_state_round_trips_non_default_subband_scale(tmp_path) -> None:
+    path = tmp_path / "sb25.pt"
+    torch.save(_payload(hf_subband_scale=0.25), path)
+    loaded = load_frozen_sdh_state(
+        str(path),
+        device=torch.device("cpu"),
+        expected_target_class_id=14,
+        expected_epsilon=16 / 255,
+        expected_hashes=HASHES,
+    )
+    assert loaded.carrier.hf_subband_scale == 0.25

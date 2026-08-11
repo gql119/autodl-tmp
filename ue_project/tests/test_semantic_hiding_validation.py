@@ -53,6 +53,28 @@ def test_gate_passes_controlled_fixture_and_rejects_collapse():
     assert decision["checks"]["rms_diversity"] is False
 
 
+def test_revised_gate_reports_rms_cv_without_using_it_as_a_hard_check():
+    low_rms = HidingMetrics(
+        retrieval_top1=1.0,
+        primary_recovery_ssim_median=0.8,
+        primary_relative_l1_margin_median=0.7,
+        pairwise_pixel_cosine_median=0.3,
+        channel_rms_cv=(0.01, 0.02, 0.015),
+        high_frequency_energy_median=0.2,
+        linf=16.0 / 255.0,
+        support_outside_max=0.0,
+        all_finite=True,
+    )
+    legacy = evaluate_hiding_gate(low_rms)
+    revised = evaluate_hiding_gate(low_rms, rms_diversity_required=False)
+    assert legacy["pass"] is False
+    assert revised["pass"] is True
+    assert revised["checks"]["rms_diversity"] is False
+    assert "rms_diversity" not in revised["required_checks"]
+    assert revised["rms_cv_role"] == "descriptive"
+    assert revised["schema"] == "tausb.sdh-hiding-gate.v2"
+
+
 def test_compute_metrics_handles_primary_subset_and_low_frequency_deltas():
     torch.manual_seed(4)
     bank = torch.rand(3, 3, 32, 32)

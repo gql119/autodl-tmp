@@ -295,3 +295,8 @@ seed, if eventually run, remains tentative.
   `TAUSB-SDH-HIDING-SB-v1` changes no loss, split, secret, step count, epsilon or downstream
   detector component and has an exact `scale=1.0` rollback. It requires explicit user approval
   before implementation or another GPU run.
+- 2026-08-11: The user revised and approved the follow-up logic. RMS CV is descriptive only;
+  no RMS/host-diversity objective will be added. The approved SB25 Spec targets high-frequency
+  dependence while preserving the same carrier identity and finite pixel-texture differences.
+  Execution continues under the independent `TAUSB-SDH-HIDING-SB-v1` CSV; r2 remains failed
+  under its original pre-registered v3 contract.

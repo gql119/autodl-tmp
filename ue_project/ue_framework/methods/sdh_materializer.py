@@ -108,6 +108,7 @@ def build_frozen_sdh_state_payload(
         "input_size": carrier.input_size,
         "width": carrier.width,
         "coupling_blocks": carrier.coupling_blocks,
+        "hf_subband_scale": carrier.hf_subband_scale,
         "architecture_sha256": architecture_hash,
         "secret_source_sha256": _require_sha256(
             secret_source_sha256, "secret_source_sha256"
@@ -180,6 +181,7 @@ def load_frozen_sdh_state(
         width=int(payload.get("width", -1)),
         coupling_blocks=int(payload.get("coupling_blocks", -1)),
         epsilon=epsilon,
+        hf_subband_scale=float(payload.get("hf_subband_scale", 1.0)),
     )
     architecture_hash = _require_sha256(
         payload.get("architecture_sha256", ""), "architecture_sha256"

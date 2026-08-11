@@ -33,6 +33,12 @@ RETRY = (
     / "configs"
     / "tausb_sdh_mechanism_v3_r2.yaml"
 )
+SUBBAND = (
+    Path(__file__).parents[1]
+    / "ue_framework"
+    / "configs"
+    / "tausb_sdh_hiding_sb25_v1.yaml"
+)
 
 
 def test_formal_sdh_config_is_registered_and_has_no_legacy_features() -> None:
@@ -122,6 +128,31 @@ def test_retry_config_changes_only_the_formal_artifact_root() -> None:
     original["runtime"].pop("artifact_root")
     retry["runtime"].pop("artifact_root")
     assert retry == original
+
+
+def test_subband_hiding_config_freezes_one_parameter_and_descriptive_rms() -> None:
+    config = yaml.safe_load(SUBBAND.read_text(encoding="utf-8"))
+    validate_sdh_experiment_config(config)
+    assert config["spec"]["spec_id"] == "TAUSB-SDH-HIDING-SB-v1"
+    assert config["hiding"]["hf_subband_scale"] == 0.25
+    assert config["hiding"]["rms_cv_gate_enabled"] is False
+    assert config["runtime"]["artifact_root"] == (
+        "/root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25"
+    )
+
+
+@pytest.mark.parametrize(
+    "key,value,match",
+    [
+        ("hf_subband_scale", 0.5, "freezes hf_subband_scale=0.25"),
+        ("rms_cv_gate_enabled", True, "RMS CV descriptive only"),
+    ],
+)
+def test_subband_hiding_config_fails_closed(key, value, match) -> None:
+    config = yaml.safe_load(SUBBAND.read_text(encoding="utf-8"))
+    config["hiding"][key] = value
+    with pytest.raises(ValueError, match=match):
+        validate_sdh_experiment_config(config)
 
 
 def test_secret_manifest_hash_is_line_ending_independent(tmp_path) -> None:

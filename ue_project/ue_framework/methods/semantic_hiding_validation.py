@@ -225,6 +225,8 @@ def compute_hiding_metrics(
 def evaluate_hiding_gate(
     metrics: HidingMetrics,
     epsilon: float = 16.0 / 255.0,
+    *,
+    rms_diversity_required: bool = True,
 ) -> Dict[str, object]:
     checks = {
         "retrieval_top1": metrics.retrieval_top1 >= 0.90,
@@ -237,11 +239,20 @@ def evaluate_hiding_gate(
         "support": metrics.support_outside_max == 0.0,
         "finite": metrics.all_finite,
     }
+    required_checks = tuple(
+        name for name in checks if rms_diversity_required or name != "rms_diversity"
+    )
     return {
-        "schema": "tausb.sdh-hiding-gate.v1",
+        "schema": (
+            "tausb.sdh-hiding-gate.v1"
+            if rms_diversity_required
+            else "tausb.sdh-hiding-gate.v2"
+        ),
         "metrics": asdict(metrics),
         "checks": checks,
-        "pass": all(checks.values()),
+        "required_checks": list(required_checks),
+        "rms_cv_role": "required" if rms_diversity_required else "descriptive",
+        "pass": all(checks[name] for name in required_checks),
         "claim_boundary": "hiding mechanics only; no detector or victim efficacy",
     }
 

@@ -1,3 +1,4 @@
+import pytest
 import torch
 from torch import nn
 
@@ -29,8 +30,71 @@ def test_formal_architecture_has_four_blocks_and_no_bn_or_dropout():
     assert descriptor["coupling_width"] == 64
     assert descriptor["batch_norm"] is False
     assert descriptor["dropout"] is False
+    assert "hf_subband_scale" not in descriptor
     assert not any(isinstance(m, (nn.BatchNorm2d, nn.Dropout)) for m in carrier.modules())
     assert len(carrier.architecture_sha256()) == 64
+
+
+@pytest.mark.parametrize("scale", [-0.01, 1.01, float("nan")])
+def test_hf_subband_scale_rejects_values_outside_unit_interval(scale):
+    with pytest.raises(ValueError, match="hf_subband_scale"):
+        SemanticHidingCarrier(
+            input_size=16,
+            width=4,
+            coupling_blocks=2,
+            hf_subband_scale=scale,
+        )
+
+
+def test_scale_one_is_exact_output_and_gradient_rollback():
+    torch.manual_seed(19)
+    legacy = SemanticHidingCarrier(input_size=16, width=4, coupling_blocks=2)
+    rollback = SemanticHidingCarrier(
+        input_size=16,
+        width=4,
+        coupling_blocks=2,
+        hf_subband_scale=1.0,
+    )
+    rollback.load_state_dict(legacy.state_dict(), strict=True)
+    host_legacy = torch.rand(2, 3, 16, 16, requires_grad=True)
+    secret_legacy = torch.rand(2, 3, 16, 16, requires_grad=True)
+    host_rollback = host_legacy.detach().clone().requires_grad_(True)
+    secret_rollback = secret_legacy.detach().clone().requires_grad_(True)
+    out_legacy = legacy(host_legacy, secret_legacy)
+    out_rollback = rollback(host_rollback, secret_rollback)
+    assert torch.equal(out_legacy.delta, out_rollback.delta)
+    assert legacy.architecture_sha256() == rollback.architecture_sha256()
+    out_legacy.delta.square().sum().backward()
+    out_rollback.delta.square().sum().backward()
+    assert torch.equal(host_legacy.grad, host_rollback.grad)
+    assert torch.equal(secret_legacy.grad, secret_rollback.grad)
+    for legacy_parameter, rollback_parameter in zip(
+        legacy.parameters(), rollback.parameters()
+    ):
+        if legacy_parameter.grad is None or rollback_parameter.grad is None:
+            assert legacy_parameter.grad is None and rollback_parameter.grad is None
+        else:
+            assert torch.equal(legacy_parameter.grad, rollback_parameter.grad)
+
+
+def test_quarter_scale_attenuates_only_haar_high_subbands_with_finite_gradient():
+    carrier = SemanticHidingCarrier(
+        input_size=16,
+        width=4,
+        coupling_blocks=2,
+        hf_subband_scale=0.25,
+    )
+    raw = torch.randn(2, 3, 16, 16, requires_grad=True)
+    filtered = carrier._filter_residual_subbands(raw)
+    raw_ll, *raw_high = carrier.dwt(raw).chunk(4, dim=1)
+    filtered_ll, *filtered_high = carrier.dwt(filtered).chunk(4, dim=1)
+    assert torch.allclose(filtered_ll, raw_ll, atol=1e-6, rtol=1e-6)
+    for before, after in zip(raw_high, filtered_high):
+        assert torch.allclose(after, before * 0.25, atol=1e-6, rtol=1e-6)
+    filtered.square().mean().backward()
+    assert raw.grad is not None and torch.isfinite(raw.grad).all()
+    descriptor = carrier.architecture_descriptor()
+    assert descriptor["hf_subband_scale"] == 0.25
 
 
 def test_same_host_is_deterministic_and_host_or_secret_changes_delta():

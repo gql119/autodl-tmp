@@ -322,7 +322,10 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
     missing = sorted(required.difference(config))
     if missing:
         raise ValueError("Missing SDH experiment config sections: %s" % missing)
-    if config["spec"].get("spec_id") != "TAUSB-SDH-LFC-CICR-CGR-NLA-MAP50-v3":
+    spec_id = str(config["spec"].get("spec_id", ""))
+    legacy_spec_id = "TAUSB-SDH-LFC-CICR-CGR-NLA-MAP50-v3"
+    subband_spec_id = "TAUSB-SDH-HIDING-SB-v1"
+    if spec_id not in {legacy_spec_id, subband_spec_id}:
         raise ValueError("SDH experiment spec_id mismatch.")
     if int(config["spec"].get("seed", -1)) != 0:
         raise ValueError("SDH first experiment seed must be 0.")
@@ -348,6 +351,17 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         raise ValueError("SDH first round forbids EOT.")
     if config["mechanism"].get("jnd_enabled") is not False:
         raise ValueError("SDH first round forbids JND.")
+    hf_subband_scale = float(config["hiding"].get("hf_subband_scale", 1.0))
+    if not math.isfinite(hf_subband_scale) or not 0.0 <= hf_subband_scale <= 1.0:
+        raise ValueError("SDH hiding.hf_subband_scale must be finite in [0,1].")
+    rms_cv_gate_enabled = config["hiding"].get("rms_cv_gate_enabled", True)
+    if spec_id == subband_spec_id:
+        if hf_subband_scale != 0.25:
+            raise ValueError("TAUSB-SDH-HIDING-SB-v1 freezes hf_subband_scale=0.25.")
+        if rms_cv_gate_enabled is not False:
+            raise ValueError("TAUSB-SDH-HIDING-SB-v1 keeps RMS CV descriptive only.")
+    elif hf_subband_scale != 1.0 or rms_cv_gate_enabled is not True:
+        raise ValueError("Legacy SDH config requires the exact scale=1 RMS-gated protocol.")
     for section, keys in {
         "dataset": ("root", "train_images", "train_labels"),
         "model": ("surrogate_checkpoint",),
@@ -425,6 +439,7 @@ def run_hiding_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict[st
         width=64,
         coupling_blocks=4,
         epsilon=16.0 / 255.0,
+        hf_subband_scale=float(config["hiding"].get("hf_subband_scale", 1.0)),
     ).to(device)
     optimizer = torch.optim.Adam(
         carrier.parameters(), lr=float(config["hiding"]["learning_rate"])
@@ -518,8 +533,12 @@ def run_hiding_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict[st
             max_seconds=float(config["hiding"]["max_seconds"]),
         )
     leakage = _leakage_probe(calibration_probe, heldout_probe)
-    gate = evaluate_hiding_gate(hiding_metrics)
+    gate = evaluate_hiding_gate(
+        hiding_metrics,
+        rms_diversity_required=bool(config["hiding"].get("rms_cv_gate_enabled", True)),
+    )
     gate["checks"]["dlfc_leakage_probe"] = bool(leakage["pass"])
+    gate["required_checks"].append("dlfc_leakage_probe")
     gate["pass"] = bool(gate["pass"] and leakage["pass"])
     gate["leakage_probe"] = leakage
     gate["status"] = "pass" if gate["pass"] else "fail"
@@ -531,6 +550,7 @@ def run_hiding_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict[st
             "schema": "tausb.sdh-hiding-checkpoint.v1",
             "carrier_state": {name: value.detach().cpu() for name, value in carrier.state_dict().items()},
             "architecture_sha256": carrier.architecture_sha256(),
+            "hf_subband_scale": carrier.hf_subband_scale,
             "split_hash": split_hash,
             "secret_manifest_sha256": secret_meta["manifest_sha256"],
             "primary_index": primary_index,
@@ -589,7 +609,10 @@ def _load_hiding_checkpoint(
         width=64,
         coupling_blocks=4,
         epsilon=16.0 / 255.0,
+        hf_subband_scale=float(state.get("hf_subband_scale", 1.0)),
     )
+    if carrier.hf_subband_scale != float(config["hiding"].get("hf_subband_scale", 1.0)):
+        raise ValueError("Hiding checkpoint subband scale does not match config.")
     carrier.load_state_dict(state["carrier_state"], strict=True)
     if carrier.architecture_sha256() != state["architecture_sha256"]:
         raise ValueError("Hiding checkpoint architecture hash mismatch.")
@@ -607,6 +630,7 @@ def _clone_detector_carrier(
         width=source.width,
         coupling_blocks=source.coupling_blocks,
         epsilon=source.epsilon,
+        hf_subband_scale=source.hf_subband_scale,
     ).to(device)
     clone.load_state_dict(copy.deepcopy(source.state_dict()), strict=True)
     clone.freeze_for_detector_optimization()
