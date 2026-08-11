@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from types import SimpleNamespace
 
@@ -9,6 +10,7 @@ from ue_framework.metrics_utils import VOC20_CLASS_NAMES
 from ue_framework.methods.sdh_evaluation import (
     build_learning_preference_audit,
     build_sdh_counterfactual_metrics,
+    build_sdh_e2e_v0_comparison,
     build_sdh_fresh_victim_comparison,
 )
 from ue_framework.methods.sdh_counterfactual import (
@@ -17,6 +19,7 @@ from ue_framework.methods.sdh_counterfactual import (
     deterministic_person_audit_subset,
 )
 from ue_framework.stages.evaluate import (
+    _canonical_json_sha256,
     _sdh_manifest_provenance,
     _sdh_mechanism_evidence,
 )
@@ -199,3 +202,135 @@ def test_person_audit_subset_is_balanced_deterministic_and_hashed(tmp_path) -> N
     assert first == second
     assert first_hash == second_hash
     assert len(first) == 4
+
+
+def _e2e_metrics(*, arm_id, person=0.8, other=0.8):
+    hashes = {
+        "clean_val_manifest_sha256": "a" * 64,
+        "paired_training_protocol_sha256": "b" * 64,
+        "frozen_sdh_state_sha256": "c" * 64,
+        "hiding_metrics_sha256": "d" * 64,
+        "hiding_checkpoint_sha256": "e" * 64,
+        "hiding_split_sha256": "f" * 64,
+        "mechanism_metrics_sha256": "1" * 64,
+        "mechanism_decision_sha256": "2" * 64,
+        "mechanism_config_sha256": "3" * 64,
+        "p1_state_sha256": "4" * 64,
+    }
+    return {
+        **_metrics(other, person=person),
+        **hashes,
+        "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+        "pilot_kind": "e20",
+        "arm_id": arm_id,
+        "seed": 0,
+        "steps": 40,
+        "victim_epochs": 20,
+        "evidence_scope": "end_to_end_feasibility_not_formal_method",
+        "hiding_gate_passed": False,
+        "mechanism_gate_passed": False,
+        "poisoned_count": 0 if arm_id == "C0" else 6095,
+        "actual_linf_max": 0.0 if arm_id == "C0" else 16 / 255,
+    }
+
+
+def test_e2e_v0_comparison_reports_all_classes_and_directional_pass() -> None:
+    clean = _e2e_metrics(arm_id="C0", person=0.80, other=0.80)
+    poisoned = _e2e_metrics(arm_id="M1", person=0.65, other=0.76)
+    result = build_sdh_e2e_v0_comparison(clean, poisoned)
+    assert len(result["per_class"]) == 20
+    assert result["summary"]["person_drop"] == pytest.approx(0.15)
+    assert result["summary"]["non_target_macro_drop"] == pytest.approx(0.04)
+    assert result["pilot_decision"] == "directional_feasibility_pass"
+    assert result["hiding_gate_passed"] is False
+    assert result["mechanism_gate_passed"] is False
+
+
+def test_e2e_v0_comparison_failure_and_identity_checks_are_independent() -> None:
+    clean = _e2e_metrics(arm_id="C0", person=0.80, other=0.80)
+    no_target_signal = _e2e_metrics(arm_id="M1", person=0.78, other=0.76)
+    result = build_sdh_e2e_v0_comparison(clean, no_target_signal)
+    assert result["pilot_decision"] == "directional_feasibility_fail"
+    assert result["summary"]["failure_checks"]["person_drop_lt_0_03"] is True
+
+    mismatched = _e2e_metrics(arm_id="M1", person=0.65, other=0.76)
+    mismatched["clean_val_manifest_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="clean_val_manifest_sha256"):
+        build_sdh_e2e_v0_comparison(clean, mismatched)
+
+    zero_baseline = _e2e_metrics(arm_id="C0", person=0.8, other=0.8)
+    zero_baseline["ap50_by_class"]["dog"] = 0.0
+    with pytest.raises(ValueError, match="retention is undefined"):
+        build_sdh_e2e_v0_comparison(
+            zero_baseline, _e2e_metrics(arm_id="M1", person=0.65, other=0.76)
+        )
+
+
+def _sdh_v0_ctx(tmp_path):
+    method = {
+        "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+        "evidence_scope": "end_to_end_feasibility_not_formal_method",
+        "secret_tensor_sha256": "1" * 64,
+        "source_manifest_sha256": "2" * 64,
+        "train_split_sha256": "3" * 64,
+        "secret_source_sha256": "4" * 64,
+        "frozen_sdh_state": str(tmp_path / "p1_feasibility_sdh_state.pt"),
+        "frozen_sdh_state_sha256": "5" * 64,
+        "hiding_metrics_sha256": "6" * 64,
+        "hiding_checkpoint_sha256": "7" * 64,
+        "hiding_split_sha256": "8" * 64,
+        "mechanism_config_sha256": "9" * 64,
+        "p1_state_sha256": "a" * 64,
+    }
+    return SimpleNamespace(
+        method="tausb_sdh",
+        run_tag="M1",
+        cfg={"methods": {"tausb_sdh": method}},
+    )
+
+
+def test_v0_manifest_and_mechanism_evidence_preserve_failed_gate(tmp_path) -> None:
+    ctx = _sdh_v0_ctx(tmp_path)
+    decision = {"pass": False, "target_pass": False, "protection_pass": True}
+    report = {
+        "schema": "tausb.sdh-mechanism-pilot.v1",
+        "split_hash": "8" * 64,
+        "arms": {"T0": {}, "T1": {}, "P0": {}, "P1": {}},
+        "decision": decision,
+    }
+    report_path = tmp_path / "mechanism_metrics.json"
+    report_path.write_text(json.dumps(report), encoding="utf-8")
+    ctx.cfg["methods"]["tausb_sdh"].update(
+        {
+            "mechanism_metrics_sha256": hashlib.sha256(
+                report_path.read_bytes()
+            ).hexdigest(),
+            "mechanism_decision_sha256": _canonical_json_sha256(decision),
+        }
+    )
+    row = {
+        "is_poisoned": 1,
+        "state_content_hash": "b" * 64,
+        "semantic_bank_hash": "1" * 64,
+        "source_manifest_hash": "2" * 64,
+        "split_hash": "3" * 64,
+        "secret_source_sha256": "4" * 64,
+        "support_source": "person_gt_bbox",
+        "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+        "evidence_scope": "end_to_end_feasibility_not_formal_method",
+        "hiding_gate_passed": "False",
+        "mechanism_gate_passed": "False",
+        **{
+            key: value
+            for key, value in ctx.cfg["methods"]["tausb_sdh"].items()
+            if key.endswith("_sha256")
+        },
+    }
+    provenance = _sdh_manifest_provenance(ctx, [row])
+    assert provenance["hiding_gate_passed"] is False
+    assert provenance["mechanism_gate_passed"] is False
+    diagnostics = _sdh_mechanism_evidence(ctx)["sdh_mechanism_diagnostics"]
+    assert diagnostics["decision"]["pass"] is False
+    assert diagnostics["evidence_scope"] == (
+        "end_to_end_feasibility_not_formal_method"
+    )

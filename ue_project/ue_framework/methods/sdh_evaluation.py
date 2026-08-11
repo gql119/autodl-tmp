@@ -138,3 +138,125 @@ def build_sdh_fresh_victim_comparison(
             "pass": all(checks.values()),
         },
     }
+
+
+def build_sdh_e2e_v0_comparison(
+    clean: Mapping[str, object],
+    poisoned: Mapping[str, object],
+) -> Dict[str, object]:
+    clean_ap = _strict_named_ap50(clean, "C0")
+    poison_ap = _strict_named_ap50(poisoned, "M1")
+    required_identity = {
+        "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+        "pilot_kind": "e20",
+        "seed": 0,
+        "steps": 40,
+        "victim_epochs": 20,
+        "evidence_scope": "end_to_end_feasibility_not_formal_method",
+        "hiding_gate_passed": False,
+    }
+    for key, expected in required_identity.items():
+        if clean.get(key) != expected or poisoned.get(key) != expected:
+            raise ValueError("C0/M1 %s does not match the E2E V0 protocol." % key)
+    if clean.get("arm_id") != "C0" or poisoned.get("arm_id") != "M1":
+        raise ValueError("E2E V0 comparison requires explicit C0 and M1 arm identity.")
+    if clean.get("mechanism_gate_passed") != poisoned.get("mechanism_gate_passed"):
+        raise ValueError("C0/M1 mechanism gate provenance differs.")
+    for key in (
+        "clean_val_manifest_sha256",
+        "paired_training_protocol_sha256",
+        "frozen_sdh_state_sha256",
+        "hiding_metrics_sha256",
+        "hiding_checkpoint_sha256",
+        "hiding_split_sha256",
+        "mechanism_metrics_sha256",
+        "mechanism_decision_sha256",
+        "mechanism_config_sha256",
+        "p1_state_sha256",
+    ):
+        clean_value = str(clean.get(key, ""))
+        poison_value = str(poisoned.get(key, ""))
+        if len(clean_value) != 64 or clean_value != poison_value:
+            raise ValueError("C0/M1 %s is missing or mismatched." % key)
+    if int(clean.get("poisoned_count", -1)) != 0:
+        raise ValueError("E2E V0 C0 poisoned_count must be zero.")
+    if int(poisoned.get("poisoned_count", -1)) != 6095:
+        raise ValueError("E2E V0 M1 poisoned_count must be 6095.")
+    linf = float(poisoned.get("actual_linf_max", float("nan")))
+    if not np.isfinite(linf) or linf > 16.0 / 255.0 + 1.0 / 255.0:
+        raise ValueError("E2E V0 M1 Linf is invalid or exceeds tolerance.")
+    per_class = []
+    for class_id, class_name in enumerate(VOC20_CLASS_NAMES):
+        if clean_ap[class_name] <= 0:
+            raise ValueError("C0 AP50 is zero; retention is undefined for %s." % class_name)
+        drop = clean_ap[class_name] - poison_ap[class_name]
+        per_class.append(
+            {
+                "class_id": class_id,
+                "class_name": class_name,
+                "C0_AP50": clean_ap[class_name],
+                "M1_AP50": poison_ap[class_name],
+                "drop_C0_minus_M1": drop,
+                "retention_M1_over_C0": poison_ap[class_name] / clean_ap[class_name],
+                "is_target": class_name == "person",
+            }
+        )
+    person = next(row for row in per_class if row["is_target"])
+    non_target = [row for row in per_class if not row["is_target"]]
+    person_drop = float(person["drop_C0_minus_M1"])
+    non_target_macro_drop = float(
+        np.mean([row["drop_C0_minus_M1"] for row in non_target])
+    )
+    non_target_le_015 = sum(
+        row["drop_C0_minus_M1"] <= 0.15 for row in non_target
+    )
+    non_target_gt_020 = sum(
+        row["drop_C0_minus_M1"] > 0.20 for row in non_target
+    )
+    success_checks = {
+        "person_drop_ge_0_10": person_drop >= 0.10,
+        "non_target_macro_drop_le_0_08": non_target_macro_drop <= 0.08,
+        "non_target_count_drop_le_0_15_ge_15": non_target_le_015 >= 15,
+        "poisoned_count_6095": True,
+        "linf_within_tolerance": True,
+    }
+    failure_checks = {
+        "person_drop_lt_0_03": person_drop < 0.03,
+        "non_target_macro_drop_gt_0_15": non_target_macro_drop > 0.15,
+        "non_target_count_drop_gt_0_20_ge_5": non_target_gt_020 >= 5,
+    }
+    if all(success_checks.values()):
+        decision = "directional_feasibility_pass"
+    elif any(failure_checks.values()):
+        decision = "directional_feasibility_fail"
+    else:
+        decision = "inconclusive_tradeoff"
+    return {
+        "schema": "tausb.sdh-e2e-v0-comparison.v1",
+        "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+        "claim_status": "directional_feasibility_single_seed_e20",
+        "pilot_decision": decision,
+        "mechanism_gate_passed": bool(clean["mechanism_gate_passed"]),
+        "hiding_gate_passed": False,
+        "evidence_scope": "end_to_end_feasibility_not_formal_method",
+        "per_class": per_class,
+        "summary": {
+            "person_drop": person_drop,
+            "non_target_macro_drop": non_target_macro_drop,
+            "non_target_classes_drop_le_0_15": non_target_le_015,
+            "non_target_classes_drop_gt_0_20": non_target_gt_020,
+            "success_checks": success_checks,
+            "failure_checks": failure_checks,
+        },
+        "paired_identity": {
+            key: clean[key]
+            for key in (
+                "clean_val_manifest_sha256",
+                "paired_training_protocol_sha256",
+                "frozen_sdh_state_sha256",
+                "mechanism_metrics_sha256",
+                "mechanism_decision_sha256",
+                "mechanism_config_sha256",
+            )
+        },
+    }

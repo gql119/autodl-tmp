@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 
 import numpy as np
 import pytest
@@ -8,6 +9,7 @@ import torch
 
 from ue_framework.methods.sdh_materializer import (
     SDHMaterializer,
+    build_feasibility_sdh_state_payload,
     build_frozen_sdh_state_payload,
     load_frozen_sdh_state,
 )
@@ -116,3 +118,84 @@ def test_frozen_state_round_trips_non_default_subband_scale(tmp_path) -> None:
         expected_hashes=HASHES,
     )
     assert loaded.carrier.hf_subband_scale == 0.25
+
+
+def _v0_state(tmp_path):
+    torch.manual_seed(13)
+    carrier = SemanticHidingCarrier(
+        input_size=32,
+        width=8,
+        coupling_blocks=2,
+        epsilon=16 / 255,
+    )
+    provenance_hashes = {
+        "hiding_metrics_sha256": "e" * 64,
+        "hiding_checkpoint_sha256": "f" * 64,
+        "hiding_split_sha256": "1" * 64,
+        "mechanism_metrics_sha256": "2" * 64,
+        "mechanism_decision_sha256": "3" * 64,
+        "mechanism_config_sha256": "4" * 64,
+        "p1_state_sha256": "5" * 64,
+    }
+    payload = build_feasibility_sdh_state_payload(
+        carrier=carrier,
+        secret=torch.rand((1, 3, 32, 32)),
+        target_class_id=14,
+        mechanism_gate_passed=False,
+        **HASHES,
+        **provenance_hashes,
+    )
+    path = tmp_path / "p1_feasibility_sdh_state.pt"
+    torch.save(payload, path)
+    state_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+    return path, state_hash, provenance_hashes
+
+
+def test_v0_materializer_loads_exact_failed_gate_state_and_emits_provenance(
+    tmp_path,
+) -> None:
+    path, state_hash, provenance_hashes = _v0_state(tmp_path)
+    cfg, method_cfg = _cfg(path)
+    method_cfg.update(
+        {
+            "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+            "materialization_mode": "p1_feasibility_state",
+            "allow_failed_scientific_gates": True,
+            "frozen_sdh_state_sha256": state_hash,
+            **provenance_hashes,
+        }
+    )
+    materializer = SDHMaterializer(
+        cfg, method_cfg, torch.device("cpu"), torch.nn.Identity()
+    )
+    result = materializer.generate(
+        np.full((40, 48, 3), 0.5, dtype=np.float32),
+        [{"cls": 14, "bbox": [0.5, 0.5, 0.4, 0.6]}],
+        0,
+        40,
+        16 / 255,
+        "bbox",
+    )
+    assert result.extras["evidence_scope"] == (
+        "end_to_end_feasibility_not_formal_method"
+    )
+    assert result.extras["hiding_gate_passed"] is False
+    assert result.extras["mechanism_gate_passed"] is False
+    assert result.extras["frozen_sdh_state_sha256"] == state_hash
+
+
+def test_v0_materializer_rejects_wrong_mechanism_provenance_hash(tmp_path) -> None:
+    path, state_hash, provenance_hashes = _v0_state(tmp_path)
+    cfg, method_cfg = _cfg(path)
+    method_cfg.update(
+        {
+            "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+            "materialization_mode": "p1_feasibility_state",
+            "allow_failed_scientific_gates": True,
+            "frozen_sdh_state_sha256": state_hash,
+            **provenance_hashes,
+        }
+    )
+    method_cfg["mechanism_metrics_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="mechanism_metrics_sha256"):
+        SDHMaterializer(cfg, method_cfg, torch.device("cpu"), torch.nn.Identity())

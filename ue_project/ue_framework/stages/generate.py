@@ -1,3 +1,5 @@
+import hashlib
+import json
 import os
 import random
 import shutil
@@ -53,7 +55,86 @@ MANIFEST_FIELDS = [
     "source_manifest_hash",
     "split_hash",
     "variant_index",
+    "protocol_id",
+    "evidence_scope",
+    "hiding_gate_passed",
+    "mechanism_gate_passed",
+    "frozen_sdh_state_sha256",
+    "hiding_metrics_sha256",
+    "hiding_checkpoint_sha256",
+    "hiding_split_sha256",
+    "mechanism_metrics_sha256",
+    "mechanism_decision_sha256",
+    "mechanism_config_sha256",
+    "p1_state_sha256",
 ]
+
+
+def _file_sha256(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _canonical_json_sha256(payload: object) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def resolve_train_image_selection(
+    all_images: List[str],
+    *,
+    train_label_dir: str,
+    selection_manifest_path: str,
+    expected_manifest_sha256: str,
+    target_class_id: int,
+) -> Tuple[List[str], str]:
+    if not selection_manifest_path:
+        if expected_manifest_sha256:
+            raise ValueError("Selection hash was set without a selection manifest.")
+        return all_images, ""
+    if not os.path.isabs(selection_manifest_path):
+        raise ValueError("Train selection manifest must use an absolute path.")
+    if not os.path.isfile(selection_manifest_path):
+        raise FileNotFoundError(
+            "Train selection manifest not found: %s" % selection_manifest_path
+        )
+    with open(selection_manifest_path, "r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    actual_manifest_sha256 = _canonical_json_sha256(manifest)
+    if actual_manifest_sha256 != str(expected_manifest_sha256).lower():
+        raise ValueError("Train selection manifest hash mismatch.")
+    if manifest.get("schema") != "tausb.sdh-e2e-v0-train-selection.v1":
+        raise ValueError("Unsupported train selection manifest schema.")
+    records = manifest.get("records")
+    if not isinstance(records, list) or not records:
+        raise ValueError("Train selection manifest records are missing.")
+    by_stem = {stem_of(path): path for path in all_images}
+    if len(by_stem) != len(all_images):
+        raise ValueError("Train image stems must be unique for selection.")
+    selected = []
+    seen = set()
+    for record in records:
+        stem = str(record.get("stem", ""))
+        if not stem or stem in seen or stem not in by_stem:
+            raise ValueError("Train selection contains a duplicate or unknown stem.")
+        label_path = label_path_for_image(by_stem[stem], train_label_dir)
+        if _file_sha256(label_path) != str(record.get("label_sha256", "")).lower():
+            raise ValueError("Train selection label hash mismatch for %s." % stem)
+        annotations = read_yolo_annotations(label_path)
+        has_target = image_has_target(annotations, target_class_id)
+        if bool(record.get("has_target")) is not has_target:
+            raise ValueError("Train selection target label mismatch for %s." % stem)
+        selected.append(by_stem[stem])
+        seen.add(stem)
+    return selected, actual_manifest_sha256
 
 
 def _save_quad_viz(path: str, clean: np.ndarray, support: np.ndarray, perturb: np.ndarray, poisoned: np.ndarray):
@@ -219,7 +300,22 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
     train_img_dir = ctx.train_img_dir
     train_label_dir = ctx.train_label_dir
     all_images = list_images(train_img_dir)
+    all_images, selection_manifest_sha256 = resolve_train_image_selection(
+        all_images,
+        train_label_dir=train_label_dir,
+        selection_manifest_path=str(cfg["data"].get("train_selection_manifest", "")),
+        expected_manifest_sha256=str(
+            cfg["data"].get("train_selection_manifest_sha256", "")
+        ),
+        target_class_id=int(cfg["experiment"]["target_class_id"]),
+    )
     total_images = len(all_images)
+    expected_train_images = cfg["experiment"].get("expected_train_images")
+    if expected_train_images is not None and total_images != int(expected_train_images):
+        raise RuntimeError(
+            "Selected train image count differs from the frozen protocol: "
+            f"actual={total_images}, expected={expected_train_images}."
+        )
 
     existing_rows = read_csv_rows(paths.manifest_csv)
     done_stems = set(r["stem"] for r in existing_rows)
@@ -232,6 +328,7 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
     noise_meta_rows = []
 
     processed_since_last_flush = 0
+    target_image_count = 0
     for idx, img_path in enumerate(all_images):
         stem = stem_of(img_path)
         if stem in done_stems:
@@ -241,6 +338,7 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
         label_path = label_path_for_image(img_path, train_label_dir)
         anns = read_yolo_annotations(label_path)
         has_target = image_has_target(anns, cfg["experiment"]["target_class_id"])
+        target_image_count += int(has_target)
 
         # ---------------------------------------------------------
         # 🚀 强制改为 .png 格式并确定输出路径
@@ -255,6 +353,23 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
         source_manifest_hash = ""
         split_hash = ""
         variant_index = ""
+        sdh_provenance = {
+            key: ""
+            for key in (
+                "protocol_id",
+                "evidence_scope",
+                "hiding_gate_passed",
+                "mechanism_gate_passed",
+                "frozen_sdh_state_sha256",
+                "hiding_metrics_sha256",
+                "hiding_checkpoint_sha256",
+                "hiding_split_sha256",
+                "mechanism_metrics_sha256",
+                "mechanism_decision_sha256",
+                "mechanism_config_sha256",
+                "p1_state_sha256",
+            )
+        }
         
         # 🚑 修复：补回漏掉的 should_poison 定义
         should_poison = has_target and (random.random() <= poisoning_ratio)
@@ -279,6 +394,8 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             source_manifest_hash = str(result.extras.get("source_manifest_hash", ""))
             split_hash = str(result.extras.get("split_hash", ""))
             variant_index = str(result.extras.get("variant_index", ""))
+            for key in sdh_provenance:
+                sdh_provenance[key] = str(result.extras.get(key, ""))
 
             if bool(cfg["platform"].get("debug", False)) and viz_saved < 2:
                 print(
@@ -349,6 +466,7 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             "source_manifest_hash": source_manifest_hash,
             "split_hash": split_hash,
             "variant_index": variant_index,
+            **sdh_provenance,
         }
         rows.append(row)
         done_stems.add(stem)
@@ -385,6 +503,12 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             "Poisoned image count differs from the frozen protocol: "
             f"actual={actual_poisoned_count}, expected={expected_poisoned_count}."
         )
+    expected_target_images = cfg["experiment"].get("expected_target_images")
+    if expected_target_images is not None and target_image_count != int(expected_target_images):
+        raise RuntimeError(
+            "Selected target-image count differs from the frozen protocol: "
+            f"actual={target_image_count}, expected={expected_target_images}."
+        )
 
     mark_stage_completed(
         paths.poisoned_status_json,
@@ -394,6 +518,8 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             "processed": len(done_stems),
             "total": total_images,
             "poisoned_count": actual_poisoned_count,
+            "target_image_count": target_image_count,
+            "selection_manifest_sha256": selection_manifest_sha256,
             "manifest_csv": paths.manifest_csv,
         },
     )
@@ -405,6 +531,8 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             "processed": len(done_stems),
             "total": total_images,
             "poisoned_count": actual_poisoned_count,
+            "target_image_count": target_image_count,
+            "selection_manifest_sha256": selection_manifest_sha256,
             "manifest_csv": paths.manifest_csv,
         },
     )

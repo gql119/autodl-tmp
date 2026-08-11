@@ -1,12 +1,14 @@
 import csv
+import hashlib
 import os
 import json
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import numpy as np
 from ultralytics import YOLO
 
 from ..data_utils import (
+    label_path_for_image,
     list_images,
     load_image_rgb_float,
     split_val_image_lists,
@@ -32,6 +34,39 @@ from ..status import (
 
 
 TRUE_LIKE = {"1", "1.0", "true", "yes", "y", "t"}
+
+
+def _file_sha256(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _canonical_json_sha256(payload: Any) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _clean_val_manifest_sha256(image_dir: str, label_dir: str) -> str:
+    digest = hashlib.sha256()
+    images = list_images(image_dir)
+    if not images:
+        raise ValueError("Clean validation image set is empty.")
+    for image_path in images:
+        label_path = label_path_for_image(image_path, label_dir)
+        if not os.path.isfile(label_path):
+            raise FileNotFoundError("Clean validation label is missing: %s" % label_path)
+        digest.update(stem_of(image_path).encode("utf-8"))
+        digest.update(_file_sha256(image_path).encode("ascii"))
+        digest.update(_file_sha256(label_path).encode("ascii"))
+    return digest.hexdigest()
 
 
 def _write_eval_yaml(ctx: RunContext, yaml_path: str, val_spec: str) -> str:
@@ -463,7 +498,7 @@ def _sirc_mechanism_evidence(ctx: RunContext) -> Dict:
 
 
 def _sdh_manifest_provenance(ctx: RunContext, manifest_rows: List[Dict]) -> Dict:
-    """Fail closed when a formal SDH victim is evaluated with the wrong carrier."""
+    """Fail closed when an SDH victim is evaluated with the wrong carrier."""
 
     if ctx.method != "tausb_sdh":
         return {}
@@ -472,9 +507,32 @@ def _sdh_manifest_provenance(ctx: RunContext, manifest_rows: List[Dict]) -> Dict
         for row in manifest_rows
         if _is_true_like(row.get("is_poisoned", row.get("poisoned", "0")))
     ]
-    if not poisoned:
-        return {"materializer_provenance": "not_applicable_clean_arm"}
     expected = ctx.cfg["methods"]["tausb_sdh"]
+    feasibility_mode = expected.get("protocol_id") == "TAUSB-SDH-E2E-V0-MAP50-v1"
+    binding = {}
+    if feasibility_mode:
+        binding = {
+            "protocol_id": expected["protocol_id"],
+            "evidence_scope": expected["evidence_scope"],
+            "frozen_sdh_state_sha256": expected["frozen_sdh_state_sha256"],
+            **{
+                key: expected[key]
+                for key in (
+                    "hiding_metrics_sha256",
+                    "hiding_checkpoint_sha256",
+                    "hiding_split_sha256",
+                    "mechanism_metrics_sha256",
+                    "mechanism_decision_sha256",
+                    "mechanism_config_sha256",
+                    "p1_state_sha256",
+                )
+            },
+        }
+    if not poisoned:
+        return {
+            "materializer_provenance": "not_applicable_clean_arm",
+            **binding,
+        }
     output = {}
     for key in (
         "state_content_hash",
@@ -504,15 +562,38 @@ def _sdh_manifest_provenance(ctx: RunContext, manifest_rows: List[Dict]) -> Dict
         raise ValueError("Formal SDH must use only person_gt_bbox support.")
     output["support_source"] = "person_gt_bbox"
     output["single_final_secret"] = True
+    if feasibility_mode:
+        for key, expected_value in binding.items():
+            values = {str(row.get(key, "")).strip() for row in poisoned}
+            if values != {str(expected_value)}:
+                raise ValueError("SDH manifest %s differs from V0 config." % key)
+            output[key] = expected_value
+        hiding_flags = {
+            str(row.get("hiding_gate_passed", "")).strip().lower()
+            for row in poisoned
+        }
+        if hiding_flags != {"false"}:
+            raise ValueError("E2E V0 manifest must preserve hiding_gate_passed=false.")
+        mechanism_flags = {
+            str(row.get("mechanism_gate_passed", "")).strip().lower()
+            for row in poisoned
+        }
+        if len(mechanism_flags) != 1 or not mechanism_flags.issubset({"true", "false"}):
+            raise ValueError("E2E V0 manifest mechanism gate flag is inconsistent.")
+        output["hiding_gate_passed"] = False
+        output["mechanism_gate_passed"] = next(iter(mechanism_flags)) == "true"
     return output
 
 
 def _sdh_mechanism_evidence(ctx: RunContext) -> Dict:
-    """Load only the passing held-out mechanism gate for the SDH poison arm."""
+    """Load formal PASS evidence or truthful E2E V0 diagnostics."""
 
-    if ctx.method != "tausb_sdh" or ctx.run_tag not in {"M1", "P1-V", "P1V"}:
+    if ctx.method != "tausb_sdh":
         return {"sdh_mechanism_diagnostics": "not_applicable_clean_or_legacy_arm"}
     method_cfg = ctx.cfg["methods"]["tausb_sdh"]
+    feasibility_mode = method_cfg.get("protocol_id") == "TAUSB-SDH-E2E-V0-MAP50-v1"
+    if not feasibility_mode and ctx.run_tag not in {"M1", "P1-V", "P1V"}:
+        return {"sdh_mechanism_diagnostics": "not_applicable_clean_or_legacy_arm"}
     frozen_state_value = str(method_cfg.get("frozen_sdh_state", "")).strip()
     if not frozen_state_value:
         raise ValueError("Formal SDH poison arm requires frozen_sdh_state.")
@@ -524,11 +605,22 @@ def _sdh_mechanism_evidence(ctx: RunContext) -> Dict:
         report = json.load(handle)
     if report.get("schema") != "tausb.sdh-mechanism-pilot.v1":
         raise ValueError("Unsupported SDH mechanism report schema.")
+    if feasibility_mode:
+        if _file_sha256(report_path) != str(method_cfg["mechanism_metrics_sha256"]):
+            raise ValueError("E2E V0 mechanism metrics hash differs from config.")
     decision = report.get("decision")
-    if not isinstance(decision, dict) or decision.get("pass") is not True:
-        raise ValueError("Formal SDH poison arm requires a passing mechanism decision.")
-    if decision.get("target_pass") is not True or decision.get("protection_pass") is not True:
-        raise ValueError("SDH mechanism target/protection sub-gates must both pass.")
+    if not isinstance(decision, dict) or not isinstance(decision.get("pass"), bool):
+        raise ValueError("SDH mechanism decision is missing or invalid.")
+    if feasibility_mode:
+        if _canonical_json_sha256(decision) != str(
+            method_cfg["mechanism_decision_sha256"]
+        ):
+            raise ValueError("E2E V0 mechanism decision hash differs from config.")
+    else:
+        if decision.get("pass") is not True:
+            raise ValueError("Formal SDH poison arm requires a passing mechanism decision.")
+        if decision.get("target_pass") is not True or decision.get("protection_pass") is not True:
+            raise ValueError("SDH mechanism target/protection sub-gates must both pass.")
     arms = report.get("arms")
     if not isinstance(arms, dict):
         raise ValueError("SDH mechanism report is missing arm diagnostics.")
@@ -538,6 +630,8 @@ def _sdh_mechanism_evidence(ctx: RunContext) -> Dict:
     split_hash = str(report.get("split_hash", ""))
     if len(split_hash) != 64:
         raise ValueError("SDH mechanism report split hash is invalid.")
+    if feasibility_mode and split_hash != str(method_cfg["hiding_split_sha256"]):
+        raise ValueError("E2E V0 mechanism split hash differs from config.")
     return {
         "sdh_mechanism_diagnostics": {
             "report_path": report_path,
@@ -548,7 +642,13 @@ def _sdh_mechanism_evidence(ctx: RunContext) -> Dict:
             "P0": arms["P0"],
             "P1": arms["P1"],
             "decision": decision,
-            "evidence_scope": "heldout_mechanism_only_not_fresh_victim_ue",
+            "hiding_gate_passed": False if feasibility_mode else True,
+            "mechanism_gate_passed": bool(decision["pass"]),
+            "evidence_scope": (
+                "end_to_end_feasibility_not_formal_method"
+                if feasibility_mode
+                else "heldout_mechanism_only_not_fresh_victim_ue"
+            ),
         }
     }
 
@@ -664,16 +764,56 @@ def run_evaluate(ctx: RunContext) -> None:
     ):
         raise ValueError("Evaluation produced a non-finite detection metric.")
     expected_poisoned = exp_cfg.get("expected_poisoned_count")
-    if ctx.run_tag == "M1" and expected_poisoned is not None:
+    sdh_method_cfg = cfg.get("methods", {}).get("tausb_sdh", {})
+    sdh_feasibility = (
+        ctx.method == "tausb_sdh"
+        and sdh_method_cfg.get("protocol_id") == "TAUSB-SDH-E2E-V0-MAP50-v1"
+    )
+    if (ctx.run_tag == "M1" or sdh_feasibility) and expected_poisoned is not None:
         if quality_metrics["poisoned_count"] != int(expected_poisoned):
             raise ValueError("M1 poisoned_count differs from the frozen protocol.")
         if quality_metrics["actual_linf_max"] > float(exp_cfg["eps"]) + 1.0 / 255.0:
             raise ValueError("M1 actual Linf exceeds the approved tolerance.")
+    clean_val_manifest_sha256 = (
+        _clean_val_manifest_sha256(ctx.val_img_dir, ctx.val_label_dir)
+        if ctx.method == "tausb_sdh"
+        else ""
+    )
+    paired_protocol = {
+        "protocol_id": sdh_method_cfg.get("protocol_id", ""),
+        "pilot_kind": exp_cfg.get("pilot_kind", ""),
+        "dataset_root": os.path.abspath(ctx.dataset_root),
+        "target_class_id": int(exp_cfg["target_class_id"]),
+        "seed": int(ctx.seed),
+        "steps": int(ctx.steps),
+        "victim_model": cfg["victim"]["model"],
+        "victim_init": cfg["victim"]["init"],
+        "victim_epochs": int(cfg["victim"]["epochs"]),
+        "victim_imgsz": int(cfg["victim"]["imgsz"]),
+        "victim_batch": int(cfg["victim"]["batch"]),
+        "victim_optimizer": cfg["victim"]["optimizer"],
+        "victim_lr0": float(cfg["victim"].get("lr0", 0.01)),
+        "victim_lrf": float(cfg["victim"].get("lrf", 0.01)),
+        "victim_momentum": float(cfg["victim"].get("momentum", 0.937)),
+        "victim_weight_decay": float(cfg["victim"].get("weight_decay", 0.0005)),
+        "clean_val_manifest_sha256": clean_val_manifest_sha256,
+        "frozen_sdh_state_sha256": sdh_method_cfg.get("frozen_sdh_state_sha256", ""),
+    }
     final_metrics = {
         "method": ctx.method,
         "steps": ctx.steps,
         "seed": ctx.seed,
         "run_tag": ctx.run_tag,
+        "protocol_id": sdh_method_cfg.get("protocol_id", ""),
+        "pilot_kind": exp_cfg.get("pilot_kind", ""),
+        "arm_id": exp_cfg.get("arm_id", ctx.run_tag),
+        "victim_epochs": int(cfg["victim"]["epochs"]),
+        "clean_val_manifest_sha256": clean_val_manifest_sha256,
+        "paired_training_protocol_sha256": _canonical_json_sha256(paired_protocol),
+        "resolved_config_sha256": _canonical_json_sha256(cfg),
+        "train_selection_manifest_sha256": cfg["data"].get(
+            "train_selection_manifest_sha256", ""
+        ),
         "mAP50_target": full_metrics["mAP50_target"],
         "mAP50_non_target": full_metrics["mAP50_non_target"],
         "mAP50_non_target_macro": full_metrics["mAP50_non_target"],
@@ -693,6 +833,17 @@ def run_evaluate(ctx: RunContext) -> None:
     }
     final_metrics.update(provenance)
     final_metrics.update(mechanism_evidence)
+    if sdh_feasibility:
+        diagnostics = final_metrics.get("sdh_mechanism_diagnostics")
+        if not isinstance(diagnostics, dict):
+            raise ValueError("E2E V0 metrics require mechanism diagnostics for both arms.")
+        final_metrics["evidence_scope"] = (
+            "end_to_end_feasibility_not_formal_method"
+        )
+        final_metrics["hiding_gate_passed"] = False
+        final_metrics["mechanism_gate_passed"] = bool(
+            diagnostics["mechanism_gate_passed"]
+        )
 
     final_metrics.update(
         build_pareto_scores(

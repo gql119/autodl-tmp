@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import hashlib
 import math
 import os
-from typing import Any, Dict, List, Mapping, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
 import torch
@@ -18,6 +18,9 @@ from .semantic_hiding_carrier import (
 
 FROZEN_SDH_STATE_SCHEMA = "tausb_sdh_carrier_v1"
 FORMAL_SDH_ARM_ID = "P1"
+E2E_V0_PROTOCOL_ID = "TAUSB-SDH-E2E-V0-MAP50-v1"
+E2E_V0_MATERIALIZATION_MODE = "p1_feasibility_state"
+E2E_V0_EVIDENCE_SCOPE = "end_to_end_feasibility_not_formal_method"
 
 
 def _torch_load(path: str, *, map_location: str = "cpu") -> Any:
@@ -25,6 +28,14 @@ def _torch_load(path: str, *, map_location: str = "cpu") -> Any:
         return torch.load(path, map_location=map_location, weights_only=False)
     except TypeError:
         return torch.load(path, map_location=map_location)
+
+
+def _file_sha256(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def _require_sha256(value: object, name: str) -> str:
@@ -128,6 +139,79 @@ def build_frozen_sdh_state_payload(
     }
 
 
+def build_feasibility_sdh_state_payload(
+    *,
+    carrier: SemanticHidingCarrier,
+    secret: torch.Tensor,
+    target_class_id: int,
+    secret_source_sha256: str,
+    secret_tensor_sha256: str,
+    source_manifest_sha256: str,
+    train_split_sha256: str,
+    mechanism_gate_passed: bool,
+    hiding_metrics_sha256: str,
+    hiding_checkpoint_sha256: str,
+    hiding_split_sha256: str,
+    mechanism_metrics_sha256: str,
+    mechanism_decision_sha256: str,
+    mechanism_config_sha256: str,
+    p1_state_sha256: str,
+) -> Dict[str, Any]:
+    if int(target_class_id) != 14:
+        raise ValueError("E2E V0 feasibility state requires person=14.")
+    if abs(float(carrier.epsilon) - 16.0 / 255.0) > 1e-12:
+        raise ValueError("E2E V0 feasibility state requires epsilon=16/255.")
+    if not torch.isfinite(secret).all() or not (0 <= secret).all() or not (secret <= 1).all():
+        raise ValueError("E2E V0 secret must be finite in [0,1].")
+    if any(not torch.isfinite(value).all() for value in carrier.state_dict().values()):
+        raise ValueError("E2E V0 P1 carrier state contains a non-finite tensor.")
+    payload = build_frozen_sdh_state_payload(
+        carrier=carrier,
+        secret=secret,
+        target_class_id=target_class_id,
+        secret_source_sha256=secret_source_sha256,
+        secret_tensor_sha256=secret_tensor_sha256,
+        source_manifest_sha256=source_manifest_sha256,
+        train_split_sha256=train_split_sha256,
+        hiding_gate_passed=False,
+        mechanism_gate_passed=mechanism_gate_passed,
+    )
+    payload.update(
+        {
+            "protocol_id": E2E_V0_PROTOCOL_ID,
+            "materialization_mode": E2E_V0_MATERIALIZATION_MODE,
+            "allow_failed_scientific_gates": True,
+            "evidence_scope": E2E_V0_EVIDENCE_SCOPE,
+            "failed_hiding_checks": [
+                "delta_high_frequency",
+                "rms_diversity",
+            ],
+            "hiding_metrics_sha256": _require_sha256(
+                hiding_metrics_sha256, "hiding_metrics_sha256"
+            ),
+            "hiding_checkpoint_sha256": _require_sha256(
+                hiding_checkpoint_sha256, "hiding_checkpoint_sha256"
+            ),
+            "hiding_split_sha256": _require_sha256(
+                hiding_split_sha256, "hiding_split_sha256"
+            ),
+            "mechanism_metrics_sha256": _require_sha256(
+                mechanism_metrics_sha256, "mechanism_metrics_sha256"
+            ),
+            "mechanism_decision_sha256": _require_sha256(
+                mechanism_decision_sha256, "mechanism_decision_sha256"
+            ),
+            "mechanism_config_sha256": _require_sha256(
+                mechanism_config_sha256, "mechanism_config_sha256"
+            ),
+            "p1_state_sha256": _require_sha256(
+                p1_state_sha256, "p1_state_sha256"
+            ),
+        }
+    )
+    return payload
+
+
 @dataclass(frozen=True)
 class FrozenSDHState:
     carrier: SemanticHidingCarrier
@@ -139,6 +223,7 @@ class FrozenSDHState:
     source_manifest_sha256: str
     train_split_sha256: str
     state_content_hash: str
+    provenance: Mapping[str, Any]
 
 
 def load_frozen_sdh_state(
@@ -148,6 +233,7 @@ def load_frozen_sdh_state(
     expected_target_class_id: int,
     expected_epsilon: float,
     expected_hashes: Mapping[str, str],
+    feasibility_contract: Optional[Mapping[str, str]] = None,
 ) -> FrozenSDHState:
     if not path or not os.path.isfile(path):
         raise FileNotFoundError("Frozen SDH state not found: %s" % path)
@@ -156,9 +242,48 @@ def load_frozen_sdh_state(
         raise ValueError("Frozen SDH state has an unsupported schema.")
     if payload.get("arm_id") != FORMAL_SDH_ARM_ID:
         raise ValueError("Formal SDH materialization requires the P1 state.")
-    for gate in ("hiding_gate_passed", "mechanism_gate_passed"):
-        if payload.get(gate) is not True:
-            raise ValueError("Frozen SDH %s is not passed." % gate)
+    feasibility_mode = feasibility_contract is not None
+    if feasibility_mode:
+        if payload.get("protocol_id") != E2E_V0_PROTOCOL_ID:
+            raise ValueError("E2E V0 state protocol_id mismatch.")
+        if payload.get("materialization_mode") != E2E_V0_MATERIALIZATION_MODE:
+            raise ValueError("E2E V0 state materialization mode mismatch.")
+        if payload.get("allow_failed_scientific_gates") is not True:
+            raise ValueError("E2E V0 state did not enable failed scientific gates.")
+        if payload.get("evidence_scope") != E2E_V0_EVIDENCE_SCOPE:
+            raise ValueError("E2E V0 state evidence scope mismatch.")
+        if payload.get("hiding_gate_passed") is not False:
+            raise ValueError("E2E V0 must preserve hiding_gate_passed=false.")
+        if not isinstance(payload.get("mechanism_gate_passed"), bool):
+            raise ValueError("E2E V0 mechanism gate flag is missing.")
+        if payload.get("failed_hiding_checks") != [
+            "delta_high_frequency",
+            "rms_diversity",
+        ]:
+            raise ValueError("E2E V0 failed hiding checks mismatch.")
+        expected_state_hash = _require_sha256(
+            feasibility_contract.get("frozen_sdh_state_sha256", ""),
+            "frozen_sdh_state_sha256",
+        )
+        if _file_sha256(path) != expected_state_hash:
+            raise ValueError("E2E V0 frozen state file hash mismatch.")
+        for name in (
+            "hiding_metrics_sha256",
+            "hiding_checkpoint_sha256",
+            "hiding_split_sha256",
+            "mechanism_metrics_sha256",
+            "mechanism_decision_sha256",
+            "mechanism_config_sha256",
+            "p1_state_sha256",
+        ):
+            actual = _require_sha256(payload.get(name, ""), name)
+            expected = _require_sha256(feasibility_contract.get(name, ""), name)
+            if actual != expected:
+                raise ValueError("E2E V0 %s does not match config." % name)
+    else:
+        for gate in ("hiding_gate_passed", "mechanism_gate_passed"):
+            if payload.get(gate) is not True:
+                raise ValueError("Frozen SDH %s is not passed." % gate)
     for switch in (
         "enable_deep_hiding",
         "enable_dlfc",
@@ -234,14 +359,74 @@ def load_frozen_sdh_state(
         source_manifest_sha256=hashes["source_manifest_sha256"],
         train_split_sha256=hashes["train_split_sha256"],
         state_content_hash=content_hash,
+        provenance=(
+            {
+                "protocol_id": E2E_V0_PROTOCOL_ID,
+                "evidence_scope": E2E_V0_EVIDENCE_SCOPE,
+                "hiding_gate_passed": False,
+                "mechanism_gate_passed": payload["mechanism_gate_passed"],
+                "frozen_sdh_state_sha256": feasibility_contract[
+                    "frozen_sdh_state_sha256"
+                ],
+                **{
+                    name: payload[name]
+                    for name in (
+                        "hiding_metrics_sha256",
+                        "hiding_checkpoint_sha256",
+                        "hiding_split_sha256",
+                        "mechanism_metrics_sha256",
+                        "mechanism_decision_sha256",
+                        "mechanism_config_sha256",
+                        "p1_state_sha256",
+                    )
+                },
+            }
+            if feasibility_mode
+            else {
+                "protocol_id": "TAUSB-SDH-LFC-CICR-CGR-NLA-MAP50-v3",
+                "evidence_scope": "formal_method",
+                "hiding_gate_passed": True,
+                "mechanism_gate_passed": True,
+            }
+        ),
     )
 
 
 class SDHMaterializer(BasePoisonGenerator):
-    """Deterministic person-GT-box materializer from a passing frozen P1 state."""
+    """Deterministic person-GT-box materializer from one hash-bound P1 state."""
 
     def __init__(self, cfg, method_cfg, device, surrogate) -> None:
         super().__init__(cfg, method_cfg, device, surrogate)
+        protocol_id = str(method_cfg.get("protocol_id", ""))
+        feasibility_mode = protocol_id == E2E_V0_PROTOCOL_ID
+        feasibility_markers = bool(
+            method_cfg.get("allow_failed_scientific_gates", False)
+            or method_cfg.get("materialization_mode") == E2E_V0_MATERIALIZATION_MODE
+        )
+        if feasibility_markers and not feasibility_mode:
+            raise ValueError("Failed-gate materialization is restricted to E2E V0.")
+        if feasibility_mode:
+            if method_cfg.get("materialization_mode") != E2E_V0_MATERIALIZATION_MODE:
+                raise ValueError("E2E V0 materialization mode mismatch.")
+            if method_cfg.get("allow_failed_scientific_gates") is not True:
+                raise ValueError("E2E V0 failed-gate materialization was not enabled.")
+        contract = (
+            {
+                name: str(method_cfg.get(name, ""))
+                for name in (
+                    "frozen_sdh_state_sha256",
+                    "hiding_metrics_sha256",
+                    "hiding_checkpoint_sha256",
+                    "hiding_split_sha256",
+                    "mechanism_metrics_sha256",
+                    "mechanism_decision_sha256",
+                    "mechanism_config_sha256",
+                    "p1_state_sha256",
+                )
+            }
+            if feasibility_mode
+            else None
+        )
         self.state = load_frozen_sdh_state(
             str(method_cfg.get("frozen_sdh_state", "")),
             device=device,
@@ -256,6 +441,7 @@ class SDHMaterializer(BasePoisonGenerator):
                     "train_split_sha256",
                 )
             },
+            feasibility_contract=contract,
         )
 
     def generate(
@@ -312,6 +498,7 @@ class SDHMaterializer(BasePoisonGenerator):
                 "source_manifest_hash": self.state.source_manifest_sha256,
                 "split_hash": self.state.train_split_sha256,
                 "secret_source_sha256": self.state.secret_source_sha256,
+                **dict(self.state.provenance),
                 "linf": linf,
             },
         )

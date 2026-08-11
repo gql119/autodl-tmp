@@ -140,6 +140,11 @@ def _default_config() -> Dict[str, Any]:
                 "jnd_floor": 0.5,
             },
             "tausb_sdh": {
+                "protocol_id": "TAUSB-SDH-LFC-CICR-CGR-NLA-MAP50-v3",
+                "materialization_mode": "formal_p1_state",
+                "allow_failed_scientific_gates": False,
+                "binding_status": "bound",
+                "evidence_scope": "formal_method",
                 "support_type": "bbox",
                 "enable_deep_hiding": True,
                 "enable_dlfc": True,
@@ -153,6 +158,14 @@ def _default_config() -> Dict[str, Any]:
                 "secret_tensor_sha256": "",
                 "source_manifest_sha256": "",
                 "train_split_sha256": "",
+                "frozen_sdh_state_sha256": "",
+                "hiding_metrics_sha256": "",
+                "hiding_checkpoint_sha256": "",
+                "hiding_split_sha256": "",
+                "mechanism_metrics_sha256": "",
+                "mechanism_decision_sha256": "",
+                "mechanism_config_sha256": "",
+                "p1_state_sha256": "",
             },
             "ours_mask": {
                 "support_type": "mask",
@@ -196,6 +209,11 @@ def _deep_update(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, An
         else:
             base[k] = v
     return base
+
+
+def _is_sha256(value: object) -> bool:
+    digest = str(value).strip().lower()
+    return len(digest) == 64 and all(char in "0123456789abcdef" for char in digest)
 
 
 
@@ -272,6 +290,11 @@ def _ensure_method_defaults(cfg: Dict[str, Any]) -> None:
     sdh = methods.get("tausb_sdh", {})
     if isinstance(sdh, dict):
         required = {
+            "protocol_id": "TAUSB-SDH-LFC-CICR-CGR-NLA-MAP50-v3",
+            "materialization_mode": "formal_p1_state",
+            "allow_failed_scientific_gates": False,
+            "binding_status": "bound",
+            "evidence_scope": "formal_method",
             "support_type": "bbox",
             "enable_deep_hiding": True,
             "enable_dlfc": True,
@@ -285,6 +308,14 @@ def _ensure_method_defaults(cfg: Dict[str, Any]) -> None:
             "secret_tensor_sha256": "",
             "source_manifest_sha256": "",
             "train_split_sha256": "",
+            "frozen_sdh_state_sha256": "",
+            "hiding_metrics_sha256": "",
+            "hiding_checkpoint_sha256": "",
+            "hiding_split_sha256": "",
+            "mechanism_metrics_sha256": "",
+            "mechanism_decision_sha256": "",
+            "mechanism_config_sha256": "",
+            "p1_state_sha256": "",
         }
         for key, value in required.items():
             if key not in sdh:
@@ -356,16 +387,14 @@ def load_config(config_path: str) -> Dict[str, Any]:
 
     if sdh_requested:
         method_cfg = cfg.get("methods", {}).get("tausb_sdh", {})
-        switches = (
+        feature_switches = (
             "enable_deep_hiding",
             "enable_dlfc",
             "enable_cicr",
             "enable_cgr",
             "enable_nla_loss",
-            "require_hiding_gate_pass",
-            "require_mechanism_gate_pass",
         )
-        if not all(method_cfg.get(key) is True for key in switches):
+        if not all(method_cfg.get(key) is True for key in feature_switches):
             raise ValueError("TAUSB-SDH formal config requires all method gates enabled.")
         if method_cfg.get("support_type") != "bbox":
             raise ValueError("TAUSB-SDH formal support must be person GT bbox.")
@@ -377,19 +406,15 @@ def load_config(config_path: str) -> Dict[str, Any]:
             raise ValueError("TAUSB-SDH surrogate imgsz must remain 640.")
         if int(cfg["surrogate"].get("eot_samples", -1)) != 1:
             raise ValueError("TAUSB-SDH first round forbids EOT.")
-        if int(cfg["experiment"].get("expected_poisoned_count", -1)) != 6095:
-            raise ValueError("TAUSB-SDH expected_poisoned_count must remain 6095.")
         if [int(value) for value in cfg["experiment"].get("seeds", [])] != [0]:
             raise ValueError("TAUSB-SDH first experiment must remain seed 0.")
-        if float(cfg["experiment"].get("poisoning_ratio", -1)) != 1.0:
-            raise ValueError("TAUSB-SDH poisoning_ratio must remain 1.0.")
         victim = cfg["victim"]
-        frozen_victim = {
-            "epochs": 200,
-            "imgsz": 640,
-            "batch": 36,
-            "optimizer": "SGD",
-        }
+        protocol_id = str(method_cfg.get("protocol_id", ""))
+        feasibility_protocol = protocol_id == "TAUSB-SDH-E2E-V0-MAP50-v1"
+        frozen_victim = {"imgsz": 640, "batch": 36, "optimizer": "SGD"}
+        frozen_victim["epochs"] = (
+            int(victim.get("epochs", -1)) if feasibility_protocol else 200
+        )
         for key, expected in frozen_victim.items():
             if victim.get(key) != expected:
                 raise ValueError("TAUSB-SDH victim.%s must remain %s." % (key, expected))
@@ -402,5 +427,84 @@ def load_config(config_path: str) -> Dict[str, Any]:
         ):
             if not str(method_cfg.get(key, "")).strip():
                 raise ValueError("TAUSB-SDH methods config requires %s." % key)
+        if feasibility_protocol:
+            if method_cfg.get("materialization_mode") != "p1_feasibility_state":
+                raise ValueError("E2E V0 requires p1_feasibility_state materialization.")
+            if method_cfg.get("allow_failed_scientific_gates") is not True:
+                raise ValueError("E2E V0 requires allow_failed_scientific_gates=true.")
+            if method_cfg.get("binding_status") != "bound":
+                raise ValueError("E2E V0 config is not bound to mechanism artifacts.")
+            if method_cfg.get("evidence_scope") != (
+                "end_to_end_feasibility_not_formal_method"
+            ):
+                raise ValueError("E2E V0 evidence scope mismatch.")
+            if method_cfg.get("require_hiding_gate_pass") is not False:
+                raise ValueError("E2E V0 must preserve hiding_gate_passed=false.")
+            if method_cfg.get("require_mechanism_gate_pass") is not False:
+                raise ValueError("E2E V0 mechanism gate must remain diagnostic.")
+            if bool(cfg["data"].get("allow_pseudo_mask_fallback", True)):
+                raise ValueError("E2E V0 requires explicit person GT bbox support.")
+            pilot_kind = str(cfg["experiment"].get("pilot_kind", ""))
+            arm_id = str(cfg["experiment"].get("arm_id", ""))
+            if pilot_kind not in {"smoke", "e20"} or arm_id not in {"C0", "M1"}:
+                raise ValueError("E2E V0 requires pilot_kind smoke/e20 and arm C0/M1.")
+            expected_epochs = 1 if pilot_kind == "smoke" else 20
+            if int(victim.get("epochs", -1)) != expected_epochs:
+                raise ValueError("E2E V0 victim epochs do not match the pilot kind.")
+            expected_train_images = 200 if pilot_kind == "smoke" else 16551
+            if int(cfg["experiment"].get("expected_train_images", -1)) != (
+                expected_train_images
+            ):
+                raise ValueError("E2E V0 expected_train_images mismatch.")
+            expected_target_images = 40 if pilot_kind == "smoke" else 6095
+            if int(cfg["experiment"].get("expected_target_images", -1)) != (
+                expected_target_images
+            ):
+                raise ValueError("E2E V0 expected_target_images mismatch.")
+            expected_poisoned = 0 if arm_id == "C0" else (40 if pilot_kind == "smoke" else 6095)
+            expected_ratio = 0.0 if arm_id == "C0" else 1.0
+            if int(cfg["experiment"].get("expected_poisoned_count", -1)) != expected_poisoned:
+                raise ValueError("E2E V0 expected_poisoned_count mismatch.")
+            if float(cfg["experiment"].get("poisoning_ratio", -1)) != expected_ratio:
+                raise ValueError("E2E V0 poisoning_ratio does not match arm identity.")
+            selection_path = str(cfg["data"].get("train_selection_manifest", "")).strip()
+            selection_hash = str(
+                cfg["data"].get("train_selection_manifest_sha256", "")
+            ).strip().lower()
+            if pilot_kind == "smoke":
+                if not selection_path or not _is_sha256(selection_hash):
+                    raise ValueError("E2E V0 smoke requires a hash-bound selection manifest.")
+            elif selection_path or selection_hash:
+                raise ValueError("E2E V0 full-VOC pilot forbids a train selection manifest.")
+            for key in (
+                "frozen_sdh_state_sha256",
+                "hiding_metrics_sha256",
+                "hiding_checkpoint_sha256",
+                "hiding_split_sha256",
+                "mechanism_metrics_sha256",
+                "mechanism_decision_sha256",
+                "mechanism_config_sha256",
+                "p1_state_sha256",
+            ):
+                if not _is_sha256(method_cfg.get(key, "")):
+                    raise ValueError("E2E V0 methods config requires SHA-256 %s." % key)
+        else:
+            if protocol_id != "TAUSB-SDH-LFC-CICR-CGR-NLA-MAP50-v3":
+                raise ValueError("TAUSB-SDH formal protocol_id mismatch.")
+            if method_cfg.get("materialization_mode") != "formal_p1_state":
+                raise ValueError("TAUSB-SDH formal materialization mode mismatch.")
+            if method_cfg.get("allow_failed_scientific_gates") is not False:
+                raise ValueError("TAUSB-SDH formal path forbids failed scientific gates.")
+            if not all(
+                method_cfg.get(key) is True
+                for key in ("require_hiding_gate_pass", "require_mechanism_gate_pass")
+            ):
+                raise ValueError("TAUSB-SDH formal config requires all method gates enabled.")
+            if int(cfg["experiment"].get("expected_poisoned_count", -1)) != 6095:
+                raise ValueError("TAUSB-SDH expected_poisoned_count must remain 6095.")
+            if float(cfg["experiment"].get("poisoning_ratio", -1)) != 1.0:
+                raise ValueError("TAUSB-SDH poisoning_ratio must remain 1.0.")
+            if int(victim.get("epochs", -1)) != 200:
+                raise ValueError("TAUSB-SDH victim.epochs must remain 200.")
 
     return cfg

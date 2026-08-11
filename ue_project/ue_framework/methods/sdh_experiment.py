@@ -29,7 +29,11 @@ from .detector_lfc import DetectorLFCPrototypeBank
 from .detector_lfc import DetectorLFCExtractor
 from .instance_cicr import FrozenInstanceCICRBank
 from .non_target_logit_alignment import FrozenNLAGradientCalibration
-from .sdh_materializer import build_frozen_sdh_state_payload
+from .sdh_materializer import (
+    E2E_V0_PROTOCOL_ID,
+    build_feasibility_sdh_state_payload,
+    build_frozen_sdh_state_payload,
+)
 from .sdh_mechanism import (
     FrozenTargetGradientCalibration,
     SDHObservation,
@@ -53,6 +57,17 @@ ARM_SWITCHES = {
     "P0": {"dlfc": True, "cicr": True, "cgr": True, "nla": False},
     "P1": {"dlfc": True, "cicr": True, "cgr": True, "nla": True},
 }
+
+E2E_V0_SPEC_ID = E2E_V0_PROTOCOL_ID
+E2E_V0_R2_CHECKPOINT_SHA256 = (
+    "a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36"
+)
+E2E_V0_R2_METRICS_SHA256 = (
+    "c7d1b120ffbadeb7385be41669dda704b00a2cee60940e3c3d97112e24e59246"
+)
+E2E_V0_ALLOWED_FAILED_HIDING_CHECKS = frozenset(
+    ("rms_diversity", "delta_high_frequency")
+)
 
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
@@ -325,7 +340,7 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
     spec_id = str(config["spec"].get("spec_id", ""))
     legacy_spec_id = "TAUSB-SDH-LFC-CICR-CGR-NLA-MAP50-v3"
     subband_spec_id = "TAUSB-SDH-HIDING-SB-v1"
-    if spec_id not in {legacy_spec_id, subband_spec_id}:
+    if spec_id not in {legacy_spec_id, subband_spec_id, E2E_V0_SPEC_ID}:
         raise ValueError("SDH experiment spec_id mismatch.")
     if int(config["spec"].get("seed", -1)) != 0:
         raise ValueError("SDH first experiment seed must be 0.")
@@ -362,6 +377,33 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
             raise ValueError("TAUSB-SDH-HIDING-SB-v1 keeps RMS CV descriptive only.")
     elif hf_subband_scale != 1.0 or rms_cv_gate_enabled is not True:
         raise ValueError("Legacy SDH config requires the exact scale=1 RMS-gated protocol.")
+    feasibility_keys = (
+        "source_artifact_root",
+        "source_metrics_sha256",
+        "source_checkpoint_sha256",
+        "allow_failed_scientific_gates",
+    )
+    if spec_id == E2E_V0_SPEC_ID:
+        if config["hiding"].get("allow_failed_scientific_gates") is not True:
+            raise ValueError("E2E V0 requires allow_failed_scientific_gates=true.")
+        if not str(config["hiding"].get("source_artifact_root", "")).strip():
+            raise ValueError("E2E V0 requires a read-only hiding source_artifact_root.")
+        if str(config["hiding"].get("source_metrics_sha256", "")).lower() != (
+            E2E_V0_R2_METRICS_SHA256
+        ):
+            raise ValueError("E2E V0 hiding metrics hash must match frozen r2.")
+        if str(config["hiding"].get("source_checkpoint_sha256", "")).lower() != (
+            E2E_V0_R2_CHECKPOINT_SHA256
+        ):
+            raise ValueError("E2E V0 hiding checkpoint hash must match frozen r2.")
+        source_root = _resolve(
+            Path("."), str(config["hiding"]["source_artifact_root"])
+        )
+        output_root = _resolve(Path("."), str(config["runtime"].get("artifact_root", "")))
+        if source_root == output_root:
+            raise ValueError("E2E V0 hiding input and mechanism output roots must differ.")
+    elif any(key in config["hiding"] for key in feasibility_keys):
+        raise ValueError("Failed-scientific-gate loading is restricted to the E2E V0 Spec.")
     for section, keys in {
         "dataset": ("root", "train_images", "train_labels"),
         "model": ("surrogate_checkpoint",),
@@ -588,16 +630,55 @@ def _load_hiding_checkpoint(
     config_base: Path,
     device: torch.device,
 ) -> Tuple[SemanticHidingCarrier, torch.Tensor, Mapping[str, Any]]:
-    root = _resolve(config_base, str(config["runtime"]["artifact_root"]))
+    spec_id = str(config["spec"].get("spec_id", ""))
+    feasibility_mode = spec_id == E2E_V0_SPEC_ID
+    root_value = (
+        config["hiding"].get("source_artifact_root", "")
+        if feasibility_mode
+        else config["runtime"]["artifact_root"]
+    )
+    root = _resolve(config_base, str(root_value))
     metrics_path = root / "hiding" / "hiding_metrics.json"
     checkpoint_path = root / "hiding" / "hiding_checkpoint.pt"
     if not metrics_path.is_file() or not checkpoint_path.is_file():
-        raise FileNotFoundError("Passing hiding artifacts are required before mechanism.")
+        raise FileNotFoundError("Required hiding artifacts are missing before mechanism.")
+    if feasibility_mode:
+        expected_metrics_hash = str(
+            config["hiding"].get("source_metrics_sha256", "")
+        ).lower()
+        if expected_metrics_hash != E2E_V0_R2_METRICS_SHA256:
+            raise ValueError("E2E V0 hiding metrics hash is not the frozen r2 hash.")
+        if _file_sha256(metrics_path) != expected_metrics_hash:
+            raise ValueError("E2E V0 hiding metrics file hash mismatch.")
     metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
-    if metrics.get("gate", {}).get("pass") is not True:
+    gate = metrics.get("gate", {})
+    if feasibility_mode:
+        if config["hiding"].get("allow_failed_scientific_gates") is not True:
+            raise ValueError("E2E V0 failed-scientific-gate loading was not enabled.")
+        checks = gate.get("checks")
+        if not isinstance(checks, Mapping):
+            raise ValueError("E2E V0 hiding checks are missing.")
+        failed_checks = frozenset(name for name, passed in checks.items() if passed is not True)
+        if failed_checks != E2E_V0_ALLOWED_FAILED_HIDING_CHECKS:
+            raise ValueError(
+                "E2E V0 hiding failures differ from frozen r2: %s."
+                % sorted(failed_checks)
+            )
+        if gate.get("pass") is not False or gate.get("status") != "fail":
+            raise ValueError("E2E V0 must preserve the frozen r2 hiding FAIL decision.")
+    elif gate.get("pass") is not True:
         raise ValueError("Hiding gate did not pass; mechanism is forbidden.")
-    if _file_sha256(checkpoint_path) != metrics.get("checkpoint_sha256"):
+    checkpoint_hash = _file_sha256(checkpoint_path)
+    if checkpoint_hash != metrics.get("checkpoint_sha256"):
         raise ValueError("Hiding checkpoint hash mismatch.")
+    if feasibility_mode:
+        expected_checkpoint_hash = str(
+            config["hiding"].get("source_checkpoint_sha256", "")
+        ).lower()
+        if expected_checkpoint_hash != E2E_V0_R2_CHECKPOINT_SHA256:
+            raise ValueError("E2E V0 hiding checkpoint hash is not the frozen r2 hash.")
+        if checkpoint_hash != expected_checkpoint_hash:
+            raise ValueError("E2E V0 hiding checkpoint file hash mismatch.")
     try:
         state = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     except TypeError:
@@ -619,6 +700,15 @@ def _load_hiding_checkpoint(
     carrier.to(device)
     carrier.freeze_for_detector_optimization()
     primary = torch.as_tensor(state["primary_secret"], dtype=torch.float32, device=device)
+    if feasibility_mode:
+        state = dict(state)
+        state["e2e_v0_hiding_provenance"] = {
+            "evidence_scope": "end_to_end_feasibility_not_formal_method",
+            "hiding_gate_passed": False,
+            "failed_hiding_checks": sorted(E2E_V0_ALLOWED_FAILED_HIDING_CHECKS),
+            "hiding_metrics_sha256": E2E_V0_R2_METRICS_SHA256,
+            "hiding_checkpoint_sha256": E2E_V0_R2_CHECKPOINT_SHA256,
+        }
     return carrier, primary, state
 
 
@@ -635,6 +725,34 @@ def _clone_detector_carrier(
     clone.load_state_dict(copy.deepcopy(source.state_dict()), strict=True)
     clone.freeze_for_detector_optimization()
     return clone
+
+
+def _load_saved_p1_carrier(
+    path: Path,
+    *,
+    base_carrier: SemanticHidingCarrier,
+    device: torch.device,
+) -> SemanticHidingCarrier:
+    if not path.is_file():
+        raise FileNotFoundError("P1 carrier state is missing: %s" % path)
+    try:
+        saved = torch.load(path, map_location="cpu", weights_only=False)
+    except TypeError:
+        saved = torch.load(path, map_location="cpu")
+    if not isinstance(saved, Mapping) or saved.get("arm_id") != "P1":
+        raise ValueError("Feasibility persistence requires the saved P1 arm state.")
+    carrier_state = saved.get("carrier_state")
+    if not isinstance(carrier_state, Mapping):
+        raise ValueError("Saved P1 carrier state must be a mapping.")
+    if any(
+        not torch.is_tensor(value) or not torch.isfinite(value).all()
+        for value in carrier_state.values()
+    ):
+        raise ValueError("Saved P1 carrier state contains an invalid tensor.")
+    carrier = _clone_detector_carrier(base_carrier, device)
+    carrier.load_state_dict(carrier_state, strict=True)
+    carrier.freeze_for_detector_optimization()
+    return carrier
 
 
 def _flatten_autograd_norm(
@@ -1090,25 +1208,17 @@ def run_mechanism_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict
         decision["pass"] = bool(decision["target_pass"] and decision["protection_pass"])
 
         p1_state_path = artifact_root / "p1_state.pt"
-        if decision["pass"]:
-            try:
-                p1_state = torch.load(p1_state_path, map_location="cpu", weights_only=False)
-            except TypeError:
-                p1_state = torch.load(p1_state_path, map_location="cpu")
-            frozen_carrier = _clone_detector_carrier(base_carrier, torch.device("cpu"))
-            frozen_carrier.load_state_dict(p1_state["carrier_state"], strict=True)
-            payload = build_frozen_sdh_state_payload(
-                carrier=frozen_carrier,
-                secret=primary_secret.detach().cpu(),
-                target_class_id=14,
-                secret_source_sha256=config["secrets"]["primary_source_sha256"],
-                secret_tensor_sha256=config["secrets"]["primary_tensor_sha256"],
-                source_manifest_sha256=config["secrets"]["manifest_sha256"],
-                train_split_sha256=config["dataset"]["train_label_manifest_sha256"],
-                hiding_gate_passed=True,
-                mechanism_gate_passed=True,
+        feasibility_mode = str(config["spec"].get("spec_id", "")) == E2E_V0_SPEC_ID
+        p1_delta_linf = float(arm_deltas["P1"].abs().max())
+        p1_operational_checks = {
+            "delta_finite": bool(torch.isfinite(arm_deltas["P1"]).all()),
+            "delta_linf": p1_delta_linf <= 16.0 / 255.0 + 1.0e-6,
+            "p1_state_present": p1_state_path.is_file(),
+        }
+        if not all(p1_operational_checks.values()):
+            raise ValueError(
+                "P1 operational invariants failed: %s" % p1_operational_checks
             )
-            torch.save(payload, artifact_root / "p1_frozen_sdh_state.pt")
         result = {
             "schema": "tausb.sdh-mechanism-pilot.v1",
             "spec_id": config["spec"]["spec_id"],
@@ -1123,8 +1233,60 @@ def run_mechanism_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict
             "pattern_p0_initial": pattern_p0_initial,
             "pattern_p1_initial": pattern_p1_initial,
             "decision": decision,
+            "p1_operational_checks": p1_operational_checks,
+            "p1_delta_linf": p1_delta_linf,
         }
-        _write_json(artifact_root / "mechanism_metrics.json", result)
+        if feasibility_mode:
+            result["feasibility_state"] = {
+                "path": str(artifact_root / "p1_feasibility_sdh_state.pt"),
+                "evidence_scope": "end_to_end_feasibility_not_formal_method",
+                "hiding_gate_passed": False,
+                "mechanism_gate_passed": bool(decision["pass"]),
+            }
+        metrics_path = artifact_root / "mechanism_metrics.json"
+        _write_json(metrics_path, result)
+        frozen_carrier = _load_saved_p1_carrier(
+            p1_state_path,
+            base_carrier=base_carrier,
+            device=torch.device("cpu"),
+        )
+        if decision["pass"] and not feasibility_mode:
+            payload = build_frozen_sdh_state_payload(
+                carrier=frozen_carrier,
+                secret=primary_secret.detach().cpu(),
+                target_class_id=14,
+                secret_source_sha256=config["secrets"]["primary_source_sha256"],
+                secret_tensor_sha256=config["secrets"]["primary_tensor_sha256"],
+                source_manifest_sha256=config["secrets"]["manifest_sha256"],
+                train_split_sha256=config["dataset"]["train_label_manifest_sha256"],
+                hiding_gate_passed=True,
+                mechanism_gate_passed=True,
+            )
+            torch.save(payload, artifact_root / "p1_frozen_sdh_state.pt")
+        if feasibility_mode:
+            hiding_provenance = hiding_state.get("e2e_v0_hiding_provenance")
+            if not isinstance(hiding_provenance, Mapping):
+                raise ValueError("E2E V0 hiding provenance is missing.")
+            payload = build_feasibility_sdh_state_payload(
+                carrier=frozen_carrier,
+                secret=primary_secret.detach().cpu(),
+                target_class_id=14,
+                secret_source_sha256=config["secrets"]["primary_source_sha256"],
+                secret_tensor_sha256=config["secrets"]["primary_tensor_sha256"],
+                source_manifest_sha256=config["secrets"]["manifest_sha256"],
+                train_split_sha256=config["dataset"]["train_label_manifest_sha256"],
+                mechanism_gate_passed=bool(decision["pass"]),
+                hiding_metrics_sha256=hiding_provenance["hiding_metrics_sha256"],
+                hiding_checkpoint_sha256=hiding_provenance[
+                    "hiding_checkpoint_sha256"
+                ],
+                hiding_split_sha256=hiding_state["split_hash"],
+                mechanism_metrics_sha256=_file_sha256(metrics_path),
+                mechanism_decision_sha256=_canonical_json_sha256(decision),
+                mechanism_config_sha256=_canonical_json_sha256(config),
+                p1_state_sha256=_file_sha256(p1_state_path),
+            )
+            torch.save(payload, artifact_root / "p1_feasibility_sdh_state.pt")
         return result
     finally:
         engine.close()
