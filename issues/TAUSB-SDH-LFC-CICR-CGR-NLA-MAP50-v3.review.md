@@ -273,3 +273,11 @@ seed, if eventually run, remains tentative.
   `REMOTE-HIDING-02` is selected at reviewed code commit `20c35b6`, using only the frozen
   launch gate, session, control root and fresh r2 formal root recorded above. This is a
   launch-pending recovery point; no claim is made that the gate or experiment has started yet.
+- 2026-08-11: The frozen r2 launch gate passed: the reviewed checkout was clean at
+  `20c35b6`, both script and input bindings passed, the r2 formal/control roots were fresh,
+  the GPU was idle and CUDA was available. The gate started the expected tmux session. The
+  immediate health-check connection and the single bounded confirmation were both refused,
+  consistent with the wrapper's automatic instance shutdown after this short hiding stage.
+  This is an inference only: completion, finite hiding metrics and artifacts remain unverified
+  until the instance is reopened in no-card mode and the r2 evidence is pulled. No retry was
+  attempted.
