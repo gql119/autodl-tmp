@@ -47,3 +47,9 @@ independent gate and user decision.
   gradient rollback; quarter-scale Haar attenuation; finite gradient; and `git diff --check`.
   The first pytest attempt had 24 passes plus 8 setup errors caused only by an inaccessible
   Windows default temp directory; rerunning unchanged tests with a workspace basetemp passed.
+- 2026-08-11: Created implementation commit
+  `7f59ab84483f02207594fe6bf89ff870035685cd` from exactly 14 scoped task files and pushed it
+  normally (non-force) to `origin/codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3`. The staged
+  credential scan passed; datasets, weights, checkpoints, test basetemps and unrelated dirty
+  files were excluded. Independent pre-run review is the active gate; no GPU work is authorized
+  by this snapshot alone.
