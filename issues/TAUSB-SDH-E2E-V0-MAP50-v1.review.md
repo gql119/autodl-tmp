@@ -4,9 +4,10 @@
 
 - Approved Spec: `docs/research/specs/TAUSB-SDH-E2E-V0-MAP50-v1.md`.
 - Durable state source: `issues/TAUSB-SDH-E2E-V0-MAP50-v1.csv`.
-- Active row: `FEASIBILITY-LOADER-01`.
-- GPU state: not started by this workflow; local/no-GPU implementation and validation only.
+- Active row: `PRERUN-MECH-01`.
+- GPU state: not started by this workflow; the current AutoDL SSH endpoint refused the read-only audit connection.
 - Branch: `codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3`.
+- Reviewed code snapshot: `3a7a1aa`.
 
 ## Objective scientific result
 
@@ -16,12 +17,34 @@ Obtain one real, paired, single-seed 20-epoch VOC AP50 result for the current co
 
 - The r2 hiding checkpoint failed the original RMS-diversity and high-frequency scientific gates. Those failures must remain visible in every feasibility artifact.
 - The formal `tausb_sdh` loader and 200-epoch protocol must remain fail closed.
-- No remote mechanism, integration smoke, or E20 run may start before its dedicated pre-run review passes on a pushed commit.
+- No remote mechanism, integration smoke, or E20 run may start before its dedicated pre-run review passes on pushed commit `3a7a1aa`.
+- Current blocker: the AutoDL endpoint is unreachable, so current remote hashes, fresh-root state, GPU state, tmux, disk, and shutdown executable cannot yet be re-audited.
 - The worktree contains unrelated user changes; only explicitly scoped V0 files may be staged later.
 
 ## Pre-run decision
 
-`pending`. No GPU command is authorized by the Spec/CSV alone.
+`blocked / do_not_run`. The code-side review is complete, but the required current remote read-only audit has not run because SSH returned `connection refused`. No GPU command is authorized.
+
+## PRERUN-REVIEW-1
+
+- Result: `blocked`.
+- Decision: `do_not_run`.
+- Gated run: mechanism only; no victim training, materialization, smoke, or AP50.
+- Code snapshot: branch `codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3`, commit `3a7a1aa`.
+- Intent: load the exact failed-gate r2 carrier, run unchanged T0/T1/P0/P1 for 8 steps, and save the actual finite P1 feasibility state while preserving real diagnostic flags.
+- Code location: `ue_framework.tools.run_tausb_sdh` → `run_mechanism_pilot` → exact r2 loader → detector observation/objective/CGR/NLA → `p1_feasibility_sdh_state.pt`.
+- Parameter data flow: the mechanism config fixes VOC20, person=14, 16/255, 8 steps, no EOT/JND, r2 hashes, dataset manifests, secret hashes, and surrogate hash before the observation engine is built.
+- Runtime state: carrier detector adapters are the optimization parameters; surrogate is used in eval mode; D-LFC/CICR calibration banks and NLA calibration are frozen before the four-arm trajectory.
+- Sink effect: V0 always preserves `hiding_gate_passed=false` and the actual `mechanism_gate_passed`; formal PASS-only state emission remains unchanged.
+- Baseline/disable path: T0/T1/P0/P1 switches remain independent; non-V0 configs still reject failed hiding gates and require formal state gates.
+- Local validation: 105 related tests passed; compile, Python 3.8 AST, config parse, CLI, and diff check passed.
+- Minimal probe: the new manifest implementation recomputed the real local VOC train hashes exactly: 16,551 images `4954727d...8fbd` and 16,551 labels `3cd05ad1...d848`.
+- Run command binding: pending current remote audit and the final cost-guarded tmux snippet.
+- Experiment validity: code now verifies complete train image/label manifests, 6,095 person images, r2 metrics/checkpoint, secret source/manifest/tensor, and surrogate checkpoint before optimization.
+- Output non-overwrite: code uses `mkdir(..., exist_ok=False)` for the mechanism output; current remote root freshness remains unaudited.
+- Recoverability/secrecy: no credentials are stored; tmux/log/status/shutdown availability remains to be checked remotely.
+- Blockers: SSH to the configured AutoDL endpoint returned `connection refused`.
+- Validation gaps: current remote branch/commit, input files, output root, GPU, environment, disk, tmux, and shutdown executable.
 
 ## Final claim/evidence review
 
@@ -42,3 +65,8 @@ Obtain one real, paired, single-seed 20-epoch VOC AP50 result for the current co
 - 2026-08-11: Started `LOCAL-VALIDATION-01`; no GPU work is permitted in this row.
 - 2026-08-11: Closed `LOCAL-VALIDATION-01`. A 103-test SDH regression suite passed, as did scoped compile, Python 3.8 AST, CLI, CSV, and diff checks. Read-only real VOC selection produced 200 records with 40 person and 160 person-free (`ced5d8ce...bcc7`).
 - 2026-08-11: Started `GIT-SNAPSHOT-01`; only the V0 Spec/CSV/review, implementation, configs, tools, and four test files are in scope.
+- 2026-08-11: Closed `GIT-SNAPSHOT-01`. Sixteen scoped files were committed as `7330a76` and pushed normally (non-force) to `origin/codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3`; unrelated dirty files, datasets, weights, and temporary artifacts were excluded.
+- 2026-08-11: Started `PRERUN-MECH-01`; the review is bound to implementation commit `7330a76` and the mechanism-only V0 command. No GPU command is authorized until this review passes.
+- 2026-08-11: `PRERUN-MECH-01` found one concrete binding gap in `7330a76`: surrogate, full dataset manifests, and secret provenance were recorded but not all content-verified at runtime. The gap was fixed without changing method equations in commit `3a7a1aa`.
+- 2026-08-11: Commit `3a7a1aa` passed 105 related tests, Python 3.8 AST/compile, config/CLI checks, and a real local VOC manifest recomputation; it was pushed normally to the same branch.
+- 2026-08-11: Current remote read-only audit could not start because the configured AutoDL SSH endpoint refused the connection. Pre-run remains blocked and no GPU command was launched.
