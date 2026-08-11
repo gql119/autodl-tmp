@@ -758,6 +758,14 @@ def _run_controller(args: argparse.Namespace) -> int:
                 idle_seconds=1200,
                 require_gpu=True,
             )
+            validate_arm(
+                _read_json(_metrics_path("smoke", arm_id)),
+                _read_json(_status_path("smoke", arm_id)),
+                pilot_kind="smoke",
+                arm_id=arm_id,
+                expected_epochs=1,
+                expected_poisoned_count=0 if arm_id == "C0" else 40,
+            )
             state.complete(stage, result)
 
         stage = "SMOKE_DATAFLOW_REVIEW"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import inspect
 import os
 from pathlib import Path
 import shutil
@@ -15,6 +16,7 @@ from ue_framework.tools.run_tausb_sdh_e2e_v0_oneboot import (
     GuardFailure,
     SHARED_METRIC_HASH_KEYS,
     _launch_command,
+    _run_controller,
     build_smoke_review,
     run_guarded,
     validate_arm,
@@ -269,3 +271,11 @@ def test_guarded_command_stops_at_wall_timeout(tmp_path: Path) -> None:
             first_progress_seconds=30,
             idle_seconds=30,
         )
+
+
+def test_each_smoke_arm_is_validated_before_the_next_arm_starts() -> None:
+    source = inspect.getsource(_run_controller)
+    smoke_loop = source.index('for arm_id in ("C0", "M1"):')
+    review_stage = source.index('stage = "SMOKE_DATAFLOW_REVIEW"', smoke_loop)
+    body = source[smoke_loop:review_stage]
+    assert body.index("validate_arm(") < body.index("state.complete(stage, result)")

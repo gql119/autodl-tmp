@@ -3,11 +3,11 @@
 ## Current workflow state
 
 - Spec：`docs/research/specs/TAUSB-SDH-E2E-V0-ONEBOOT-v2.md`
-- Status：approved；implementation 与本地轻量验证完成，pre-run implementation review 尚未执行。
+- Status：approved；第一次 pre-run review 发现单臂 fail-closed 顺序缺口，最小修复进行中。
 - Branch：`codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3`
 - Method implementation base：`3a7a1aaff912d0904794a91a4d3512d18b5c69fa`
-- Execution commit：pending。
-- Active CSV row：`LOCAL-VALIDATION-01`，完成后进入 `PRERUN-REVIEW-01`。
+- Execution commit：`ad3a3e5ba59934dae11f32bf20143f1936aa2dd5`（第一次 review，blocked）。
+- Active CSV row：`FIX-SMOKE-ARM-VALIDATION-01`；修复后进入 `PRERUN-REVIEW-02`。
 - Remote/GPU：未启动；AutoDL 当前不应执行旧的 mechanism-only contract。
 
 ## Objective scientific result
@@ -52,16 +52,39 @@ evaluation、comparison、配置语义或 Success/Failure 阈值。
 
 ## Active risks and blockers
 
-1. Execution commit、detached remote checkout、controller payload hash 和 tmux command 尚未冻结；因此 GPU hard gate 仍关闭。
+1. 新的修复 commit、detached remote checkout、controller payload hash 和 tmux command 尚未冻结；因此 GPU hard gate 仍关闭。
 2. 旧 `mechanism_run_contract.json` 成功后会立即关机，只能保留作历史证据，不能执行。
 3. smoke→E20 时间公式是保守外推；若 paired 预测超过 8 GPU-hours，会形成
    `cost_gate_stop` 并关机，不记为科学 Failure。
 4. 本地测试不能证明远程 CUDA、真实 P1、victim 训练或 AP50 有效；这些仍是 remote evidence gap。
 
-## Pre-run decision
+## PRERUN-REVIEW-01
+
+- Result：`blocked`
+- Decision：`do_not_run`
+- Gated run：`REMOTE-ONEBOOT-01`
+- Code snapshot：`ad3a3e5ba59934dae11f32bf20143f1936aa2dd5`
+- Intent：单次开机、逐阶段 hard gate、任何失败或最终完成自动关机；匹配 Spec。
+- Code location：controller、29 行 wrapper 与 tests 都在 active commit；方法代码未修改。
+- Parameter data flow：controller → binder → 四份 config → `launch_one --stage all` →
+  `SDHMaterializer` → fresh victim → clean evaluate → explicit comparison。
+- Runtime state：本地 53 tests、CLI、AST、shell 与 CSV 通过；GPU 未启动。
+- Sink effect：metrics 与 comparison sink 可达；但 smoke C0 单臂 sink 校验发生在 M1 后。
+- Baseline/disable path：formal SDH 配置、E2E loader 与现有 tests 未回归；没有 TAUSB/SIRC fallback。
+- Run command binding：branch 已普通 push 到 `ad3a3e5`；clean checkout 与 payload 尚未冻结。
+- Experiment validity：VOC20、person id14、seed0、steps40、clean val、no EOT/JND 已绑定。
+- Output non-overwrite：fresh roots 与无 `force_resume`/override 已验证。
+- Recoverability/secrecy：tmux/control/log/shutdown 路径已设计；没有凭据落盘。
+- Blocker：smoke C0 若命令以 0 返回但 metrics/checkpoint/count 不完整，当前代码仍会启动
+  smoke M1，然后才在 paired review 失败。这违反逐臂 fail-closed，并可能浪费 M1 GPU 成本。
+- Minimum fix：在 smoke 循环内、每臂命令返回后立即调用 `validate_arm`，通过后才进入
+  下一臂；保留两臂后的 paired identity/cost review。
+- Validation gaps：真实 CUDA/P1/smoke/E20 仍未运行。
+
+## PRERUN-REVIEW-02
 
 - Result：`pending`
-- Required next evidence：scoped execution commit、independent review packet、exact clean checkout、
+- Required next evidence：修复 commit、focused regression、exact clean checkout、
   wrapper/payload SHA-256、fresh roots、tmux launch command、success/failure shutdown paths。
 
 ## Final claim/evidence review
@@ -76,3 +99,5 @@ evaluation、comparison、配置语义或 Success/Failure 阈值。
 - 2026-08-12：Spec 状态写为 approved；生成并校验 11 行执行 CSV。
 - 2026-08-12：完成 one-boot orchestrator、shutdown wrapper、P1/binding 与 smoke/cost gates。
 - 2026-08-12：53 项 SDH focused regression、Python 3.8 AST、CLI、shell、CSV 与 diff 检查通过；未启动 GPU。
+- 2026-08-12：创建并普通 push execution commit `ad3a3e5`。
+- 2026-08-12：`PRERUN-REVIEW-01` blocked：smoke 单臂完整性校验晚于下一臂启动；插入最小修复与第二次 pre-run，GPU 未启动。
