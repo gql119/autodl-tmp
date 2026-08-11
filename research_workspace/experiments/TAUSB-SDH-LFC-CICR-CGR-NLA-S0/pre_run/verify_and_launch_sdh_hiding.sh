@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-CODE_COMMIT="e3f674497569087a79dd3782fcdfbabd4e7c8d04"
-REPOSITORY_ROOT="/root/tausb-sdh-checkouts/6f4d5d8-worktree"
+CODE_COMMIT="20c35b6b69bca8a04a69608ddaba315e0ab88325"
+REPOSITORY_ROOT="/root/tausb-sdh-checkouts/20c35b6-r2-worktree"
 PROJECT_ROOT="${REPOSITORY_ROOT}/ue_project"
-ARTIFACT_ROOT="/root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0"
-CONTROL_ROOT="/root/tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0/hiding-e3f6744-r1"
+ARTIFACT_ROOT="/root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-r2"
+CONTROL_ROOT="/root/tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0/hiding-20c35b6-r2"
 INPUT_AUDIT="${REPOSITORY_ROOT}/research_workspace/experiments/TAUSB-SDH-LFC-CICR-CGR-NLA-S0/pre_run/remote_input_audit.json"
-WRAPPER="/root/run_sdh_hiding_cost_guard_e3f6744.sh"
-WRAPPER_SHA256="99fe8cbcac2a82d8af20b7df5f165688a1b090c586261233e3ec231e3c3f6419"
-SESSION="tausb-sdh-hiding-s0-e3f6744-r1"
+WRAPPER="/root/run_sdh_hiding_cost_guard_20c35b6_r2.sh"
+WRAPPER_SHA256="228954570877815c868f314672509c2547657a796c238c6dc1376dc73aa5d37e"
+SESSION="tausb-sdh-hiding-s0-20c35b6-r2"
 PYTHON_BIN="/root/miniconda3/bin/python"
 
 failure_shutdown() {

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-CODE_COMMIT="e3f674497569087a79dd3782fcdfbabd4e7c8d04"
-REPOSITORY_ROOT="/root/tausb-sdh-checkouts/6f4d5d8-worktree"
+CODE_COMMIT="20c35b6b69bca8a04a69608ddaba315e0ab88325"
+REPOSITORY_ROOT="/root/tausb-sdh-checkouts/20c35b6-r2-worktree"
 PROJECT_ROOT="${REPOSITORY_ROOT}/ue_project"
-ARTIFACT_ROOT="/root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0"
-CONTROL_ROOT="/root/tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0/hiding-e3f6744-r1"
+ARTIFACT_ROOT="/root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-r2"
+CONTROL_ROOT="/root/tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0/hiding-20c35b6-r2"
 LOG_PATH="${CONTROL_ROOT}/hiding.log"
 GUARD_STATE="${CONTROL_ROOT}/cost-guard-status.json"
 READY_ROOT="${CONTROL_ROOT}/ready"
 PYTHON_BIN="/root/miniconda3/bin/python"
-CONFIG_PATH="ue_framework/configs/tausb_sdh_mechanism_v3.yaml"
+CONFIG_PATH="ue_framework/configs/tausb_sdh_mechanism_v3_r2.yaml"
 TOOL_PATH="ue_framework/tools/run_tausb_sdh.py"
 TOOL_MODULE="ue_framework.tools.run_tausb_sdh"
 CURRENT_STAGE="preflight"

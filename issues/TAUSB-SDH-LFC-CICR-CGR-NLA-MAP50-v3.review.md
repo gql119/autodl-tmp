@@ -259,3 +259,10 @@ seed, if eventually run, remains tentative.
   Eight config tests and the 67-test focused SDH suite pass. The r2 wrapper and launch gate
   are being rebound to this root and a never-executed clean worktree; they are not yet
   authorized or uploaded until the root-only code snapshot is committed and re-reviewed.
+- 2026-08-11: `PRERUN-REVIEW-HIDING-2` passed for code commit `20c35b6`. The exact clean
+  checkout, root-only r2 config, corrected crop path, input hashes, secret bank, fresh r2
+  roots/session, preserved r1 status hash, remote script bytes and bash syntax all passed.
+  Wrapper SHA-256 is `228954570877815c868f314672509c2547657a796c238c6dc1376dc73aa5d37e`;
+  launch-gate SHA-256 is `f82bac8fd119cfd5527155b6a91d194b4f8227ec24117e775fdef1b1ba907389`.
+  The only authorized future command is
+  `/bin/bash /root/verify_and_launch_sdh_hiding_20c35b6_r2.sh` after GPU mode is enabled.

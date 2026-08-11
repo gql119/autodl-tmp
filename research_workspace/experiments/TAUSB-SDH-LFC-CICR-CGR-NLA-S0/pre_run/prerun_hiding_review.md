@@ -86,3 +86,85 @@ The pass decision authorizes only a future execution of the frozen launch-gate s
 the user enables GPU mode. If the gate fails, roots are no longer fresh, hashes differ, a GPU
 process already exists, the wrapper cannot request shutdown, or any command differs from the
 binding above, the decision reverts to `do_not_run`.
+
+## PRERUN-REVIEW-HIDING-2
+
+- Result: pass
+- Decision: allow_run, conditional on the launch-time GPU gate in the r2
+  `verify_and_launch_sdh_hiding.sh`; invoking its inner Python or tmux command directly is
+  prohibited.
+- Gated run: `REMOTE-HIDING-02`, single-secret hiding retry only. Mechanism arms,
+  materialization, victim training, evaluation, robustness transforms, EOT and JND remain
+  out of scope.
+- Code snapshot: branch `codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3`, commit
+  `20c35b6b69bca8a04a69608ddaba315e0ab88325`, clean detached AutoDL checkout
+  `/root/tausb-sdh-checkouts/20c35b6-r2-worktree`.
+- Intent: rerun the approved 120-step building-secret hiding pilot after correcting the
+  width-height order used to crop held-out person hosts. The retry must preserve the r1
+  failure evidence and must not change any scientific parameter or claim boundary.
+- Code location:
+  - `ue_project/ue_framework/methods/sdh_experiment.py`
+  - `ue_project/ue_framework/configs/tausb_sdh_mechanism_v3_r2.yaml`
+  - `ue_project/tests/test_sdh_experiment_hosts.py`
+  - `ue_project/tests/test_sdh_pipeline_config.py`
+- Parameter data flow: the only authorized command enters the launch gate, verifies the
+  exact clean commit and wrapper hash, then starts one tmux wrapper. The wrapper runs
+  `python -m ue_framework.tools.run_tausb_sdh --config
+  ue_framework/configs/tausb_sdh_mechanism_v3_r2.yaml --stage hiding`. The validated config
+  reaches `run_hiding_pilot`; `_first_person_host` now passes actual image width followed by
+  height to `_bbox_to_pixels`, and no host is skipped or filtered.
+- Runtime state: the retry retains seed `0`, target id `14`, 120 hiding steps, batch `8`,
+  learning rate `2e-4`, cover weight `0.01`, device `cuda:0`, the same four secret tensors,
+  primary index `3`, and the same VOC/checkpoint hashes. Removing `runtime.artifact_root`
+  from the original and r2 YAMLs makes the parsed documents exactly equal.
+- Sink effect: only the new formal root
+  `/root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-r2` may be created. The r1 root and
+  control evidence remain read-only; no AP50, poison dataset or victim checkpoint can be
+  produced by this command.
+- Baseline/disable path: unchanged from review 1. `tausb_sdh` remains fail-closed and cannot
+  map to the legacy Fourier/JND carrier. Both wrapper `--stage` occurrences are explicitly
+  `hiding`; no mechanism or victim stage is reachable.
+- Local validation: three crop regressions pass; the focused SDH suite passes 67 tests; the
+  retry-config subset passes 8 tests; the shared support regression passes. The exact three
+  r1 failing VOC images produce finite `3x256x256` hosts on the fixed AutoDL checkout. The
+  deterministic 64/96 split hash is
+  `9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280`, with zero empty
+  slices on the hash-matched local VOC copy.
+- Minimal probe: AutoDL no-card validation on the exact r2 checkout passed root-only config
+  equality, config validation, corrected active source, audited VOC/checkpoint paths,
+  surrogate SHA-256, portable secret-manifest SHA-256, `(4,3,256,256)` secret-bank loading,
+  and primary index `3`. The checkout remained clean because bytecode writes were disabled.
+- Run command binding:
+  - reviewed code commit: `20c35b6b69bca8a04a69608ddaba315e0ab88325`
+  - wrapper: `/root/run_sdh_hiding_cost_guard_20c35b6_r2.sh`
+  - wrapper SHA-256:
+    `228954570877815c868f314672509c2547657a796c238c6dc1376dc73aa5d37e`
+  - launch gate: `/root/verify_and_launch_sdh_hiding_20c35b6_r2.sh`
+  - launch-gate SHA-256:
+    `f82bac8fd119cfd5527155b6a91d194b4f8227ec24117e775fdef1b1ba907389`
+  - only allowed launch command:
+    `/bin/bash /root/verify_and_launch_sdh_hiding_20c35b6_r2.sh`
+  - tmux session: `tausb-sdh-hiding-s0-20c35b6-r2`
+  - log:
+    `/root/tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0/hiding-20c35b6-r2/hiding.log`
+- Experiment validity: dataset/model/secret/split/seed/target settings are unchanged. The r2
+  config differs only in the formal output root required to avoid overwriting r1 failure
+  evidence. No robustness or transfer claim is enabled.
+- Output non-overwrite: the r2 formal root, r2 control root, r2 session, both remote script
+  targets and the clean r2 checkout path were verified absent before creation. After script
+  upload, the formal root, control root and session remain absent. The r1 formal status file
+  remains present with SHA-256
+  `a0df443edb1b5e68ce875a2ef96c6ea77680215842851f17d52d69710f3adc0a`.
+- Recoverability/secrecy: both uploaded scripts match the frozen hashes and pass `bash -n`.
+  The launch gate requires at least 10 GiB free disk, a visible unused GPU, exact CUDA/config
+  inputs, clean code and fresh r2 paths. The wrapper retains the external 1200-second timeout,
+  the 10-minute no-progress plus idle-compute watchdog, evidence snapshot and shutdown after
+  success, failure, timeout or signal. No connection details or credentials are persisted.
+- Blockers: none in no-card review. The launch-time GPU gate remains mandatory.
+- Validation gaps: CUDA is unavailable in no-card mode, so GPU visibility, free GPU and first
+  finite runtime progress are intentionally unverified until the user enables GPU. No hiding
+  success metric or UE/AP50 conclusion exists yet.
+
+This pass authorizes only the exact r2 launch-gate command above after GPU mode is enabled.
+Any hash, commit, root, session, input, GPU occupancy or command mismatch changes the decision
+to `blocked / do_not_run` and the gate requests shutdown.
