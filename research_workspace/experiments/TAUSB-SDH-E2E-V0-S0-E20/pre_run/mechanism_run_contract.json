@@ -1,0 +1,50 @@
+{
+  "schema": "tausb.sdh-e2e-v0-mechanism-run-contract.v1",
+  "created": "2026-08-11",
+  "spec_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "run_id": "MECH-V0-S0-R1",
+  "execution_owner": "codex",
+  "branch": "codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3",
+  "pre_run_code_commit": "3a7a1aaff912d0904794a91a4d3512d18b5c69fa",
+  "checkout": "/root/tausb-sdh-checkouts/e2e-v0-3a7a1aa-worktree",
+  "project_root": "/root/tausb-sdh-checkouts/e2e-v0-3a7a1aa-worktree/ue_project",
+  "config": "ue_framework/configs/tausb_sdh_e2e_v0_mechanism.yaml",
+  "config_sha256": "46f757afa7f0a57944af2bec84cab72549230aa431d41bf99e3ff8a25ab4dc56",
+  "stage": "mechanism",
+  "seed": 0,
+  "device": "cuda:0",
+  "tmux_session": "tausb-sdh-e2e-v0-mech-s0-r1",
+  "artifact_root": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH",
+  "status_path": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH/status_mechanism.json",
+  "mechanism_metrics_path": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH/mechanism/mechanism_metrics.json",
+  "p1_state_path": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH/mechanism/p1_feasibility_sdh_state.pt",
+  "log_path": "/root/tausb-sdh-logs/TAUSB-SDH-E2E-V0-S0-E20/MECH-V0-S0-R1.log",
+  "cost_guard_seconds": 1200,
+  "mechanism_internal_max_seconds": 900,
+  "auto_shutdown": true,
+  "payload_sha256": "e7d2f634c34dc2e7905373a7be0a981c2599fc889cffb8029bd011149c63a261",
+  "payload_base64": "c2V0IC1ldW8gcGlwZWZhaWwKZmluaXNoKCkgewogIHJjPSQ/CiAgZWNobyBbSGFybmVzc10gZXhpdF9jb2RlPSRyYwogIHN5bmMKICAvdXNyL2Jpbi9zaHV0ZG93biAtaCBub3cgfHwgdHJ1ZQogIGV4aXQgJHJjCn0KdHJhcCBmaW5pc2ggRVhJVCBJTlQgVEVSTQpDSEVDS09VVD0vcm9vdC90YXVzYi1zZGgtY2hlY2tvdXRzL2UyZS12MC0zYTdhMWFhLXdvcmt0cmVlCkFSVElGQUNUX1JPT1Q9L3Jvb3QvdGF1c2Itc2RoLXJ1bnMvVEFVU0ItU0RILUUyRS1WMC1TMC1FMjAtTUVDSApMT0dfRElSPS9yb290L3RhdXNiLXNkaC1sb2dzL1RBVVNCLVNESC1FMkUtVjAtUzAtRTIwCkxPR19QQVRIPSRMT0dfRElSL01FQ0gtVjAtUzAtUjEubG9nCnRlc3QgIiQoZ2l0IC1DICIkQ0hFQ0tPVVQiIHJldi1wYXJzZSBIRUFEKSIgPSAiM2E3YTFhYWZmOTEyZDA5MDQ3OTRhOTFhNGQzNTEyZDE4YjVjNjlmYSIKdGVzdCAteiAiJChnaXQgLUMgIiRDSEVDS09VVCIgc3RhdHVzIC0tcG9yY2VsYWluPXYxKSIKdGVzdCAhIC1lICIkQVJUSUZBQ1RfUk9PVCIKbWtkaXIgLXAgIiRMT0dfRElSIgpjZCAiJENIRUNLT1VUL3VlX3Byb2plY3QiCmV4cG9ydCBQWVRIT05VTkJVRkZFUkVEPTEKZWNobyBbSGFybmVzc10gc3BlYz1UQVVTQi1TREgtRTJFLVYwLU1BUDUwLXYxIHJ1bj1NRUNILVYwLVMwLVIxIGNvbW1pdD0zYTdhMWFhZmY5MTJkMDkwNDc5NGE5MWE0ZDM1MTJkMThiNWM2OWZhCi91c3IvYmluL3RpbWVvdXQgLS1zaWduYWw9VEVSTSAtLWtpbGwtYWZ0ZXI9MzBzIDEyMDBzIC9yb290L21pbmljb25kYTMvYmluL3B5dGhvbiAtdSAtbSB1ZV9mcmFtZXdvcmsudG9vbHMucnVuX3RhdXNiX3NkaCAtLWNvbmZpZyB1ZV9mcmFtZXdvcmsvY29uZmlncy90YXVzYl9zZGhfZTJlX3YwX21lY2hhbmlzbS55YW1sIC0tc3RhZ2UgbWVjaGFuaXNtIDI+JjEgfCB0ZWUgIiRMT0dfUEFUSCI=",
+  "tmux_command": "tmux new-session -d -s tausb-sdh-e2e-v0-mech-s0-r1 bash -lc 'echo c2V0IC1ldW8gcGlwZWZhaWwKZmluaXNoKCkgewogIHJjPSQ/CiAgZWNobyBbSGFybmVzc10gZXhpdF9jb2RlPSRyYwogIHN5bmMKICAvdXNyL2Jpbi9zaHV0ZG93biAtaCBub3cgfHwgdHJ1ZQogIGV4aXQgJHJjCn0KdHJhcCBmaW5pc2ggRVhJVCBJTlQgVEVSTQpDSEVDS09VVD0vcm9vdC90YXVzYi1zZGgtY2hlY2tvdXRzL2UyZS12MC0zYTdhMWFhLXdvcmt0cmVlCkFSVElGQUNUX1JPT1Q9L3Jvb3QvdGF1c2Itc2RoLXJ1bnMvVEFVU0ItU0RILUUyRS1WMC1TMC1FMjAtTUVDSApMT0dfRElSPS9yb290L3RhdXNiLXNkaC1sb2dzL1RBVVNCLVNESC1FMkUtVjAtUzAtRTIwCkxPR19QQVRIPSRMT0dfRElSL01FQ0gtVjAtUzAtUjEubG9nCnRlc3QgIiQoZ2l0IC1DICIkQ0hFQ0tPVVQiIHJldi1wYXJzZSBIRUFEKSIgPSAiM2E3YTFhYWZmOTEyZDA5MDQ3OTRhOTFhNGQzNTEyZDE4YjVjNjlmYSIKdGVzdCAteiAiJChnaXQgLUMgIiRDSEVDS09VVCIgc3RhdHVzIC0tcG9yY2VsYWluPXYxKSIKdGVzdCAhIC1lICIkQVJUSUZBQ1RfUk9PVCIKbWtkaXIgLXAgIiRMT0dfRElSIgpjZCAiJENIRUNLT1VUL3VlX3Byb2plY3QiCmV4cG9ydCBQWVRIT05VTkJVRkZFUkVEPTEKZWNobyBbSGFybmVzc10gc3BlYz1UQVVTQi1TREgtRTJFLVYwLU1BUDUwLXYxIHJ1bj1NRUNILVYwLVMwLVIxIGNvbW1pdD0zYTdhMWFhZmY5MTJkMDkwNDc5NGE5MWE0ZDM1MTJkMThiNWM2OWZhCi91c3IvYmluL3RpbWVvdXQgLS1zaWduYWw9VEVSTSAtLWtpbGwtYWZ0ZXI9MzBzIDEyMDBzIC9yb290L21pbmljb25kYTMvYmluL3B5dGhvbiAtdSAtbSB1ZV9mcmFtZXdvcmsudG9vbHMucnVuX3RhdXNiX3NkaCAtLWNvbmZpZyB1ZV9mcmFtZXdvcmsvY29uZmlncy90YXVzYl9zZGhfZTJlX3YwX21lY2hhbmlzbS55YW1sIC0tc3RhZ2UgbWVjaGFuaXNtIDI+JjEgfCB0ZWUgIiRMT0dfUEFUSCI= | base64 -d | bash'",
+  "health_checks": [
+    "tmux has-session -t tausb-sdh-e2e-v0-mech-s0-r1",
+    "tmux capture-pane -pt tausb-sdh-e2e-v0-mech-s0-r1 -S -160",
+    "pgrep -af run_tausb_sdh",
+    "nvidia-smi",
+    "test -f /root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH/status_mechanism.json && cat /root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH/status_mechanism.json"
+  ],
+  "recovery": [
+    "Reconnect after AutoDL reports the instance has stopped.",
+    "Read status_mechanism.json and the external mechanism log before any rerun.",
+    "Do not resume or overwrite the root; pull existing evidence first.",
+    "A new run requires a new RunID and artifact root if the prior root exists."
+  ],
+  "forbidden_stages": [
+    "hiding",
+    "generate_poisoned_dataset",
+    "train_victim",
+    "evaluate",
+    "aggregate",
+    "all"
+  ]
+}

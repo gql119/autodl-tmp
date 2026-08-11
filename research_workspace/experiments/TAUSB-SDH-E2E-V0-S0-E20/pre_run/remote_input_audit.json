@@ -1,0 +1,75 @@
+{
+  "schema": "tausb.sdh-e2e-v0-remote-input-audit.v1",
+  "created": "2026-08-11",
+  "spec_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "run_id": "MECH-V0-S0-R1",
+  "mode": "no_card",
+  "remote_container": "autodl-container-a6a3409bcc-bd8eb495",
+  "source_repository": {
+    "path": "/root/autodl-tmp",
+    "head": "98e212040f69b19e4cadee746e43537013f0a4f0",
+    "branch": "ALSD-lubangxing",
+    "dirty": true,
+    "used_for_execution": false
+  },
+  "execution_checkout": {
+    "path": "/root/tausb-sdh-checkouts/e2e-v0-3a7a1aa-worktree",
+    "head": "3a7a1aaff912d0904794a91a4d3512d18b5c69fa",
+    "detached": true,
+    "dirty_count": 0,
+    "config_sha256": "46f757afa7f0a57944af2bec84cab72549230aa431d41bf99e3ff8a25ab4dc56"
+  },
+  "environment": {
+    "python": "3.8.10",
+    "torch": "2.0.0+cu118",
+    "ultralytics": "8.4.33",
+    "cuda_available": false,
+    "tmux": "/usr/bin/tmux",
+    "timeout": "/usr/bin/timeout",
+    "shutdown": "/usr/bin/shutdown",
+    "root_disk_available": "21G"
+  },
+  "dataset": {
+    "train_images": 16551,
+    "train_labels": 16551,
+    "train_person_images": 6095,
+    "train_image_path_size_manifest_sha256": "4954727df8686532a788668fd815092112ac3e3ee1414eba83b616e683708fbd",
+    "train_label_content_manifest_sha256": "3cd05ad1ab6a546bf2afd5e63cb6c3ff6667064d80af129dd819325625b9d848"
+  },
+  "inputs": {
+    "r2_hiding_metrics_sha256": "c7d1b120ffbadeb7385be41669dda704b00a2cee60940e3c3d97112e24e59246",
+    "r2_hiding_checkpoint_sha256": "a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36",
+    "hiding_split_sha256": "9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280",
+    "secret_manifest_sha256": "a25277499e07310e68a39277461f176dd0d8666e69a4b890328d7b913601ac3e",
+    "primary_secret_tensor_sha256": "cb4b9bba70701c118cc869738ca2713a049ec23b86e89238f32353b06bd4adaf",
+    "surrogate_checkpoint_sha256": "8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89"
+  },
+  "runtime": {
+    "artifact_root": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH",
+    "artifact_root_fresh": true,
+    "active_experiment_process": false,
+    "active_tmux_session": false,
+    "gpu_device_present": false
+  },
+  "checks": {
+    "clean_exact_commit_checkout": true,
+    "config_validation_passed": true,
+    "real_loader_probe_passed": true,
+    "dataset_counts_and_manifests_match": true,
+    "person_count_matches": true,
+    "r2_hashes_match": true,
+    "secret_manifest_and_tensor_match": true,
+    "surrogate_hash_matches": true,
+    "artifact_root_fresh": true,
+    "cost_guard_executables_present": true,
+    "gpu_job_not_started": true
+  },
+  "pass": true,
+  "notes": [
+    "The pre-existing dirty repository was audited read-only and was not used for execution.",
+    "A new detached worktree was created without deleting, resetting, or cleaning any existing file.",
+    "The real E2E V0 loader and runtime input binding function passed on CPU in no-card mode.",
+    "No mechanism, victim, materialization, smoke, evaluation, or GPU process was started."
+  ]
+}
