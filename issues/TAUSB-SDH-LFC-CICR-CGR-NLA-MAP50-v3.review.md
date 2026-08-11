@@ -237,3 +237,12 @@ seed, if eventually run, remains tentative.
   `3x256x256` hosts. A local full-dataset scan reached its 120-second I/O cap without returning
   a result, so it is not counted as passing evidence; the exact full 160-host check remains a
   required no-card validation on the fixed AutoDL checkout before retry review.
+- 2026-08-11: Commit `52a9ff0` was pushed and checked out cleanly at a new detached AutoDL
+  path. Its active `_first_person_host` source contains the corrected width-height order, and
+  all three prior failing VOC hosts return finite `3x256x256` tensors. On the hash-matched
+  local VOC copy, a streaming deterministic split reconstruction produced 6,095 person
+  images and split hash `9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280`;
+  all 64 calibration and 96 held-out slices are non-empty. Two broader no-card probes exceeded
+  their client timeouts because the container left probe processes running and had very slow
+  data I/O; the processes subsequently exited, and no training or GPU process was involved.
+  `HIDING-CROP-FIX-01` is closed and the independent retry pre-run review is now selected.
