@@ -37,9 +37,9 @@ approval_evidence: user explicitly approved TAUSB-SDH-E2E-V0-ONEBOOT-v2 Spec
 
 - Branch：`codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3`
 - Method implementation base commit：`3a7a1aaff912d0904794a91a4d3512d18b5c69fa`
-- Execution/orchestration commit：`pending`；必须包含上述 method commit，且只能增加本 Spec 所需的 controller/gate/contract/tests/state。
-- Remote clean checkout：`pending`；实现后按 execution commit 建立新的 detached clean worktree，禁止在旧 checkout 上直接写脚本。
-- Project root：`<new-clean-checkout>/ue_project`
+- Execution/orchestration commit：`52d57fd005a318c912f5e43a5cf91dfe1357cddf`；包含 method base，且只增加本 Spec 所需的 controller/gate/contract/tests/state。
+- Remote clean checkout：`/root/tausb-sdh-checkouts/e2e-v0-52d57fd-worktree`；按 execution commit 建立 detached clean worktree，禁止在旧 checkout 上直接写脚本。
+- Project root：`/root/tausb-sdh-checkouts/e2e-v0-52d57fd-worktree/ue_project`
 - 旧 `/root/autodl-tmp` 只提供经 hash 核验的数据和 checkpoint，禁止作为可执行代码目录。
 - Python：`/root/miniconda3/bin/python`
 - Device：`cuda:0`
@@ -283,13 +283,13 @@ Success 与 Failure 之间标记 `inconclusive_tradeoff`。mechanism/smoke/成�
 
 ## 8. Pre-run Review
 
-- reviewed branch/commit：`pending; implementation 后重新冻结`
-- exact controller payload/hash：`pending`
-- old mechanism-only contract superseded marker：`pending`
-- input/config/output non-overwrite：`pending`
-- shutdown trap success/fail/timeout paths：`pending`
-- smoke → E20 dataflow/cost gate：`pending`
-- result：`pending`
+- reviewed branch/commit：`codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3@52d57fd005a318c912f5e43a5cf91dfe1357cddf`
+- exact controller payload/hash：`research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/pre_run/oneboot_run_contract.json`；payload `6bebac2825a38fa0d42b4f177b281bafb62d71931c96840901fd1a081ebb47ac`
+- old mechanism-only contract superseded marker：`oneboot_run_contract.json:supersedes`
+- input/config/output non-overwrite：`pass`；fresh roots、无 resume/override、commit/hash 绑定。
+- shutdown trap success/fail/timeout paths：`pass`；wrapper success/failure 与 wall timeout 测试通过。
+- smoke → E20 dataflow/cost gate：`pass`；每臂先验证，paired review 后才允许 E20。
+- result：`pass / allow_run`
 
 在本节为 `pass` 前不要开启 GPU。
 
