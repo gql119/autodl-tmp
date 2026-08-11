@@ -206,3 +206,7 @@ seed, if eventually run, remains tentative.
   both files pass `bash -n`. `PRERUN-HIDING-01` is closed. The only authorized next command is
   `/bin/bash /root/verify_and_launch_sdh_hiding_e3f6744.sh` after GPU mode is enabled; executing
   any inner Python or tmux command directly would bypass the reviewed cost guard.
+- 2026-08-11: User enabled GPU mode. Selected `REMOTE-HIDING-01` and recorded the frozen
+  execution owner, code commit `e3f6744`, session, log, artifact root, 20-minute cap and the
+  only allowed launch-gate command before remote execution. No inner command is launched
+  outside the reviewed gate.
