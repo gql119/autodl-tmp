@@ -190,6 +190,18 @@ def test_v0_experiment_config_is_exact_and_formal_cannot_opt_in() -> None:
     config = yaml.safe_load(retry_path.read_text(encoding="utf-8"))
     config["spec"]["spec_id"] = sdh_experiment.E2E_V0_SPEC_ID
     config["runtime"]["artifact_root"] = "/root/tausb-sdh-runs/e2e-v0-mechanism"
+    config["dataset"].update(
+        {
+            "expected_train_images": 16551,
+            "expected_person_images": 6095,
+            "train_image_manifest_sha256": (
+                sdh_experiment.E2E_V0_TRAIN_IMAGE_MANIFEST_SHA256
+            ),
+        }
+    )
+    config["model"]["surrogate_checkpoint_sha256"] = (
+        sdh_experiment.E2E_V0_SURROGATE_CHECKPOINT_SHA256
+    )
     config["hiding"].update(
         {
             "source_artifact_root": (
@@ -205,6 +217,98 @@ def test_v0_experiment_config_is_exact_and_formal_cannot_opt_in() -> None:
     config["spec"]["spec_id"] = "TAUSB-SDH-LFC-CICR-CGR-NLA-MAP50-v3"
     with pytest.raises(ValueError, match="restricted to the E2E V0 Spec"):
         sdh_experiment.validate_sdh_experiment_config(config)
+
+
+def test_v0_experiment_config_rejects_unbound_surrogate() -> None:
+    config_path = (
+        Path(__file__).parents[1]
+        / "ue_framework"
+        / "configs"
+        / "tausb_sdh_e2e_v0_mechanism.yaml"
+    )
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config["model"]["surrogate_checkpoint_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="surrogate checkpoint hash mismatch"):
+        sdh_experiment.validate_sdh_experiment_config(config)
+
+
+def test_v0_runtime_inputs_are_content_bound(tmp_path, monkeypatch) -> None:
+    image_dir = tmp_path / "dataset" / "images" / "train"
+    label_dir = tmp_path / "dataset" / "labels" / "train"
+    image_dir.mkdir(parents=True)
+    label_dir.mkdir(parents=True)
+    for index in range(2):
+        (image_dir / ("%06d.jpg" % index)).write_bytes(b"image" + bytes([index]))
+        (label_dir / ("%06d.txt" % index)).write_text(
+            "14 0.5 0.5 0.2 0.3\n", encoding="utf-8"
+        )
+    surrogate = tmp_path / "surrogate.pt"
+    surrogate.write_bytes(b"surrogate")
+    source = tmp_path / "source.jpg"
+    source.write_bytes(b"source")
+    manifest_path = tmp_path / "a" / "b" / "c" / "manifest.json"
+    manifest_path.parent.mkdir(parents=True)
+    manifest_path.write_text("{}", encoding="utf-8")
+    primary = torch.zeros((1, 3, 4, 4), dtype=torch.float32)
+    source_hash = sdh_experiment._file_sha256(source)
+    manifest_hash = "a" * 64
+
+    def fake_secret_bank(config, base):
+        return primary.clone(), 0, {
+            "manifest_path": str(manifest_path),
+            "manifest_sha256": manifest_hash,
+            "records": [
+                {
+                    "source_id": "primary",
+                    "source_file": "source.jpg",
+                    "source_sha256": source_hash,
+                }
+            ],
+        }
+
+    monkeypatch.setattr(sdh_experiment, "_load_secret_bank", fake_secret_bank)
+    config = {
+        "dataset": {
+            "expected_train_images": 2,
+            "train_image_manifest_sha256": sdh_experiment._path_size_manifest_sha256(
+                list(image_dir.glob("*.jpg"))
+            ),
+            "train_label_manifest_sha256": sdh_experiment._path_content_manifest_sha256(
+                list(label_dir.glob("*.txt"))
+            ),
+        },
+        "model": {
+            "surrogate_checkpoint": str(surrogate),
+            "surrogate_checkpoint_sha256": sdh_experiment._file_sha256(surrogate),
+        },
+        "secrets": {
+            "primary_tensor_sha256": sdh_experiment._float_tensor_sha256(primary),
+        },
+    }
+    hashes = sdh_experiment._validate_e2e_v0_runtime_inputs(
+        config,
+        config_base=tmp_path,
+        image_dir=image_dir,
+        label_dir=label_dir,
+        hiding_state={"secret_manifest_sha256": manifest_hash, "primary_index": 0},
+        primary_secret=primary,
+    )
+    assert hashes["train_image_count"] == 2
+    assert hashes["train_label_count"] == 2
+    assert hashes["surrogate_checkpoint_sha256"] == config["model"][
+        "surrogate_checkpoint_sha256"
+    ]
+
+    surrogate.write_bytes(b"different")
+    with pytest.raises(ValueError, match="surrogate checkpoint file hash mismatch"):
+        sdh_experiment._validate_e2e_v0_runtime_inputs(
+            config,
+            config_base=tmp_path,
+            image_dir=image_dir,
+            label_dir=label_dir,
+            hiding_state={"secret_manifest_sha256": manifest_hash, "primary_index": 0},
+            primary_secret=primary,
+        )
 
 
 def _feasibility_payload(carrier: SemanticHidingCarrier) -> dict:

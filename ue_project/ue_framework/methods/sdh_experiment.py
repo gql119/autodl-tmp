@@ -65,6 +65,15 @@ E2E_V0_R2_CHECKPOINT_SHA256 = (
 E2E_V0_R2_METRICS_SHA256 = (
     "c7d1b120ffbadeb7385be41669dda704b00a2cee60940e3c3d97112e24e59246"
 )
+E2E_V0_SURROGATE_CHECKPOINT_SHA256 = (
+    "8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89"
+)
+E2E_V0_TRAIN_IMAGE_MANIFEST_SHA256 = (
+    "4954727df8686532a788668fd815092112ac3e3ee1414eba83b616e683708fbd"
+)
+E2E_V0_TRAIN_LABEL_MANIFEST_SHA256 = (
+    "3cd05ad1ab6a546bf2afd5e63cb6c3ff6667064d80af129dd819325625b9d848"
+)
 E2E_V0_ALLOWED_FAILED_HIDING_CHECKS = frozenset(
     ("rms_diversity", "delta_high_frequency")
 )
@@ -99,6 +108,22 @@ def _canonical_json_sha256(payload: Any) -> str:
         ensure_ascii=False,
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _path_size_manifest_sha256(paths: Sequence[Path]) -> str:
+    records = [
+        {"name": path.name, "size": path.stat().st_size}
+        for path in sorted(paths, key=lambda item: item.name)
+    ]
+    return _canonical_json_sha256(records)
+
+
+def _path_content_manifest_sha256(paths: Sequence[Path]) -> str:
+    records = [
+        {"name": path.name, "sha256": _file_sha256(path)}
+        for path in sorted(paths, key=lambda item: item.name)
+    ]
+    return _canonical_json_sha256(records)
 
 
 def _float_tensor_sha256(tensor: torch.Tensor) -> str:
@@ -396,6 +421,22 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
             E2E_V0_R2_CHECKPOINT_SHA256
         ):
             raise ValueError("E2E V0 hiding checkpoint hash must match frozen r2.")
+        if int(config["dataset"].get("expected_train_images", -1)) != 16551:
+            raise ValueError("E2E V0 requires exactly 16551 training images.")
+        if int(config["dataset"].get("expected_person_images", -1)) != 6095:
+            raise ValueError("E2E V0 requires exactly 6095 person training images.")
+        if str(config["dataset"].get("train_image_manifest_sha256", "")).lower() != (
+            E2E_V0_TRAIN_IMAGE_MANIFEST_SHA256
+        ):
+            raise ValueError("E2E V0 training image manifest hash mismatch.")
+        if str(config["dataset"].get("train_label_manifest_sha256", "")).lower() != (
+            E2E_V0_TRAIN_LABEL_MANIFEST_SHA256
+        ):
+            raise ValueError("E2E V0 training label manifest hash mismatch.")
+        if str(config["model"].get("surrogate_checkpoint_sha256", "")).lower() != (
+            E2E_V0_SURROGATE_CHECKPOINT_SHA256
+        ):
+            raise ValueError("E2E V0 surrogate checkpoint hash mismatch.")
         source_root = _resolve(
             Path("."), str(config["hiding"]["source_artifact_root"])
         )
@@ -445,6 +486,63 @@ def _load_secret_bank(config: Mapping[str, Any], base: Path) -> Tuple[torch.Tens
         "manifest_path": str(manifest_path),
         "manifest_sha256": actual_manifest_sha256,
         "records": selected,
+    }
+
+
+def _validate_e2e_v0_runtime_inputs(
+    config: Mapping[str, Any],
+    *,
+    config_base: Path,
+    image_dir: Path,
+    label_dir: Path,
+    hiding_state: Mapping[str, Any],
+    primary_secret: torch.Tensor,
+) -> Dict[str, Any]:
+    image_paths = sorted(image_dir.glob("*.jpg"), key=lambda path: path.name)
+    label_paths = sorted(label_dir.glob("*.txt"), key=lambda path: path.name)
+    expected_count = int(config["dataset"]["expected_train_images"])
+    if len(image_paths) != expected_count or len(label_paths) != expected_count:
+        raise ValueError("E2E V0 training image/label counts do not match the frozen input.")
+    image_manifest = _path_size_manifest_sha256(image_paths)
+    label_manifest = _path_content_manifest_sha256(label_paths)
+    if image_manifest != str(config["dataset"]["train_image_manifest_sha256"]).lower():
+        raise ValueError("E2E V0 training image manifest file hash mismatch.")
+    if label_manifest != str(config["dataset"]["train_label_manifest_sha256"]).lower():
+        raise ValueError("E2E V0 training label manifest file hash mismatch.")
+
+    surrogate_path = _resolve(
+        config_base, str(config["model"]["surrogate_checkpoint"])
+    )
+    surrogate_hash = _file_sha256(surrogate_path)
+    if surrogate_hash != str(config["model"]["surrogate_checkpoint_sha256"]).lower():
+        raise ValueError("E2E V0 surrogate checkpoint file hash mismatch.")
+
+    secret_bank, primary_index, secret_meta = _load_secret_bank(config, config_base)
+    repository_root = Path(secret_meta["manifest_path"]).parents[3]
+    for record in secret_meta["records"]:
+        source_path = _resolve(repository_root, str(record["source_file"]))
+        if _file_sha256(source_path) != str(record["source_sha256"]).lower():
+            raise ValueError("Secret source file hash mismatch: %s" % record["source_id"])
+    if hiding_state.get("secret_manifest_sha256") != secret_meta["manifest_sha256"]:
+        raise ValueError("E2E V0 hiding checkpoint secret manifest mismatch.")
+    if int(hiding_state.get("primary_index", -1)) != int(primary_index):
+        raise ValueError("E2E V0 hiding checkpoint primary secret index mismatch.")
+    expected_primary = secret_bank[primary_index : primary_index + 1]
+    actual_primary = primary_secret.detach().cpu().float()
+    if _float_tensor_sha256(actual_primary) != str(
+        config["secrets"]["primary_tensor_sha256"]
+    ).lower():
+        raise ValueError("E2E V0 hiding checkpoint primary tensor hash mismatch.")
+    if not torch.equal(actual_primary, expected_primary):
+        raise ValueError("E2E V0 hiding checkpoint primary tensor differs from manifest.")
+    return {
+        "train_image_count": len(image_paths),
+        "train_label_count": len(label_paths),
+        "train_image_manifest_sha256": image_manifest,
+        "train_label_manifest_sha256": label_manifest,
+        "surrogate_checkpoint_sha256": surrogate_hash,
+        "secret_manifest_sha256": secret_meta["manifest_sha256"],
+        "primary_secret_tensor_sha256": _float_tensor_sha256(actual_primary),
     }
 
 
@@ -883,8 +981,23 @@ def run_mechanism_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict
     dataset_root = _resolve(config_base, str(config["dataset"]["root"]))
     image_dir = dataset_root / str(config["dataset"]["train_images"])
     label_dir = dataset_root / str(config["dataset"]["train_labels"])
+    runtime_input_hashes = None
+    if str(config["spec"].get("spec_id", "")) == E2E_V0_SPEC_ID:
+        runtime_input_hashes = _validate_e2e_v0_runtime_inputs(
+            config,
+            config_base=config_base,
+            image_dir=image_dir,
+            label_dir=label_dir,
+            hiding_state=hiding_state,
+            primary_secret=primary_secret,
+        )
     batch_size = int(config["mechanism"]["batch_size"])
     paths = _person_paths(image_dir, label_dir, 14)
+    if (
+        str(config["spec"].get("spec_id", "")) == E2E_V0_SPEC_ID
+        and len(paths) != int(config["dataset"]["expected_person_images"])
+    ):
+        raise ValueError("E2E V0 person-image count does not match the frozen input.")
     split = deterministic_person_split(
         paths,
         label_dir=label_dir,
@@ -1236,6 +1349,8 @@ def run_mechanism_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict
             "p1_operational_checks": p1_operational_checks,
             "p1_delta_linf": p1_delta_linf,
         }
+        if runtime_input_hashes is not None:
+            result["runtime_input_hashes"] = runtime_input_hashes
         if feasibility_mode:
             result["feasibility_state"] = {
                 "path": str(artifact_root / "p1_feasibility_sdh_state.pt"),
