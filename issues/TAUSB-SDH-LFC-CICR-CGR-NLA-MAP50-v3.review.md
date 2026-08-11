@@ -210,3 +210,10 @@ seed, if eventually run, remains tentative.
   execution owner, code commit `e3f6744`, session, log, artifact root, 20-minute cap and the
   only allowed launch-gate command before remote execution. No inner command is launched
   outside the reviewed gate.
+- 2026-08-11: The reviewed launch gate passed on an idle NVIDIA GeForce RTX 4090 D: exact
+  commit and wrapper hash matched, both output roots were fresh, CUDA/config inputs passed,
+  and tmux session `tausb-sdh-hiding-s0-e3f6744-r1` started. Both the immediate and one
+  bounded follow-up health check then received SSH connection refusal. This is consistent
+  with the wrapper's automatic shutdown path, but the run outcome is deliberately recorded
+  as uninspected until no-card recovery can read the control log/status. No rerun was made
+  and no hiding completion or metric claim is recorded.
