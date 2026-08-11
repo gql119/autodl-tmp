@@ -172,7 +172,7 @@ def _first_person_host(path: Path, label_dir: Path, device: torch.device) -> tor
     targets = [item for item in annotations if int(item["cls"]) == 14]
     if not targets:
         raise ValueError("Person host path has no person label.")
-    x1, y1, x2, y2 = _bbox_to_pixels(targets[0]["bbox"], image.shape[0], image.shape[1])
+    x1, y1, x2, y2 = _bbox_to_pixels(targets[0]["bbox"], image.shape[1], image.shape[0])
     crop = image[y1:y2, x1:x2]
     if crop.size == 0:
         raise ValueError("Person host crop is empty.")

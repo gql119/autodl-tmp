@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-11T04:30:42.604679+00:00",
+  "exp_id": "TAUSB-SDH-LFC-CICR-CGR-NLA-S0",
+  "remote_artifact_root": "/root/tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0",
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-LFC-CICR-CGR-NLA-S0/remote_artifacts",
+  "selected_files": 3,
+  "transferred": [
+    "hiding-e3f6744-r1/cost-guard-status.json",
+    "hiding-e3f6744-r1/hiding.log",
+    "hiding-e3f6744-r1/ready/status_hiding.json"
+  ],
+  "existing_skipped": [],
+  "failed": [],
+  "verification": {
+    "present": [
+      {
+        "relative_path": "hiding-e3f6744-r1/cost-guard-status.json",
+        "bytes": 185,
+        "sha256": "6f79a9cddf9376238be19cfbcc89597ec5edbba2acf71e975b3fd12c60497bdc"
+      },
+      {
+        "relative_path": "hiding-e3f6744-r1/hiding.log",
+        "bytes": 967,
+        "sha256": "54732fed14238332068e89fb709bf5108386ff197f663d29c5125ee08fc65a68"
+      },
+      {
+        "relative_path": "hiding-e3f6744-r1/ready/status_hiding.json",
+        "bytes": 1030,
+        "sha256": "a0df443edb1b5e68ce875a2ef96c6ea77680215842851f17d52d69710f3adc0a"
+      }
+    ],
+    "missing_required": []
+  },
+  "credentials_persisted": false
+}

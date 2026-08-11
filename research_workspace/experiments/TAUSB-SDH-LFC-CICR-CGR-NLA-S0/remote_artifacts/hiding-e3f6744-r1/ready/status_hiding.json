@@ -1,0 +1,9 @@
+{
+  "stage": "hiding",
+  "status": "failed",
+  "started_unix": 1786420202.838912,
+  "ended_unix": 1786420208.4722629,
+  "error_type": "ValueError",
+  "error": "Person host crop is empty.",
+  "traceback": "Traceback (most recent call last):\n  File \"/root/tausb-sdh-checkouts/6f4d5d8-worktree/ue_project/ue_framework/tools/run_tausb_sdh.py\", line 39, in main\n    result = run_hiding_pilot(config, config_base=project_root)\n  File \"/root/tausb-sdh-checkouts/6f4d5d8-worktree/ue_project/ue_framework/methods/sdh_experiment.py\", line 456, in run_hiding_pilot\n    heldout_hosts = [\n  File \"/root/tausb-sdh-checkouts/6f4d5d8-worktree/ue_project/ue_framework/methods/sdh_experiment.py\", line 457, in <listcomp>\n    _first_person_host(path, label_dir, device) for path in split[\"heldout\"]\n  File \"/root/tausb-sdh-checkouts/6f4d5d8-worktree/ue_project/ue_framework/methods/sdh_experiment.py\", line 178, in _first_person_host\n    raise ValueError(\"Person host crop is empty.\")\nValueError: Person host crop is empty.\n"
+}

@@ -217,3 +217,23 @@ seed, if eventually run, remains tentative.
   with the wrapper's automatic shutdown path, but the run outcome is deliberately recorded
   as uninspected until no-card recovery can read the control log/status. No rerun was made
   and no hiding completion or metric claim is recorded.
+- 2026-08-11: No-card recovery pulled and hash-verified exactly three r1 failure files with
+  no missing required evidence. The cost guard records `failed / hiding_pilot` and the formal
+  hiding artifact root was never created. The traceback reaches the first failed boundary in
+  `_first_person_host`: `Person host crop is empty.`
+- 2026-08-11: A read-only probe on the exact deterministic split found that
+  `_first_person_host` passes `(image height, image width)` to `_bbox_to_pixels`, whose contract
+  is `(width, height)`. This makes three of 96 held-out slices empty (`000805`, `000829`, and
+  `2009_000337`) while calibration happens to have none. Passing the dimensions in the
+  documented order yields zero empty crops across all 64 calibration and 96 held-out hosts.
+  The failure is therefore a deterministic coordinate-order bug, not an invalid VOC label.
+  `REMOTE-HIDING-01` is closed as a preserved failed attempt; `HIDING-CROP-FIX-01` is selected,
+  followed by a new pre-run review and a distinct r2 remote retry. No GPU retry is authorized
+  until those gates pass.
+- 2026-08-11: Implemented the source-level fix as one argument-order change only; no host is
+  skipped and the split/filter protocol is unchanged. Three synthetic regressions matching the
+  failed portrait/landscape edge boxes pass, the focused SDH suite passes 66 tests, the shared
+  support regression passes, and the three actual local VOC files now return finite
+  `3x256x256` hosts. A local full-dataset scan reached its 120-second I/O cap without returning
+  a result, so it is not counted as passing evidence; the exact full 160-host check remains a
+  required no-card validation on the fixed AutoDL checkout before retry review.
