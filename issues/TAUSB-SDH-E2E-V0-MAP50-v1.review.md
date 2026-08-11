@@ -4,8 +4,8 @@
 
 - Approved Spec: `docs/research/specs/TAUSB-SDH-E2E-V0-MAP50-v1.md`.
 - Durable state source: `issues/TAUSB-SDH-E2E-V0-MAP50-v1.csv`.
-- Active row: `PRERUN-MECH-01`.
-- GPU state: not started by this workflow; the current AutoDL SSH endpoint refused the read-only audit connection.
+- Active row: none; next gated row is `REMOTE-MECH-01`, which requires GPU mode.
+- GPU state: no GPU job started; the required no-card audit completed and the instance is being shut down after evidence persistence.
 - Branch: `codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3`.
 - Reviewed code snapshot: `3a7a1aa`.
 
@@ -17,13 +17,13 @@ Obtain one real, paired, single-seed 20-epoch VOC AP50 result for the current co
 
 - The r2 hiding checkpoint failed the original RMS-diversity and high-frequency scientific gates. Those failures must remain visible in every feasibility artifact.
 - The formal `tausb_sdh` loader and 200-epoch protocol must remain fail closed.
-- No remote mechanism, integration smoke, or E20 run may start before its dedicated pre-run review passes on pushed commit `3a7a1aa`.
-- Current blocker: the AutoDL endpoint is unreachable, so current remote hashes, fresh-root state, GPU state, tmux, disk, and shutdown executable cannot yet be re-audited.
+- The next run must use the exact mechanism contract committed in `27e434d`; it may not substitute the old dirty repository or start victim/smoke/E20 stages.
+- External prerequisite: AutoDL GPU mode must be enabled before `REMOTE-MECH-01` can launch.
 - The worktree contains unrelated user changes; only explicitly scoped V0 files may be staged later.
 
 ## Pre-run decision
 
-`blocked / do_not_run`. The code-side review is complete, but the required current remote read-only audit has not run because SSH returned `connection refused`. No GPU command is authorized.
+`pass / allow_run` for `REMOTE-MECH-01` only, bound to code commit `3a7a1aaff912d0904794a91a4d3512d18b5c69fa`, config SHA-256 `46f757af...c56`, and the clean detached worktree recorded below. This does not authorize any victim, smoke, E20, or AP50 stage.
 
 ## PRERUN-REVIEW-1
 
@@ -45,6 +45,27 @@ Obtain one real, paired, single-seed 20-epoch VOC AP50 result for the current co
 - Recoverability/secrecy: no credentials are stored; tmux/log/status/shutdown availability remains to be checked remotely.
 - Blockers: SSH to the configured AutoDL endpoint returned `connection refused`.
 - Validation gaps: current remote branch/commit, input files, output root, GPU, environment, disk, tmux, and shutdown executable.
+
+## PRERUN-REVIEW-2
+
+- Result: `pass`.
+- Decision: `allow_run` for `REMOTE-MECH-01` only.
+- Gated run: mechanism-only `MECH-V0-S0-R1`; victim, materialization, smoke, E20, evaluation, aggregate, and AP50 are forbidden.
+- Code snapshot: branch `codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3`, code commit `3a7a1aaff912d0904794a91a4d3512d18b5c69fa`.
+- Intent: unchanged r2 → T0/T1/P0/P1 8-step mechanism and truthful P1 feasibility persistence.
+- Code location: `ue_framework.tools.run_tausb_sdh` → `run_mechanism_pilot` → exact input loader → observation/objective/CGR/NLA → feasibility-state sink.
+- Parameter data flow: remote CPU probe exercised the real config validator, r2 loader, dataset manifests, secret source/manifest/tensor, surrogate hash, and person enumeration before GPU use.
+- Runtime state: clean detached worktree `/root/tausb-sdh-checkouts/e2e-v0-3a7a1aa-worktree`; the pre-existing dirty `/root/autodl-tmp` repository is input-only and never used as executable code.
+- Sink effect: mechanism writes only its unique root and preserves `hiding_gate_passed=false` plus the actual mechanism decision.
+- Baseline/disable path: the four switch arms remain unchanged; formal failed-gate loading remains rejected by tests.
+- Local validation: 105 related tests, compile, Python 3.8 AST, config parse, CLI, diff, and local real-VOC manifest checks passed.
+- Minimal probe: remote no-card CPU execution loaded the actual r2 checkpoint and matched 16,551 image/label records, 6,095 person images, both dataset manifests, hiding split, secret manifest/tensor, and surrogate SHA-256.
+- Run command binding: `research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/pre_run/mechanism_run_contract.json`; tmux session `tausb-sdh-e2e-v0-mech-s0-r1`; payload SHA-256 `e7d2f634...a261`.
+- Experiment validity: VOC20, person=14, epsilon=16/255, seed0, 8 steps, EOT/JND off, exact r2 and surrogate, and no victim stage are fixed.
+- Output non-overwrite: `/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH` is fresh and the payload refuses to run if it exists.
+- Recoverability/secrecy: external log, status, metrics, P1 paths, tmux health checks, 1,200-second timeout, 900-second internal cap, and automatic shutdown are frozen; no credentials are stored.
+- Blockers: none in code or remote inputs; GPU mode is an external prerequisite for launch.
+- Validation gaps: mechanism metrics and P1 state do not exist until the GPU run completes; no scientific or AP50 claim is made.
 
 ## Final claim/evidence review
 
@@ -70,3 +91,7 @@ Obtain one real, paired, single-seed 20-epoch VOC AP50 result for the current co
 - 2026-08-11: `PRERUN-MECH-01` found one concrete binding gap in `7330a76`: surrogate, full dataset manifests, and secret provenance were recorded but not all content-verified at runtime. The gap was fixed without changing method equations in commit `3a7a1aa`.
 - 2026-08-11: Commit `3a7a1aa` passed 105 related tests, Python 3.8 AST/compile, config/CLI checks, and a real local VOC manifest recomputation; it was pushed normally to the same branch.
 - 2026-08-11: Current remote read-only audit could not start because the configured AutoDL SSH endpoint refused the connection. Pre-run remains blocked and no GPU command was launched.
+- 2026-08-11: User enabled no-card mode. The existing `/root/autodl-tmp` checkout was found to be an old dirty branch, so it was preserved and excluded from execution.
+- 2026-08-11: Created clean detached worktree `/root/tausb-sdh-checkouts/e2e-v0-3a7a1aa-worktree` at exact code commit `3a7a1aaff912d0904794a91a4d3512d18b5c69fa`; no existing file or artifact was deleted, reset, or cleaned.
+- 2026-08-11: Remote CPU sink probe passed the real V0 loader and content binding: VOC counts/manifests, person=6095, r2 hashes/split, secret manifest/tensor, and surrogate hash all match. The unique mechanism root is fresh; tmux, timeout, shutdown, environment, and disk checks pass.
+- 2026-08-11: Closed `PRERUN-MECH-01` as `pass / allow_run` for mechanism only. The audit and 20-minute auto-shutdown run contract were committed as `27e434d`; no GPU process was started.
