@@ -1,0 +1,62 @@
+{
+  "schema": "tausb.sdh-sb25-remote-input-audit.v1",
+  "created": "2026-08-11",
+  "spec_id": "TAUSB-SDH-HIDING-SB-v1",
+  "exp_id": "TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25",
+  "branch": "codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3",
+  "implementation_commit": "7f59ab84483f02207594fe6bf89ff870035685cd",
+  "code_commit": "d244c3270eb24d7a6515e79ff643cb015ebb0bb9",
+  "checkout_root": "/root/autodl-tmp-sdh-sb25-d244c32",
+  "artifact_root": "/root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25",
+  "control_root": "/root/tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding-d244c32-r1",
+  "session": "tausb_sdh_hiding_sb25_r1",
+  "environment": {
+    "python": "3.8.10",
+    "torch": "2.0.0+cu118",
+    "ultralytics": "8.4.33",
+    "cuda_available_during_audit": false,
+    "mode": "no_card",
+    "disk_free_bytes": 21487345664
+  },
+  "dataset": {
+    "train_images": 16551,
+    "train_person_images": 6095,
+    "train_label_content_manifest_sha256": "3cd05ad1ab6a546bf2afd5e63cb6c3ff6667064d80af129dd819325625b9d848",
+    "deterministic_split_sha256": "9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280"
+  },
+  "inputs": {
+    "secret_manifest_canonical_json_sha256": "a25277499e07310e68a39277461f176dd0d8666e69a4b890328d7b913601ac3e",
+    "primary_source_sha256": "66bd89ebef12b21d578341e945d56ed315372b213e52c2cc07d2110543cc6a48",
+    "surrogate_checkpoint_sha256": "8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89",
+    "r2_hiding_checkpoint_sha256": "a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36",
+    "r2_architecture_sha256": "8812eb926f7b39637f9562a189d2aa001f3e45336e4e0aeb203954ac9929e7e6"
+  },
+  "active_binding": {
+    "config": "ue_framework/configs/tausb_sdh_hiding_sb25_v1.yaml",
+    "hf_subband_scale": 0.25,
+    "rms_cv_gate_enabled": false,
+    "stage": "hiding",
+    "max_seconds": 1200
+  },
+  "checks": {
+    "exact_commit_clean_checkout": true,
+    "dataset_counts_match_frozen_audit": true,
+    "secret_bank_loads_four_verified_tensors": true,
+    "surrogate_hash_matches": true,
+    "legacy_scale_one_checkpoint_compatible": true,
+    "quarter_scale_reaches_haar_sink": true,
+    "rms_is_descriptive": true,
+    "artifact_root_fresh": true,
+    "checkout_path_unique": true,
+    "tmux_name_fresh": true,
+    "timeout_shutdown_tmux_present": true,
+    "gpu_job_not_started": true
+  },
+  "pass": true,
+  "notes": [
+    "The audit used a clean detached worktree and did not modify the pre-existing dirty repository.",
+    "The frozen r2 input audit supplies the unchanged dataset content manifests and split hash.",
+    "The active no-card probe parsed the approved config, loaded the four-secret bank, reached the quarter-scale Haar sink, and produced finite backward gradients.",
+    "No GPU process, hiding optimization, mechanism stage, victim training, or AP50 evaluation was started."
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "checkpoint": "/root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding/hiding_checkpoint.pt",
+  "checkpoint_sha256": "c3adb826e312fadacdd5086a5ca5e9606cbe07433d716676d4f1d0aff1da06d0",
+  "elapsed_seconds": 22.268665343523026,
+  "gate": {
+    "checks": {
+      "delta_high_frequency": true,
+      "dlfc_leakage_probe": true,
+      "finite": true,
+      "linf": true,
+      "pixel_diversity": true,
+      "primary_l1_margin": false,
+      "primary_recovery_ssim": true,
+      "retrieval_top1": false,
+      "rms_diversity": false,
+      "support": true
+    },
+    "claim_boundary": "hiding mechanics only; no detector or victim efficacy",
+    "leakage_probe": {
+      "cooccur_balanced_accuracy": 0.4583333134651184,
+      "cooccur_excess": -0.04166668653488159,
+      "cooccur_majority_balanced_baseline": 0.5,
+      "evaluated_non_target_classes": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        10,
+        11,
+        12,
+        13,
+        15,
+        17,
+        18
+      ],
+      "non_target_macro_auroc": 0.4770394924960452,
+      "pass": true
+    },
+    "metrics": {
+      "all_finite": true,
+      "channel_rms_cv": [
+        0.013113685883581638,
+        0.015314735472202301,
+        0.012006544508039951
+      ],
+      "high_frequency_energy_median": 0.034223251044750214,
+      "linf": 0.062745101749897,
+      "pairwise_pixel_cosine_median": 0.6824271082878113,
+      "primary_recovery_ssim_median": 0.6411425471305847,
+      "primary_relative_l1_margin_median": 0.06715869903564453,
+      "retrieval_top1": 0.4244791567325592,
+      "support_outside_max": 0.0
+    },
+    "pass": false,
+    "required_checks": [
+      "retrieval_top1",
+      "primary_recovery_ssim",
+      "primary_l1_margin",
+      "pixel_diversity",
+      "delta_high_frequency",
+      "linf",
+      "support",
+      "finite",
+      "dlfc_leakage_probe"
+    ],
+    "rms_cv_role": "descriptive",
+    "schema": "tausb.sdh-hiding-gate.v2",
+    "status": "fail"
+  },
+  "history_first": {
+    "cover": 0.00010082250082632527,
+    "gradient_l1": 35.97691345214844,
+    "reveal": 0.3397977352142334,
+    "step": 1,
+    "total": 0.3397987484931946
+  },
+  "history_last": {
+    "cover": 0.0037188369315117598,
+    "gradient_l1": 8.778850555419922,
+    "reveal": 0.25730565190315247,
+    "step": 120,
+    "total": 0.2573428452014923
+  },
+  "schema": "tausb.sdh-hiding-pilot.v1",
+  "spec_id": "TAUSB-SDH-HIDING-SB-v1",
+  "split_hash": "9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280"
+}

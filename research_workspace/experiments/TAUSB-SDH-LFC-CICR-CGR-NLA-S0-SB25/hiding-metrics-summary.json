@@ -1,0 +1,43 @@
+{
+  "schema": "tausb.sdh-hiding-summary.v1",
+  "spec_id": "TAUSB-SDH-HIDING-SB-v1",
+  "exp_id": "TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25",
+  "run_id": "HIDING-S0-SB25-R1",
+  "branch": "codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3",
+  "code_commit": "d244c3270eb24d7a6515e79ff643cb015ebb0bb9",
+  "seed": 0,
+  "stage": "hiding_only",
+  "status": "completed",
+  "gate_pass": false,
+  "elapsed_seconds": 22.268665343523026,
+  "metrics": {
+    "high_frequency_energy_median": 0.034223251044750214,
+    "retrieval_top1": 0.4244791567325592,
+    "primary_recovery_ssim_median": 0.6411425471305847,
+    "primary_relative_l1_margin_median": 0.06715869903564453,
+    "pairwise_pixel_cosine_median": 0.6824271082878113,
+    "channel_rms_cv": [0.013113685883581638, 0.015314735472202301, 0.012006544508039951],
+    "linf": 0.062745101749897,
+    "support_outside_max": 0.0,
+    "cooccur_balanced_accuracy": 0.4583333134651184,
+    "non_target_macro_auroc": 0.4770394924960452
+  },
+  "hard_failures": ["retrieval_top1", "primary_l1_margin"],
+  "descriptive_only": ["channel_rms_cv"],
+  "r2_deltas": {
+    "high_frequency_energy_median": -0.6375684812664986,
+    "retrieval_top1": -0.5755208432674408,
+    "primary_recovery_ssim_median": -0.026292860507965088,
+    "primary_relative_l1_margin_median": -0.2886062562465668,
+    "pairwise_pixel_cosine_median": -0.27612805366516113,
+    "cooccur_balanced_accuracy": -0.07291668653488159,
+    "non_target_macro_auroc": -0.07319731508865942
+  },
+  "evidence": {
+    "metrics_sha256": "9d2e804975d2cbe020dc0fc7b03254f9d2ebb56d3224995f168266d27ab8f67b",
+    "status_sha256": "08eb0685398c0aaeeaa2295f89a026b90a35a8155029454ddfbb37e49bb8357a",
+    "split_sha256": "0cc6bd107b33b842b9fbc511bc567293c0f72a90e164058fab2ce3d689c319d0",
+    "input_audit_sha256": "83aa3db3430eabc10e88a2f1b880cc177873fd6c640ffbd5f104f13b243daad9"
+  },
+  "claim_boundary": "hiding mechanics only; no detector, victim, AP50, unlearnability, visual-quality, robustness, or transfer claim"
+}

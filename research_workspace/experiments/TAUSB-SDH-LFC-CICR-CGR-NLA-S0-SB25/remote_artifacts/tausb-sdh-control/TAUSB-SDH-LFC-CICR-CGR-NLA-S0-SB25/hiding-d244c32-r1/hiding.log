@@ -1,0 +1,4 @@
+[Harness] stage=hiding_pilot detail=sb25_single_secret_no_mechanism_no_victim_no_eot_no_jnd time=2026-08-11T11:29:46Z
+[Harness] stage=evidence_snapshot detail=copy_minimal_hiding_results_before_shutdown time=2026-08-11T11:30:12Z
+[Harness] stage=completed detail=sb25_hiding_and_evidence_snapshot_complete time=2026-08-11T11:30:12Z
+[CostGuard] hiding_exit=0; requesting AutoDL shutdown

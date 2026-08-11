@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-11T12:15:22.8892662Z",
+  "exp_id": "TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25",
+  "remote_artifact_root": "/root",
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/remote_artifacts",
+  "transfer_mode": "exact_scp_fallback_after_inventory_rejected_unrelated_root_paths",
+  "selected_files": 9,
+  "transferred": [
+    "tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding-d244c32-r1/cost-guard-status.json",
+    "tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding-d244c32-r1/hiding.log",
+    "tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding-d244c32-r1/ready/hiding_metrics.json",
+    "tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding-d244c32-r1/ready/split_manifest.json",
+    "tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding-d244c32-r1/ready/status_hiding.json",
+    "tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding/hiding_metrics.json",
+    "tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding/split_manifest.json",
+    "tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/status_hiding.json",
+    "tausb_sdh_sb25_remote_input_audit.json"
+  ],
+  "existing_skipped": [],
+  "failed": [],
+  "verification": {
+    "missing_required": [],
+    "present": [
+      {"relative_path": "tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding-d244c32-r1/cost-guard-status.json", "bytes": 186, "sha256": "1a5dd273cf25061da3713ed6243962ba3ec78c79d28a622e190e660798b9dc6b"},
+      {"relative_path": "tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding-d244c32-r1/hiding.log", "bytes": 385, "sha256": "b09cf4dc4c5c545b6e7ba648721bfc6b59ba42d7f28b237d5b5b13b660142cba"},
+      {"relative_path": "tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding-d244c32-r1/ready/hiding_metrics.json", "bytes": 2514, "sha256": "9d2e804975d2cbe020dc0fc7b03254f9d2ebb56d3224995f168266d27ab8f67b"},
+      {"relative_path": "tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding-d244c32-r1/ready/split_manifest.json", "bytes": 2913, "sha256": "0cc6bd107b33b842b9fbc511bc567293c0f72a90e164058fab2ce3d689c319d0"},
+      {"relative_path": "tausb-sdh-control/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding-d244c32-r1/ready/status_hiding.json", "bytes": 143, "sha256": "08eb0685398c0aaeeaa2295f89a026b90a35a8155029454ddfbb37e49bb8357a"},
+      {"relative_path": "tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding/hiding_metrics.json", "bytes": 2514, "sha256": "9d2e804975d2cbe020dc0fc7b03254f9d2ebb56d3224995f168266d27ab8f67b"},
+      {"relative_path": "tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding/split_manifest.json", "bytes": 2913, "sha256": "0cc6bd107b33b842b9fbc511bc567293c0f72a90e164058fab2ce3d689c319d0"},
+      {"relative_path": "tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/status_hiding.json", "bytes": 143, "sha256": "08eb0685398c0aaeeaa2295f89a026b90a35a8155029454ddfbb37e49bb8357a"},
+      {"relative_path": "tausb_sdh_sb25_remote_input_audit.json", "bytes": 2873, "sha256": "83aa3db3430eabc10e88a2f1b880cc177873fd6c640ffbd5f104f13b243daad9"}
+    ],
+    "canonical_ready_hashes_match": true
+  },
+  "excluded": ["checkpoint", "weights", "dataset", "poisoned images", "credentials"],
+  "credentials_persisted": false
+}

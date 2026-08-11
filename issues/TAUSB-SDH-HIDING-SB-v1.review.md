@@ -70,3 +70,49 @@ independent gate and user decision.
   of successful completion: `status_hiding.json`, `hiding_metrics.json`, the guard state and log
   must be read after no-card restart. `REMOTE-HIDING-SB25-01` remains open with
   `shutdown_observed_artifact_pull_pending`; no GPU retry is authorized.
+- 2026-08-11: After no-card restart, the canonical status showed `completed`, exit code 0,
+  elapsed time `22.2687 s`, `gate_pass=false`, and the cost guard recorded the required shutdown
+  request. Nine small required files were pulled by exact SCP paths after the stock manifest
+  inventory rejected unrelated `/root` filenames. Local verify-only reported no missing required
+  files; canonical status, metrics and split hashes exactly match the ready snapshots. No
+  checkpoint, dataset, weights, images or credentials were transferred.
+- 2026-08-11: The revised gate failed only `retrieval_top1` (`0.424479 < 0.90`) and
+  `primary_l1_margin` (`0.067159 < 0.20`). High-frequency energy passed decisively at `0.034223`,
+  recovery SSIM was `0.641143`, pixel cosine `0.682427`, co-occurrence balanced accuracy
+  `0.458333`, and non-target macro-AUROC `0.477039`. RMS CV was reported descriptively and did
+  not determine the decision. Per the frozen gate, no mechanism, victim or AP50 work was started.
+
+## Objective scientific result
+
+`hf_subband_scale=0.25` is rejected. It corrected the r2 high-frequency failure but removed too
+much secret-discriminative capacity: broad reconstruction similarity remained, while bank-level
+secret identity retrieval and relative L1 separation failed. This is a spectral-capacity versus
+identity-recovery trade-off rather than a Pareto improvement.
+
+## Final evidence
+
+- Transfer report:
+  `research_workspace/experiments/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/remote_artifacts/transfer-report.json`.
+- Hiding-only summary:
+  `research_workspace/experiments/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/hiding-metrics-summary.json`.
+- H→E→N analysis:
+  `research_workspace/experiments/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/analysis/result-TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25.md`.
+- STATE proposal:
+  `research_workspace/experiments/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-SB25/analysis/state_candidate.md`.
+
+## Final claim/evidence review
+
+Decision: `vision_met` for the approved hiding-only execution contract. The scientific
+hypothesis itself is rejected. The implementation was bound to the reviewed commit, the capped
+run completed and shut down, all required small evidence was verified, every revised hard gate
+was judged without post-hoc changes, and the failure correctly blocked downstream work.
+
+No Current Best or `STATE.md` truth was changed automatically. No detector efficacy, AP50,
+unlearnability, non-target preservation, perceptual quality, robustness, transferability or SOTA
+claim is made. Missing visualization, PSNR and LPIPS are explicit validation gaps. The proposed
+single next experiment (`hf_subband_scale=0.50`) requires a new user-approved Spec.
+- 2026-08-11: The user approved the proposed failed-path disposition. `STATE.md` now records
+  the r2/SB25 spectral-capacity versus secret-identity trade-off, keeps Current Best unchanged,
+  blocks mechanism/victim/AP50, and lists a separately approved `hf_subband_scale=0.50`
+  hiding-only Spec as the only candidate continuation. This approval does not itself authorize a
+  new GPU run.
