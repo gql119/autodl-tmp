@@ -27,6 +27,12 @@ MECHANISM = (
     / "configs"
     / "tausb_sdh_mechanism_v3.yaml"
 )
+RETRY = (
+    Path(__file__).parents[1]
+    / "ue_framework"
+    / "configs"
+    / "tausb_sdh_mechanism_v3_r2.yaml"
+)
 
 
 def test_formal_sdh_config_is_registered_and_has_no_legacy_features() -> None:
@@ -104,6 +110,18 @@ def test_capped_mechanism_config_freezes_cost_and_protocol() -> None:
     assert config["mechanism"]["max_backtracks"] == 5
     assert config["mechanism"]["eot_enabled"] is False
     assert config["mechanism"]["jnd_enabled"] is False
+
+
+def test_retry_config_changes_only_the_formal_artifact_root() -> None:
+    original = yaml.safe_load(MECHANISM.read_text(encoding="utf-8"))
+    retry = yaml.safe_load(RETRY.read_text(encoding="utf-8"))
+    validate_sdh_experiment_config(retry)
+    assert retry["runtime"]["artifact_root"] == (
+        "/root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-r2"
+    )
+    original["runtime"].pop("artifact_root")
+    retry["runtime"].pop("artifact_root")
+    assert retry == original
 
 
 def test_secret_manifest_hash_is_line_ending_independent(tmp_path) -> None:

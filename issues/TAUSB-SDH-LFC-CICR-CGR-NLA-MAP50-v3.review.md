@@ -246,3 +246,16 @@ seed, if eventually run, remains tentative.
   their client timeouts because the container left probe processes running and had very slow
   data I/O; the processes subsequently exited, and no training or GPU process was involved.
   `HIDING-CROP-FIX-01` is closed and the independent retry pre-run review is now selected.
+- 2026-08-11: `PRERUN-HIDING-RETRY-01` is `blocked / do_not_run`. The r1 execution wrote
+  `status_hiding.json` into the formal parent root before failing; its SHA-256 matches the
+  pulled control snapshot. Therefore the original formal root is no longer fresh even though
+  its `hiding/` child is absent. No retry scripts were uploaded and no GPU run was started.
+  The minimum correction is a root-only r2 config plus matching wrapper/gate paths; deleting,
+  moving, or reusing r1 evidence is forbidden. `PRERUN-FIX-R2-ROOT-01` is selected and a new
+  independent review row follows it.
+- 2026-08-11: Added `tausb_sdh_mechanism_v3_r2.yaml`. A structural comparison removes
+  `runtime.artifact_root` from both documents and requires exact equality for every remaining
+  field; the retry root is `/root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-r2`.
+  Eight config tests and the 67-test focused SDH suite pass. The r2 wrapper and launch gate
+  are being rebound to this root and a never-executed clean worktree; they are not yet
+  authorized or uploaded until the root-only code snapshot is committed and re-reviewed.
