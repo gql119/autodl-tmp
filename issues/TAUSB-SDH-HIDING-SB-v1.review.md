@@ -61,3 +61,12 @@ independent gate and user decision.
   `1ab2898...c6a6`, `83aa3db...aad9`, and `80020b15...b5e`; both scripts passed local and remote
   `bash -n`. GPU mode was unavailable by design, the launch gate was not executed, and no
   experiment process started. The remote row now waits for the user to enable GPU mode.
+- 2026-08-11: After the user enabled GPU mode, the exact launch gate passed every check at
+  commit `d244c3270eb24d7a6515e79ff643cb015ebb0bb9`: clean checkout, wrapper/input hashes,
+  fresh artifact/control/session paths, 21.49 GB free disk, idle RTX 4090D, Python/Torch/
+  Ultralytics/CUDA inputs, secret bank and r2 compatibility. It launched tmux
+  `tausb_sdh_hiding_sb25_r1` with no mechanism or victim stage. The first follow-up SSH attempt
+  was refused, indicating the instance had already shut down as required. This is not yet proof
+  of successful completion: `status_hiding.json`, `hiding_metrics.json`, the guard state and log
+  must be read after no-card restart. `REMOTE-HIDING-SB25-01` remains open with
+  `shutdown_observed_artifact_pull_pending`; no GPU retry is authorized.
