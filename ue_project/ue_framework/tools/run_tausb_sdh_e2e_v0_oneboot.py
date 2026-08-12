@@ -8,6 +8,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -433,6 +434,25 @@ def _terminate(process: subprocess.Popen) -> None:
         process.kill()
 
 
+_FATAL_LOG_PATTERN = re.compile(
+    r"Traceback \(most recent call last\):"
+    r"|CUDA out of memory"
+    r"|torch\.OutOfMemoryError"
+    r"|(?:^|[\s,=:(])(?:nan|[-+]?inf)(?:$|[\s,)=])",
+    flags=re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _log_has_fatal_signal(log_path: Path) -> bool:
+    if not log_path.is_file():
+        return False
+    size = log_path.stat().st_size
+    with log_path.open("rb") as reader:
+        reader.seek(max(0, size - 128 * 1024))
+        tail = reader.read().decode("utf-8", errors="ignore")
+    return bool(_FATAL_LOG_PATTERN.search(tail))
+
+
 def run_guarded(
     *,
     stage: str,
@@ -467,6 +487,8 @@ def run_guarded(
                 first_growth = True
                 last_growth = now
                 previous_size = current_size
+                if _log_has_fatal_signal(log_path):
+                    reason = "fatal_log_signal"
             if require_gpu and not gpu_process_observed:
                 gpu_probe = subprocess.run(
                     (
@@ -479,7 +501,9 @@ def run_guarded(
                     check=False,
                 )
                 gpu_process_observed = bool(gpu_probe.stdout.strip())
-            if not first_growth and now - started >= first_progress_seconds:
+            if reason:
+                pass
+            elif not first_growth and now - started >= first_progress_seconds:
                 reason = "no_first_progress"
             elif require_gpu and not gpu_process_observed and now - started >= first_progress_seconds:
                 reason = "no_gpu_process"

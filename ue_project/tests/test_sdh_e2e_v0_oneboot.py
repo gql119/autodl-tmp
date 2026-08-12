@@ -28,6 +28,7 @@ from ue_framework.tools.run_tausb_sdh_e2e_v0_oneboot import (
     _launch_command,
     _run_controller,
     build_smoke_review,
+    _log_has_fatal_signal,
     run_guarded,
     validate_arm,
     validate_pair_identity,
@@ -311,6 +312,48 @@ def test_guarded_command_stops_at_wall_timeout(tmp_path: Path) -> None:
             cwd=tmp_path,
             log_path=tmp_path / "timeout.log",
             wall_seconds=1,
+            first_progress_seconds=30,
+            idle_seconds=30,
+        )
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Traceback (most recent call last):\nRuntimeError: boom",
+        "CUDA out of memory. Tried to allocate 1 GiB",
+        "loss=nan epoch=2",
+        "box_loss: inf, cls_loss: 0.2",
+    ],
+)
+def test_fatal_log_signal_detection(message: str, tmp_path: Path) -> None:
+    log = tmp_path / "stage.log"
+    log.write_text(message, encoding="utf-8")
+    assert _log_has_fatal_signal(log) is True
+
+
+def test_fatal_log_signal_ignores_words_containing_inf(tmp_path: Path) -> None:
+    log = tmp_path / "stage.log"
+    log.write_text("inference completed; information saved", encoding="utf-8")
+    assert _log_has_fatal_signal(log) is False
+
+
+def test_guarded_command_terminates_on_fatal_log_signal(tmp_path: Path) -> None:
+    with pytest.raises(GuardFailure, match="fatal_log_signal"):
+        run_guarded(
+            stage="FATAL_TEST",
+            command=(
+                sys.executable,
+                "-c",
+                (
+                    "import time; "
+                    "print('Traceback (most recent call last):', flush=True); "
+                    "time.sleep(60)"
+                ),
+            ),
+            cwd=tmp_path,
+            log_path=tmp_path / "fatal.log",
+            wall_seconds=30,
             first_progress_seconds=30,
             idle_seconds=30,
         )

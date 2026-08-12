@@ -29,6 +29,7 @@ from ue_framework.tools.run_tausb_sdh_sparse_e20 import (
     c0_ap50_is_interpretable,
     c0_full_horizon_sanity,
     validate_cache_environment,
+    validate_gpu_idle,
     validate_fresh_init_pair,
     write_terminal_evidence_manifest,
     validate_storage_roots,
@@ -244,6 +245,21 @@ def test_git_worktree_gate_observes_untracked_files(tmp_path) -> None:
     assert _git_worktree_status(tmp_path) == ""
     (tmp_path / "untracked.txt").write_text("runtime shadow", encoding="utf-8")
     assert "untracked.txt" in _git_worktree_status(tmp_path)
+
+
+def test_gpu_idle_gate_rejects_existing_compute_process(monkeypatch) -> None:
+    from types import SimpleNamespace
+
+    monkeypatch.setattr("shutil.which", lambda _name: "/usr/bin/nvidia-smi")
+    replies = iter(
+        [
+            SimpleNamespace(returncode=0, stdout="0, RTX 4090, 24564\n"),
+            SimpleNamespace(returncode=0, stdout="1234, python, 2048\n"),
+        ]
+    )
+    monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: next(replies))
+    with pytest.raises(GuardFailure, match="gpu_not_idle"):
+        validate_gpu_idle()
 
 
 def test_e200_c0_sanity_and_fresh_init_pair_gates() -> None:

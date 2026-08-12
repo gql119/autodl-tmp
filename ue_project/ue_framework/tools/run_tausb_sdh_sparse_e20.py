@@ -217,6 +217,38 @@ def _git_worktree_status(repository_root: Path) -> str:
     ).strip()
 
 
+def validate_gpu_idle() -> Dict[str, Any]:
+    if not shutil.which("nvidia-smi"):
+        raise GuardFailure("PRECHECK", "nvidia_smi_missing")
+    gpu = subprocess.run(
+        [
+            "nvidia-smi",
+            "--query-gpu=index,name,memory.total",
+            "--format=csv,noheader,nounits",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if gpu.returncode != 0 or not gpu.stdout.strip():
+        raise GuardFailure("PRECHECK", "no_visible_gpu")
+    processes = subprocess.run(
+        [
+            "nvidia-smi",
+            "--query-compute-apps=pid,process_name,used_gpu_memory",
+            "--format=csv,noheader,nounits",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if processes.returncode != 0:
+        raise GuardFailure("PRECHECK", "gpu_process_probe_failed")
+    if processes.stdout.strip():
+        raise GuardFailure("PRECHECK", "gpu_not_idle")
+    return {"gpu_rows": gpu.stdout.strip().splitlines(), "compute_processes": []}
+
+
 def _file_sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -677,6 +709,7 @@ def _run_controller(args: argparse.Namespace) -> int:
         raise GuardFailure("PRECHECK", "execution_checkout_not_clean")
     if any(path.exists() for path in fresh_paths):
         raise GuardFailure("PRECHECK", "fresh_output_path_already_exists")
+    gpu_precheck = validate_gpu_idle()
     cache_environment = (
         validate_cache_environment(cache_root, tmp_root)
         if cache_root is not None and tmp_root is not None
@@ -728,6 +761,7 @@ def _run_controller(args: argparse.Namespace) -> int:
                 if system_disk_monitor is not None
                 else None
             ),
+            "gpu_precheck": gpu_precheck,
             "disk_projection": disk,
             "historical_full_voc_e20_seconds_per_arm": 15.96 * 60,
             "expected_paired_wall_minutes": list(contract.expected_paired_wall_minutes),
