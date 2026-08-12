@@ -1,0 +1,50 @@
+{
+  "schema": "tausb.sdh-e2e-v0-oneboot-resume-run-contract.v1",
+  "created": "2026-08-12",
+  "spec_id": "TAUSB-SDH-E2E-V0-ONEBOOT-v2",
+  "parent_spec_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "run_id": "ONEBOOT-S0-R3",
+  "branch": "codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3",
+  "pre_run_code_commit": "34e28f1622f2b3f053de70e1cb0d013f62d42f15",
+  "metadata_commit": "c28d437d5f4e919fb4250e498bf3ecf2b120a431",
+  "checkout": "/root/tausb-sdh-checkouts/e2e-v0-34e28f1-r3-worktree",
+  "wrapper": "/root/tausb-sdh-checkouts/e2e-v0-34e28f1-r3-worktree/research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/pre_run/oneboot_r3_resume_controller.sh",
+  "wrapper_sha256": "92a7b53fc47e0f1f68dcb71ef016febe6f981ff9e0688535aab72c2d3c85889d",
+  "controller_module_sha256": "6d5461c124d3323509ad9c7d4256f4d900eb789940190f9ec60e3478a7b8e925",
+  "launch_gate_sha256": "01656d879efeaaca27b13209f4a6f633bd01f9c0a7981be0be98c69b199e26b8",
+  "tmux_session": "tausb-sdh-e2e-v0-oneboot-s0-r3",
+  "start_stage": "P1_VERIFY_AND_BIND_reuse_then_SMOKE_C0",
+  "mechanism_rerun": false,
+  "binding_root": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R2",
+  "binding_report_sha256": "a72615ddd66f2f679c4f1789d267e30cdbf1e33cd8595a32ebaec7ee10ddd029",
+  "frozen_state": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH/mechanism/p1_feasibility_sdh_state.pt",
+  "frozen_state_sha256": "c6c994384a563506126065382e35c941ba0bb0b2a21cd1d2dea63373bffd5168",
+  "control_root": "/root/tausb-sdh-control/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R3",
+  "log_root": "/root/tausb-sdh-logs/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R3",
+  "comparison_root": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-COMPARISON-R3",
+  "smoke_roots": [
+    "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2-SMOKE-C0",
+    "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2-SMOKE-M1"
+  ],
+  "e20_roots": [
+    "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2-E20-C0",
+    "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2-E20-M1"
+  ],
+  "smoke_paired_wall_cap_seconds": 7200,
+  "no_progress_guard_seconds": 1200,
+  "max_paired_e20_seconds": 28800,
+  "disk_safety_factor": 1.5,
+  "auto_shutdown_on_failure": true,
+  "auto_shutdown_on_final_completion": true,
+  "continue_after_smoke_only_if_review_passes": true,
+  "forbidden": [
+    "rerun_mechanism",
+    "force_resume",
+    "poisoned_root_override",
+    "200_epoch",
+    "robustness_transforms",
+    "new_seed",
+    "delete_existing_evidence"
+  ]
+}

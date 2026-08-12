@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-12T03:39:36.277213+00:00",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20-R2-MECHANISM",
+  "remote_artifact_root": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH",
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20-R2-MECHANISM/remote_artifacts",
+  "selected_files": 4,
+  "transferred": [
+    "mechanism/mechanism_metrics.json",
+    "mechanism/p1_feasibility_sdh_state.pt",
+    "mechanism/p1_state.pt",
+    "status_mechanism.json"
+  ],
+  "existing_skipped": [],
+  "failed": [],
+  "verification": {
+    "present": [
+      {
+        "relative_path": "mechanism/mechanism_metrics.json",
+        "bytes": 17578,
+        "sha256": "fa0b99cb3df0ad834ab20373a877022a640d5ab67bb53099de229bf949c77358"
+      },
+      {
+        "relative_path": "mechanism/p1_feasibility_sdh_state.pt",
+        "bytes": 1940977,
+        "sha256": "c6c994384a563506126065382e35c941ba0bb0b2a21cd1d2dea63373bffd5168"
+      },
+      {
+        "relative_path": "mechanism/p1_state.pt",
+        "bytes": 1153763,
+        "sha256": "2e102026a9356116de38acb1f5056bf5728afcd453e3447b516d4222f4d70b81"
+      },
+      {
+        "relative_path": "status_mechanism.json",
+        "bytes": 147,
+        "sha256": "c47a99a2a7b50320155c4fa335c0738e9ced85440674d38c701d0f7bf55760d9"
+      }
+    ],
+    "missing_required": []
+  },
+  "credentials_persisted": false
+}

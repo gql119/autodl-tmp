@@ -1,0 +1,554 @@
+{
+  "arms": {
+    "P0": {
+      "arm_id": "P0",
+      "backtrack_skip_ratio": 0.625,
+      "cicr_cosine_median": 0.29799477756023407,
+      "cicr_cosine_q25": 0.08319097757339478,
+      "dlfc_cosine_median": 0.99031662940979,
+      "dlfc_cosine_q25": 0.9844084084033966,
+      "floor_pass_ratio": 1.0,
+      "gradient_dlfc_cicr_cosine_median": -0.2184901274740696,
+      "gradient_dlfc_cicr_cosine_q25": -0.4551829919219017,
+      "nla_macro_loss": 0.00044783554039895535,
+      "per_scale_pooling_coverage": [
+        0.14835164835164835,
+        0.3333333333333333,
+        0.5727272727272728
+      ],
+      "probability_drop_by_class": {
+        "0": -9.239912469638512e-05,
+        "1": -0.00022961497234064154,
+        "10": 0.008322554640471935,
+        "11": 0.009369072504341602,
+        "12": -0.002638906240463257,
+        "13": 0.0017037302604876459,
+        "15": -0.00025864343479042873,
+        "16": 0.012296862667426467,
+        "17": 0.0006104111671447754,
+        "18": 0.00038294793921522796,
+        "19": 0.013965014179120772,
+        "3": 0.00035495165502652526,
+        "4": -0.0009212434088112786,
+        "5": 5.808471905766055e-05,
+        "6": -7.094442844390869e-05,
+        "8": -0.008707600645720959
+      },
+      "probability_drop_macro": 0.0002065181870420929,
+      "route_loss": 3.0261898040771484,
+      "steps": [
+        {
+          "accepted": false,
+          "attack_retention": 0.9712738990783691,
+          "backtrack_attempts": 6,
+          "constraint_rank": 1,
+          "max_final_row_dot": 8.642673492431641e-07,
+          "max_projected_row_dot": 8.642673492431641e-07,
+          "null_dimension": 3522,
+          "route_mode": "projected_target_plus_nla",
+          "step": 0
+        },
+        {
+          "accepted": true,
+          "attack_retention": 0.6362081170082092,
+          "backtrack_attempts": 1,
+          "constraint_rank": 6,
+          "max_final_row_dot": 9.357929229736328e-06,
+          "max_projected_row_dot": 9.357929229736328e-06,
+          "null_dimension": 3517,
+          "route_mode": "projected_target_plus_nla",
+          "step": 1
+        },
+        {
+          "accepted": true,
+          "attack_retention": 0.8899134397506714,
+          "backtrack_attempts": 1,
+          "constraint_rank": 1,
+          "max_final_row_dot": 4.76837158203125e-07,
+          "max_projected_row_dot": 4.76837158203125e-07,
+          "null_dimension": 3522,
+          "route_mode": "projected_target_plus_nla",
+          "step": 2
+        },
+        {
+          "accepted": true,
+          "attack_retention": 0.8692327737808228,
+          "backtrack_attempts": 1,
+          "constraint_rank": 1,
+          "max_final_row_dot": 5.364418029785156e-07,
+          "max_projected_row_dot": 5.364418029785156e-07,
+          "null_dimension": 3522,
+          "route_mode": "projected_target_plus_nla",
+          "step": 3
+        },
+        {
+          "accepted": false,
+          "attack_retention": 0.6742344498634338,
+          "backtrack_attempts": 6,
+          "constraint_rank": 1,
+          "max_final_row_dot": 1.9371509552001953e-07,
+          "max_projected_row_dot": 1.9371509552001953e-07,
+          "null_dimension": 3522,
+          "route_mode": "projected_target_plus_nla",
+          "step": 4
+        },
+        {
+          "accepted": false,
+          "attack_retention": 0.7710518836975098,
+          "backtrack_attempts": 6,
+          "constraint_rank": 3,
+          "max_final_row_dot": 6.720423698425293e-06,
+          "max_projected_row_dot": 6.720423698425293e-06,
+          "null_dimension": 3520,
+          "route_mode": "projected_target_plus_nla",
+          "step": 5
+        },
+        {
+          "accepted": false,
+          "attack_retention": 0.8390420079231262,
+          "backtrack_attempts": 6,
+          "constraint_rank": 1,
+          "max_final_row_dot": 1.6540288925170898e-06,
+          "max_projected_row_dot": 1.6540288925170898e-06,
+          "null_dimension": 3522,
+          "route_mode": "projected_target_plus_nla",
+          "step": 6
+        },
+        {
+          "accepted": false,
+          "attack_retention": 0.6027941107749939,
+          "backtrack_attempts": 6,
+          "constraint_rank": 2,
+          "max_final_row_dot": 5.888938903808594e-05,
+          "max_projected_row_dot": 5.888938903808594e-05,
+          "null_dimension": 3521,
+          "route_mode": "projected_target_plus_nla",
+          "step": 7
+        }
+      ],
+      "switches": {
+        "cgr": true,
+        "cicr": true,
+        "dlfc": true,
+        "nla": false
+      },
+      "valid_instance_coverage": 0.9705882352941176,
+      "zero_residual_ratio": 0.0
+    },
+    "P1": {
+      "arm_id": "P1",
+      "backtrack_skip_ratio": 0.375,
+      "cicr_cosine_median": 0.3362841010093689,
+      "cicr_cosine_q25": 0.05878079775720835,
+      "dlfc_cosine_median": 0.985985279083252,
+      "dlfc_cosine_q25": 0.9802007526159286,
+      "floor_pass_ratio": 1.0,
+      "gradient_dlfc_cicr_cosine_median": -0.1729566901922226,
+      "gradient_dlfc_cicr_cosine_q25": -0.4246116578578949,
+      "nla_macro_loss": 0.00040857061685528606,
+      "per_scale_pooling_coverage": [
+        0.16233766233766234,
+        0.3484848484848485,
+        0.6
+      ],
+      "probability_drop_by_class": {
+        "0": -8.722543861949816e-05,
+        "1": 9.881854384730104e-05,
+        "10": 0.003693830920383334,
+        "11": 0.012223068450111896,
+        "12": -0.0006990134716033936,
+        "13": 0.002170699881389737,
+        "15": -0.000185028970008716,
+        "16": 0.009278012672439218,
+        "17": 7.373690459644422e-05,
+        "18": -0.00019291043281555176,
+        "19": 0.025623041015933268,
+        "3": 0.001451909585739486,
+        "4": -0.001745522069541039,
+        "5": -3.24597058352083e-05,
+        "6": -0.00011255442950641736,
+        "8": -0.007782554719597101
+      },
+      "probability_drop_macro": 2.063859938061796e-05,
+      "route_loss": 2.901293396949768,
+      "steps": [
+        {
+          "accepted": true,
+          "attack_retention": 0.971257746219635,
+          "backtrack_attempts": 1,
+          "constraint_rank": 1,
+          "max_final_row_dot": 189.45892333984375,
+          "max_projected_row_dot": 3.2782554626464844e-06,
+          "null_dimension": 3522,
+          "route_mode": "projected_target_plus_nla",
+          "step": 0
+        },
+        {
+          "accepted": true,
+          "attack_retention": 0.717617392539978,
+          "backtrack_attempts": 1,
+          "constraint_rank": 6,
+          "max_final_row_dot": 8.971982955932617,
+          "max_projected_row_dot": 1.8715858459472656e-05,
+          "null_dimension": 3517,
+          "route_mode": "projected_target_plus_nla",
+          "step": 1
+        },
+        {
+          "accepted": true,
+          "attack_retention": 0.9219260215759277,
+          "backtrack_attempts": 1,
+          "constraint_rank": 1,
+          "max_final_row_dot": 0.24840450286865234,
+          "max_projected_row_dot": 8.344650268554688e-06,
+          "null_dimension": 3522,
+          "route_mode": "projected_target_plus_nla",
+          "step": 2
+        },
+        {
+          "accepted": true,
+          "attack_retention": 0.9045032262802124,
+          "backtrack_attempts": 1,
+          "constraint_rank": 1,
+          "max_final_row_dot": 0.7680559158325195,
+          "max_projected_row_dot": 4.0531158447265625e-06,
+          "null_dimension": 3522,
+          "route_mode": "projected_target_plus_nla",
+          "step": 3
+        },
+        {
+          "accepted": false,
+          "attack_retention": 0.9562587141990662,
+          "backtrack_attempts": 6,
+          "constraint_rank": 1,
+          "max_final_row_dot": 14.801321983337402,
+          "max_projected_row_dot": 2.9653310775756836e-06,
+          "null_dimension": 3522,
+          "route_mode": "projected_target_plus_nla",
+          "step": 4
+        },
+        {
+          "accepted": false,
+          "attack_retention": 0.9164503812789917,
+          "backtrack_attempts": 6,
+          "constraint_rank": 3,
+          "max_final_row_dot": 8.205560684204102,
+          "max_projected_row_dot": 3.606081008911133e-06,
+          "null_dimension": 3520,
+          "route_mode": "projected_target_plus_nla",
+          "step": 5
+        },
+        {
+          "accepted": false,
+          "attack_retention": 0.7577241063117981,
+          "backtrack_attempts": 6,
+          "constraint_rank": 1,
+          "max_final_row_dot": 26.019351959228516,
+          "max_projected_row_dot": 2.3245811462402344e-06,
+          "null_dimension": 3522,
+          "route_mode": "projected_target_plus_nla",
+          "step": 6
+        },
+        {
+          "accepted": true,
+          "attack_retention": 0.7456262707710266,
+          "backtrack_attempts": 1,
+          "constraint_rank": 2,
+          "max_final_row_dot": 1.735033392906189,
+          "max_projected_row_dot": 7.748603820800781e-06,
+          "null_dimension": 3521,
+          "route_mode": "projected_target_plus_nla",
+          "step": 7
+        }
+      ],
+      "switches": {
+        "cgr": true,
+        "cicr": true,
+        "dlfc": true,
+        "nla": true
+      },
+      "valid_instance_coverage": 0.9372549019607843,
+      "zero_residual_ratio": 0.0
+    },
+    "T0": {
+      "arm_id": "T0",
+      "backtrack_skip_ratio": 0.0,
+      "cicr_cosine_median": 0.21094997227191925,
+      "cicr_cosine_q25": -0.06265751644968987,
+      "dlfc_cosine_median": 0.9559973776340485,
+      "dlfc_cosine_q25": 0.8957042992115021,
+      "floor_pass_ratio": 0.9128787878787878,
+      "gradient_dlfc_cicr_cosine_median": 0.24265573918819427,
+      "gradient_dlfc_cicr_cosine_q25": -0.19683996587991714,
+      "nla_macro_loss": 0.00012277409405214712,
+      "per_scale_pooling_coverage": [
+        0.12142857142857143,
+        0.3333333333333333,
+        0.4331550802139037
+      ],
+      "probability_drop_by_class": {
+        "0": -5.477070953929797e-05,
+        "1": -0.0001814127044781344,
+        "10": -0.00030062199220992625,
+        "11": 0.009577256249031052,
+        "12": -0.0028489946853369474,
+        "13": 0.0009437262888241094,
+        "15": 0.0016808261475489417,
+        "16": 0.0011594841489568353,
+        "17": -0.0006303727859631181,
+        "18": -0.0003209829446859658,
+        "19": 0.005147922129253857,
+        "3": -0.0006022840971127152,
+        "4": -4.086196713615209e-05,
+        "5": -6.060799933038652e-06,
+        "6": 0.0,
+        "8": -0.007540625520050526
+      },
+      "probability_drop_macro": -4.781633833772503e-05,
+      "route_loss": 1.940256416797638,
+      "steps": [
+        {
+          "route_mode": "plain_target",
+          "step": 0
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 1
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 2
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 3
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 4
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 5
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 6
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 7
+        }
+      ],
+      "switches": {
+        "cgr": false,
+        "cicr": false,
+        "dlfc": false,
+        "nla": false
+      },
+      "valid_instance_coverage": 0.9090909090909091,
+      "zero_residual_ratio": 0.0
+    },
+    "T1": {
+      "arm_id": "T1",
+      "backtrack_skip_ratio": 0.0,
+      "cicr_cosine_median": 0.2632400691509247,
+      "cicr_cosine_q25": 0.006135058589279652,
+      "dlfc_cosine_median": 0.9793464243412018,
+      "dlfc_cosine_q25": 0.9709591865539551,
+      "floor_pass_ratio": 1.0,
+      "gradient_dlfc_cicr_cosine_median": 0.10073617473244667,
+      "gradient_dlfc_cicr_cosine_q25": -0.18627314642071724,
+      "nla_macro_loss": 0.00036959136195946485,
+      "per_scale_pooling_coverage": [
+        0.16233766233766234,
+        0.37412587412587417,
+        0.5916666666666667
+      ],
+      "probability_drop_by_class": {
+        "0": -8.223056647693738e-05,
+        "1": -0.00015725493540230673,
+        "10": 0.0011298597091808915,
+        "11": 0.012477597774704918,
+        "12": 3.5774708521785215e-05,
+        "13": 0.0016882091877050698,
+        "15": 6.002585723763332e-05,
+        "16": 0.00588225107640028,
+        "17": 0.0012185275554656982,
+        "18": -0.0030535280238837004,
+        "19": 0.008035990642383695,
+        "3": 0.001228453213116154,
+        "4": -0.0010583162948023528,
+        "5": -0.00012641947796510067,
+        "6": -9.804964065551758e-06,
+        "8": -0.008257294073700905
+      },
+      "probability_drop_macro": 4.7900282879709266e-05,
+      "route_loss": 2.8432962894439697,
+      "steps": [
+        {
+          "route_mode": "plain_target",
+          "step": 0
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 1
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 2
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 3
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 4
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 5
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 6
+        },
+        {
+          "route_mode": "plain_target",
+          "step": 7
+        }
+      ],
+      "switches": {
+        "cgr": false,
+        "cicr": true,
+        "dlfc": true,
+        "nla": false
+      },
+      "valid_instance_coverage": 1.0,
+      "zero_residual_ratio": 0.0
+    }
+  },
+  "decision": {
+    "pass": false,
+    "protection_checks": {
+      "attack_retention": true,
+      "backtrack_skip": true,
+      "cicr_preserved": true,
+      "class_nonworse": false,
+      "nla_reduction": false,
+      "null_dimension": true,
+      "orthogonality": false,
+      "pattern_preserved": true,
+      "probability_drop": true
+    },
+    "protection_pass": false,
+    "target_checks": {
+      "cicr_gain": false,
+      "cicr_q25": true,
+      "coverage": true,
+      "dlfc_gain": false,
+      "dlfc_q25": true,
+      "floor_pass": true,
+      "gradient_median": true,
+      "gradient_q25": true,
+      "pattern_separation": true,
+      "scale_coverage": false,
+      "zero_ratio": true
+    },
+    "target_pass": false
+  },
+  "elapsed_seconds": 39.83356797322631,
+  "feasibility_state": {
+    "evidence_scope": "end_to_end_feasibility_not_formal_method",
+    "hiding_gate_passed": false,
+    "mechanism_gate_passed": false,
+    "path": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH/mechanism/p1_feasibility_sdh_state.pt"
+  },
+  "initial": {
+    "cicr_cosine_median": 0.2724453806877136,
+    "cicr_cosine_q25": 0.07220442593097687,
+    "dlfc_cosine_median": 0.9908997118473053,
+    "dlfc_cosine_q25": 0.984798863530159,
+    "floor_pass_ratio": 1.0,
+    "nla_macro_loss": 0.00037437961145769805,
+    "per_scale_pooling_coverage": [
+      0.14835164835164835,
+      0.3333333333333333,
+      0.5727272727272728
+    ],
+    "probability_drop_by_class": {
+      "0": -8.999705460155383e-05,
+      "1": -0.0003208846028428525,
+      "10": 0.008620512671768665,
+      "11": 0.01005864460603334,
+      "12": -0.002983230398967862,
+      "13": 0.0015739500522613525,
+      "15": -0.00029574063228210434,
+      "16": 0.013107461505569518,
+      "17": 0.0009510040399618447,
+      "18": 0.0007035672897472978,
+      "19": 0.015086796702235006,
+      "3": -7.209181785583496e-05,
+      "4": -0.000614929202129133,
+      "5": 6.411373760784045e-05,
+      "6": -6.881356239318848e-05,
+      "8": -0.008585470728576183
+    },
+    "probability_drop_macro": -2.349912392674014e-06,
+    "route_loss": 2.7965359687805176,
+    "valid_instance_coverage": 0.928921568627451,
+    "zero_residual_ratio": 0.0
+  },
+  "nla_calibration": {
+    "max_lambda": 100.0,
+    "min_lambda": 0.0001,
+    "target_ratio": 0.25,
+    "value": 100.0,
+    "warmup_count": 4,
+    "was_clipped": true
+  },
+  "p1_delta_linf": 0.062745101749897,
+  "p1_operational_checks": {
+    "delta_finite": true,
+    "delta_linf": true,
+    "p1_state_present": true
+  },
+  "pattern_p0_initial": 0.004097459372133017,
+  "pattern_p1_initial": 0.016085099428892136,
+  "pattern_p1_p0": 0.012965497560799122,
+  "pattern_t1_t0": 0.019491279497742653,
+  "runtime_input_hashes": {
+    "primary_secret_tensor_sha256": "cb4b9bba70701c118cc869738ca2713a049ec23b86e89238f32353b06bd4adaf",
+    "secret_manifest_sha256": "a25277499e07310e68a39277461f176dd0d8666e69a4b890328d7b913601ac3e",
+    "surrogate_checkpoint_sha256": "8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89",
+    "train_image_count": 16551,
+    "train_image_manifest_sha256": "4954727df8686532a788668fd815092112ac3e3ee1414eba83b616e683708fbd",
+    "train_label_count": 16551,
+    "train_label_manifest_sha256": "3cd05ad1ab6a546bf2afd5e63cb6c3ff6667064d80af129dd819325625b9d848"
+  },
+  "schema": "tausb.sdh-mechanism-pilot.v1",
+  "spec_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+  "split_hash": "9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280",
+  "target_weight_calibration": {
+    "clipped": {
+      "cicr": false,
+      "dlfc": false,
+      "easy": false,
+      "floor": false,
+      "reveal": true,
+      "rms": false
+    },
+    "maximum": 100.0,
+    "minimum": 0.001,
+    "reference": "easy",
+    "weights": {
+      "cicr": 9.117918726428604,
+      "dlfc": 30.557040984832522,
+      "easy": 1.0,
+      "floor": 15.566053957322154,
+      "reveal": 100.0,
+      "rms": 3.3857627503334484
+    }
+  }
+}

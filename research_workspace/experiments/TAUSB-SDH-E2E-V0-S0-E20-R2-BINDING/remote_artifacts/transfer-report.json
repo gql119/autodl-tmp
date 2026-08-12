@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-12T03:39:52.808275+00:00",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20-R2-BINDING",
+  "remote_artifact_root": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R2",
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20-R2-BINDING/remote_artifacts",
+  "selected_files": 6,
+  "transferred": [
+    "binding_report.json",
+    "e20-c0.yaml",
+    "e20-m1.yaml",
+    "smoke-c0.yaml",
+    "smoke-m1.yaml",
+    "smoke_train_selection.json"
+  ],
+  "existing_skipped": [],
+  "failed": [],
+  "verification": {
+    "present": [
+      {
+        "relative_path": "binding_report.json",
+        "bytes": 3034,
+        "sha256": "a72615ddd66f2f679c4f1789d267e30cdbf1e33cd8595a32ebaec7ee10ddd029"
+      },
+      {
+        "relative_path": "e20-c0.yaml",
+        "bytes": 2999,
+        "sha256": "51747f543b09997a4fa13d5c763ed1d655c67027027f6a94e4c531f2c3c77cbb"
+      },
+      {
+        "relative_path": "e20-m1.yaml",
+        "bytes": 3002,
+        "sha256": "81943064f8357cd1277d3712a5a4c18046deb06627d6695876c963637171f5a9"
+      },
+      {
+        "relative_path": "smoke-c0.yaml",
+        "bytes": 3136,
+        "sha256": "63ee818376ff13742eb5ea0a7266e407d622ca14dcfeb8f97f64367761c89f3d"
+      },
+      {
+        "relative_path": "smoke-m1.yaml",
+        "bytes": 3137,
+        "sha256": "84bcdc8cde7a93cbb9cf225ecefbaccbc65e0b06386dc71437d8cef7a45e694b"
+      },
+      {
+        "relative_path": "smoke_train_selection.json",
+        "bytes": 31625,
+        "sha256": "46a73d262c14312af89e5c5496b0d13b42542845aba72861dd11e2863e6199b3"
+      }
+    ],
+    "missing_required": []
+  },
+  "credentials_persisted": false
+}

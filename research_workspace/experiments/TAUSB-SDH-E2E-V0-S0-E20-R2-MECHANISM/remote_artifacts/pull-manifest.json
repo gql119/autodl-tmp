@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-12T04:00:00+00:00",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20-R2-MECHANISM",
+  "spec_id": "TAUSB-SDH-E2E-V0-ONEBOOT-v2",
+  "run_id": "ONEBOOT-S0-R2",
+  "branch": "codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3",
+  "pre_run_code_commit": "7535a3c9d9167648eaafaa1afbb8c895673404d0",
+  "method": "tausb_sdh_e2e_v0",
+  "steps": 0,
+  "seed": 0,
+  "run_tag": "ONEBOOT-S0-R2-mechanism",
+  "remote_artifact_root": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH",
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20-R2-MECHANISM/remote_artifacts",
+  "authentication": "Use SSH agent/config; never persist passwords.",
+  "items": [
+    {
+      "relative_path": "status_mechanism.json",
+      "required": true,
+      "reason": "actual mechanism process terminal status",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "mechanism/mechanism_metrics.json",
+      "required": true,
+      "reason": "real P1 operational and diagnostic metrics",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "mechanism/p1_state.pt",
+      "required": true,
+      "reason": "small real P1 state needed to reproduce the binding provenance",
+      "size_policy": "explicit_reproducibility_binary_1_2MiB"
+    },
+    {
+      "relative_path": "mechanism/p1_feasibility_sdh_state.pt",
+      "required": true,
+      "reason": "small frozen feasibility state consumed by smoke and E20",
+      "size_policy": "explicit_reproducibility_binary_1_9MiB"
+    }
+  ],
+  "post_transfer_checks": [
+    "require both status and metrics JSON plus the two explicitly reviewed P1 state files",
+    "verify frozen state SHA256 c6c994384a563506126065382e35c941ba0bb0b2a21cd1d2dea63373bffd5168",
+    "confirm no dataset, victim checkpoint, poisoned image tree, or credential was selected"
+  ]
+}

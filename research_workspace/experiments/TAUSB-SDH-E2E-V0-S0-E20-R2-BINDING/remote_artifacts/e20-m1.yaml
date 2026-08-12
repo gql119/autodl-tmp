@@ -1,0 +1,89 @@
+experiment:
+  dataset: voc
+  target_class_name: person
+  target_class_id: 14
+  poisoning_ratio: 1.0
+  expected_poisoned_count: 6095
+  eps: 0.06274509803921569
+  steps:
+  - 40
+  seeds:
+  - 0
+  num_classes: 20
+  reference_target_map50: 0.81
+  reference_non_target_map50: 0.78
+  pilot_kind: e20
+  arm_id: M1
+  expected_train_images: 16551
+  expected_target_images: 6095
+data:
+  dataset_root: /root/autodl-tmp/ue_project/VOC_0712_Kaggle_Ready
+  train_images: images/train
+  train_labels: labels/train
+  val_images: images/val
+  val_labels: labels/val
+  instance_mask_dir: ''
+  allow_pseudo_mask_fallback: false
+  train_selection_manifest: ''
+  train_selection_manifest_sha256: ''
+platform:
+  mode: cloud
+  run_root: /root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2-E20-M1
+  resume: false
+  zip_after_stage: false
+  save_every_n_images: 50
+  save_every_n_epochs: 5
+  pack_every_n_epochs: 5
+  debug: false
+surrogate:
+  model: yolov8n
+  ckpt: /root/autodl-tmp/ue_project/checkpoints/voc20_surrogate.pt
+  num_classes: 20
+  imgsz: 640
+  eot_samples: 1
+victim:
+  model: yolov8n
+  init: configs/voc_yolov8n_20cls.yaml
+  cache: false
+  amp: true
+  epochs: 20
+  imgsz: 640
+  batch: 36
+  workers: 16
+  optimizer: SGD
+  cos_lr: true
+  close_mosaic: 10
+  save_period: 10
+  device: '0'
+  lr0: 0.01
+  lrf: 0.01
+  momentum: 0.937
+  weight_decay: 0.0005
+methods:
+  tausb_sdh:
+    support_type: bbox
+    enable_deep_hiding: true
+    enable_dlfc: true
+    enable_cicr: true
+    enable_cgr: true
+    enable_nla_loss: true
+    require_hiding_gate_pass: false
+    require_mechanism_gate_pass: false
+    frozen_sdh_state: /root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH/mechanism/p1_feasibility_sdh_state.pt
+    secret_source_sha256: 66bd89ebef12b21d578341e945d56ed315372b213e52c2cc07d2110543cc6a48
+    secret_tensor_sha256: cb4b9bba70701c118cc869738ca2713a049ec23b86e89238f32353b06bd4adaf
+    source_manifest_sha256: a25277499e07310e68a39277461f176dd0d8666e69a4b890328d7b913601ac3e
+    train_split_sha256: 3cd05ad1ab6a546bf2afd5e63cb6c3ff6667064d80af129dd819325625b9d848
+    protocol_id: TAUSB-SDH-E2E-V0-MAP50-v1
+    materialization_mode: p1_feasibility_state
+    allow_failed_scientific_gates: true
+    binding_status: bound
+    evidence_scope: end_to_end_feasibility_not_formal_method
+    frozen_sdh_state_sha256: c6c994384a563506126065382e35c941ba0bb0b2a21cd1d2dea63373bffd5168
+    mechanism_metrics_sha256: fa0b99cb3df0ad834ab20373a877022a640d5ab67bb53099de229bf949c77358
+    p1_state_sha256: 2e102026a9356116de38acb1f5056bf5728afcd453e3447b516d4222f4d70b81
+    mechanism_decision_sha256: 65bf9568cc1859ad5a3f5f0f9ca121f0bc58d00b9146a430c1c5bb1d4a75e06c
+    mechanism_config_sha256: b75bb7ad49efcea9dc0c872d3aa9e459e6a56bab7307b201179d2da455c58ce2
+    hiding_metrics_sha256: c7d1b120ffbadeb7385be41669dda704b00a2cee60940e3c3d97112e24e59246
+    hiding_checkpoint_sha256: a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36
+    hiding_split_sha256: 9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280

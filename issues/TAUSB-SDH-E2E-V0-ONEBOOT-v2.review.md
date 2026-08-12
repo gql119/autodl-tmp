@@ -182,6 +182,71 @@ evaluation、comparison、配置语义或 Success/Failure 阈值。
 
 ## Append-only execution log
 
+## R2 evidence correction and R3 continuation
+
+- R2 controller reported `MECHANISM failed` only because it read a `-MECH-R2`
+  path while the frozen YAML wrote to the approved root ending in `-MECH`.
+- The actual mechanism process completed in about 40.2 seconds. Its real P1 is
+  finite, has Linf `0.0627451017`, and all required state files exist. The
+  scientific mechanism gate is false and remains diagnostic under the approved
+  feasibility-only claim boundary.
+- CPU-only binding succeeded against the actual mechanism root. It froze a
+  deterministic 200-image smoke selection (40 person, 160 person-free) and
+  generated four load-valid configs with distinct fresh roots.
+- Four reviewed pull manifests transferred 13 files totaling about 3.16 MB;
+  every `missing_required` list is empty. No dataset, poisoned image tree,
+  victim weight, credential, or unrelated checkpoint was transferred.
+- Execution commit `34e28f1622f2b3f053de70e1cb0d013f62d42f15` adds only
+  a `--resume-from-binding` controller path and auto-shutdown R3 wrapper.
+  Method losses, configs, materializer, victim trainer, evaluation, metrics,
+  seed, epochs, and scientific thresholds are unchanged.
+- Validation: 12/12 focused one-boot tests, 83/83 expanded SDH tests,
+  py_compile, CLI help, Bash syntax, and diff check pass.
+
+## PRERUN-REVIEW-04
+
+- Result: `pass`
+- Decision: `allow_run`
+- Gated run: `REMOTE-ONEBOOT-03 / ONEBOOT-S0-R3`
+- Code snapshot: `codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3@34e28f1622f2b3f053de70e1cb0d013f62d42f15`
+- Intent: reuse the hash-verified real P1/binding, start paired smoke immediately,
+  and continue to E20 only after the existing dataflow/cost/disk gate passes.
+- Code location: active one-boot controller, R3 resume wrapper, and focused
+  tests; no method or scientific config changes.
+- Parameter data flow: frozen P1/binding report -> four bound configs ->
+  `launch_one(all)` C0 then M1 -> per-arm status/20-class AP50 validation ->
+  paired smoke review -> conditional E20 -> explicit comparison.
+- Runtime state: exact clean AutoDL worktree exists at commit `34e28f1`;
+  Python 3.8 compile/CLI and wrapper Bash syntax pass; binding and frozen state
+  hashes match the locally verified evidence.
+- Sink effect: each arm must complete generate/train/evaluate, emit a best
+  checkpoint and finite VOC20 AP50, and match exact poison counts before the
+  next arm or E20 can start.
+- Baseline/disable path: C0 remains an independent clean victim. R3 does not
+  rerun mechanism and introduces no TAUSB/SIRC fallback.
+- Local validation: `83 passed`; no test-tool installation or GPU job was used.
+- Minimal probe: real P1 binding load-valid; all R3 control/log/comparison and
+  R2 smoke/E20 output roots are absent.
+- Run command binding:
+  - tmux: `tausb-sdh-e2e-v0-oneboot-s0-r3`
+  - wrapper SHA-256: `92a7b53fc47e0f1f68dcb71ef016febe6f981ff9e0688535aab72c2d3c85889d`
+  - controller SHA-256: `6d5461c124d3323509ad9c7d4256f4d900eb789940190f9ec60e3478a7b8e925`
+  - launch gate SHA-256: `01656d879efeaaca27b13209f4a6f633bd01f9c0a7981be0be98c69b199e26b8`
+  - contract: `research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/pre_run/oneboot_r3_run_contract.json`
+- Experiment validity: VOC20, person id 14, seed 0, steps 40, eps 16/255,
+  bbox support, no EOT/robustness transform, clean validation, independent fresh
+  victims, and the approved feasibility-only claim boundary are unchanged.
+- Output non-overwrite: R1/R2 evidence and successful mechanism/binding are
+  read-only; every new GPU/control/log/comparison root is fresh and the launch
+  gate rejects collisions.
+- Recoverability/secrecy: one tmux, atomic status, per-stage logs, 20-minute idle
+  guard, 8 GPU-hour paired cap, and failure/final auto-shutdown remain active;
+  no credential appears in the contract or commands.
+- Blockers: none.
+- Validation gaps: smoke and E20 AP50 have not yet run. The next GPU launch is
+  the evidence-producing step; smoke is mechanical, while E20 remains tentative
+  single-seed directional evidence.
+
 - 2026-08-11：用户明确批准 `TAUSB-SDH-E2E-V0-ONEBOOT-v2`。
 - 2026-08-12：Spec 状态写为 approved；生成并校验 11 行执行 CSV。
 - 2026-08-12：完成 one-boot orchestrator、shutdown wrapper、P1/binding 与 smoke/cost gates。

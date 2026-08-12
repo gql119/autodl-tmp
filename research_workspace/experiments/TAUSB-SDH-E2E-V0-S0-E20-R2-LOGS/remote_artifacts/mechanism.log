@@ -1,0 +1,10 @@
+
+======================================================================
+🎯 [STRICT AL-SVC PROBE] Intercepted Real TAL Assigner Outputs
+======================================================================
+  - target_labels  : shape=(4, 8400), dtype=torch.int64, min=11.00, max=14.00
+  - target_scores  : shape=(4, 8400, 20), dtype=torch.float32, min=0.00, max=0.98
+  - fg_mask        : shape=(4, 8400), dtype=torch.bool, min=0.00, max=1.00
+  - target_gt_idx  : shape=(4, 8400), dtype=torch.int64, min=0.00, max=1.00
+======================================================================
+

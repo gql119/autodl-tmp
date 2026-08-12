@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-12T04:00:00+00:00",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20-R2-CONTROL",
+  "spec_id": "TAUSB-SDH-E2E-V0-ONEBOOT-v2",
+  "run_id": "ONEBOOT-S0-R2",
+  "branch": "codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3",
+  "pre_run_code_commit": "7535a3c9d9167648eaafaa1afbb8c895673404d0",
+  "method": "tausb_sdh_e2e_v0",
+  "steps": 0,
+  "seed": 0,
+  "run_tag": "ONEBOOT-S0-R2-control",
+  "remote_artifact_root": "/root/tausb-sdh-control/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R2",
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20-R2-CONTROL/remote_artifacts",
+  "authentication": "Use SSH agent/config; never persist passwords.",
+  "items": [
+    {
+      "relative_path": "controller_status.json",
+      "required": true,
+      "reason": "R2 controller terminal state and original path-mismatch failure boundary",
+      "size_policy": "small"
+    },
+    {
+      "relative_path": "precheck.json",
+      "required": true,
+      "reason": "exact R2 precheck provenance",
+      "size_policy": "small"
+    }
+  ],
+  "post_transfer_checks": [
+    "require controller_status.json and precheck.json",
+    "verify hashes against the reviewed remote inventory",
+    "confirm no dataset, checkpoint, poisoned image, weight, or credential was selected"
+  ]
+}
