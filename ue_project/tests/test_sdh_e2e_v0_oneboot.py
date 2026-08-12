@@ -39,6 +39,10 @@ WRAPPER = ROOT.parent / (
     "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/"
     "pre_run/oneboot_controller.sh"
 )
+RESUME_WRAPPER = ROOT.parent / (
+    "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/"
+    "pre_run/oneboot_r3_resume_controller.sh"
+)
 MECHANISM_CONFIG = ROOT / "ue_framework/configs/tausb_sdh_e2e_v0_mechanism.yaml"
 
 
@@ -55,7 +59,8 @@ def test_frozen_mechanism_config_uses_raw_file_hash_not_canonical_json_hash() ->
 
 
 def test_r2_uses_fresh_roots_and_never_reuses_failed_r1() -> None:
-    roots = [MECHANISM_ROOT, BINDING_ROOT, CONTROL_ROOT, LOG_ROOT, COMPARISON_ROOT]
+    assert str(MECHANISM_ROOT).endswith("-MECH")
+    roots = [BINDING_ROOT, CONTROL_ROOT, LOG_ROOT, COMPARISON_ROOT]
     roots.extend(RUN_ROOTS.values())
     rendered = [str(path) for path in roots]
     assert len(rendered) == len(set(rendered))
@@ -313,3 +318,19 @@ def test_each_smoke_arm_is_validated_before_the_next_arm_starts() -> None:
     review_stage = source.index('stage = "SMOKE_DATAFLOW_REVIEW"', smoke_loop)
     body = source[smoke_loop:review_stage]
     assert body.index("validate_arm(") < body.index("state.complete(stage, result)")
+
+
+def test_resume_mode_skips_mechanism_and_reuses_verified_binding() -> None:
+    source = inspect.getsource(_run_controller)
+    resume_branch = source.index("if args.resume_from_binding:")
+    mechanism_branch = source.index('stage = "MECHANISM"', resume_branch)
+    resume_body = source[resume_branch:mechanism_branch]
+    assert "_verify_binding()" in resume_body
+    assert "run_tausb_sdh" not in resume_body
+    assert '"mode": "reuse_existing_verified_binding"' in resume_body
+
+    wrapper = RESUME_WRAPPER.read_text(encoding="utf-8")
+    assert "trap shutdown_once EXIT" in wrapper
+    assert "--resume-from-binding" in wrapper
+    assert "ONEBOOT-R3" in wrapper
+    assert "COMPARISON-R3" in wrapper

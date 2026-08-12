@@ -38,7 +38,7 @@ MECHANISM_CONFIG_SHA256 = (
     "46f757afa7f0a57944af2bec84cab72549230aa431d41bf99e3ff8a25ab4dc56"
 )
 
-MECHANISM_ROOT = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH-R2")
+MECHANISM_ROOT = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH")
 BINDING_ROOT = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R2")
 RUN_ROOT_PREFIX = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2")
 CONTROL_ROOT = Path("/root/tausb-sdh-control/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R2")
@@ -92,6 +92,10 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--expected-commit", required=True)
     parser.add_argument("--python-bin", default="/root/miniconda3/bin/python")
     parser.add_argument("--device", default="0")
+    parser.add_argument("--resume-from-binding", action="store_true")
+    parser.add_argument("--control-root", default=str(CONTROL_ROOT))
+    parser.add_argument("--log-root", default=str(LOG_ROOT))
+    parser.add_argument("--comparison-root", default=str(COMPARISON_ROOT))
     return parser.parse_args()
 
 
@@ -505,6 +509,11 @@ def _precheck(
     project_root: Path,
     expected_commit: str,
     python_bin: Path,
+    *,
+    resume_from_binding: bool = False,
+    control_root: Path = CONTROL_ROOT,
+    log_root: Path = LOG_ROOT,
+    comparison_root: Path = COMPARISON_ROOT,
 ) -> Dict[str, Any]:
     if _run_output(("git", "-C", str(repository_root), "rev-parse", "HEAD")) != expected_commit:
         raise ValueError("Remote checkout HEAD does not match the reviewed commit.")
@@ -562,7 +571,12 @@ def _precheck(
         if not path.is_dir():
             raise FileNotFoundError("Dataset directory is missing: %s" % path)
 
-    fresh_roots = [MECHANISM_ROOT, BINDING_ROOT, CONTROL_ROOT, LOG_ROOT, COMPARISON_ROOT]
+    if resume_from_binding:
+        if not (BINDING_ROOT / "binding_report.json").is_file():
+            raise FileNotFoundError("Reviewed binding report is missing.")
+        fresh_roots = [control_root, log_root, comparison_root]
+    else:
+        fresh_roots = [MECHANISM_ROOT, BINDING_ROOT, control_root, log_root, comparison_root]
     fresh_roots.extend(RUN_ROOTS.values())
     existing = [str(path) for path in fresh_roots if path.exists()]
     if existing:
@@ -652,15 +666,25 @@ def _run_controller(args: argparse.Namespace) -> int:
     repository_root = Path(args.repository_root).resolve()
     project_root = repository_root / "ue_project"
     python_bin = Path(args.python_bin)
+    control_root = Path(args.control_root)
+    log_root = Path(args.log_root)
+    comparison_root = Path(args.comparison_root)
     try:
         precheck = _precheck(
-            repository_root, project_root, args.expected_commit, python_bin
+            repository_root,
+            project_root,
+            args.expected_commit,
+            python_bin,
+            resume_from_binding=args.resume_from_binding,
+            control_root=control_root,
+            log_root=log_root,
+            comparison_root=comparison_root,
         )
     except BaseException as error:
-        if not CONTROL_ROOT.exists():
-            CONTROL_ROOT.mkdir(parents=True, exist_ok=False)
+        if not control_root.exists():
+            control_root.mkdir(parents=True, exist_ok=False)
             atomic_write_json(
-                str(CONTROL_ROOT / "controller_status.json"),
+                str(control_root / "controller_status.json"),
                 {
                     "schema": "tausb.sdh-e2e-v0-oneboot-controller-status.v1",
                     "spec_id": ONEBOOT_SPEC_ID,
@@ -679,76 +703,83 @@ def _run_controller(args: argparse.Namespace) -> int:
                 },
             )
         raise
-    state = ControllerState(CONTROL_ROOT)
-    LOG_ROOT.mkdir(parents=True, exist_ok=False)
-    atomic_write_json(str(CONTROL_ROOT / "precheck.json"), precheck)
+    state = ControllerState(control_root)
+    log_root.mkdir(parents=True, exist_ok=False)
+    atomic_write_json(str(control_root / "precheck.json"), precheck)
     state.start("PRECHECK")
     state.complete("PRECHECK", precheck)
 
     try:
-        stage = "MECHANISM"
-        state.start(stage)
-        mechanism_result = run_guarded(
-            stage=stage,
-            command=(
-                str(python_bin),
-                "-u",
-                "-m",
-                "ue_framework.tools.run_tausb_sdh",
-                "--config",
-                "ue_framework/configs/tausb_sdh_e2e_v0_mechanism.yaml",
-                "--stage",
-                "mechanism",
-            ),
-            cwd=project_root,
-            log_path=LOG_ROOT / "mechanism.log",
-            wall_seconds=1200,
-            first_progress_seconds=300,
-            idle_seconds=1200,
-            require_gpu=True,
-        )
-        mechanism_status = _read_json(MECHANISM_ROOT / "status_mechanism.json")
-        if mechanism_status.get("status") != "completed":
-            raise GuardFailure(stage, "mechanism_status_not_completed")
-        for path in (
-            MECHANISM_ROOT / "mechanism/mechanism_metrics.json",
-            MECHANISM_ROOT / "mechanism/p1_state.pt",
-            MECHANISM_ROOT / "mechanism/p1_feasibility_sdh_state.pt",
-        ):
-            if not path.is_file():
-                raise GuardFailure(stage, "missing_%s" % path.name)
-        state.complete(stage, mechanism_result)
+        if args.resume_from_binding:
+            stage = "P1_VERIFY_AND_BIND"
+            state.start(stage)
+            bind_result = {"mode": "reuse_existing_verified_binding"}
+            bind_result.update(_verify_binding())
+            state.complete(stage, bind_result)
+        else:
+            stage = "MECHANISM"
+            state.start(stage)
+            mechanism_result = run_guarded(
+                stage=stage,
+                command=(
+                    str(python_bin),
+                    "-u",
+                    "-m",
+                    "ue_framework.tools.run_tausb_sdh",
+                    "--config",
+                    "ue_framework/configs/tausb_sdh_e2e_v0_mechanism.yaml",
+                    "--stage",
+                    "mechanism",
+                ),
+                cwd=project_root,
+                log_path=log_root / "mechanism.log",
+                wall_seconds=1200,
+                first_progress_seconds=300,
+                idle_seconds=1200,
+                require_gpu=True,
+            )
+            mechanism_status = _read_json(MECHANISM_ROOT / "status_mechanism.json")
+            if mechanism_status.get("status") != "completed":
+                raise GuardFailure(stage, "mechanism_status_not_completed")
+            for path in (
+                MECHANISM_ROOT / "mechanism/mechanism_metrics.json",
+                MECHANISM_ROOT / "mechanism/p1_state.pt",
+                MECHANISM_ROOT / "mechanism/p1_feasibility_sdh_state.pt",
+            ):
+                if not path.is_file():
+                    raise GuardFailure(stage, "missing_%s" % path.name)
+            state.complete(stage, mechanism_result)
 
-        stage = "P1_VERIFY_AND_BIND"
-        state.start(stage)
-        bind_result = run_guarded(
-            stage=stage,
-            command=(
-                str(python_bin),
-                "-u",
-                "-m",
-                "ue_framework.tools.bind_tausb_sdh_e2e_v0",
-                "--mechanism-root",
-                str(MECHANISM_ROOT),
-                "--mechanism-config",
-                "ue_framework/configs/tausb_sdh_e2e_v0_mechanism.yaml",
-                "--base-config",
-                "ue_framework/configs/exp_voc_person_sdh_lfc_cicr_cgr_nla_map50_v3.yaml",
-                "--dataset-root",
-                str(DATASET_ROOT),
-                "--output-dir",
-                str(BINDING_ROOT),
-                "--run-root-prefix",
-                str(RUN_ROOT_PREFIX),
-            ),
-            cwd=project_root,
-            log_path=LOG_ROOT / "binding.log",
-            wall_seconds=600,
-            first_progress_seconds=300,
-            idle_seconds=600,
-        )
-        bind_result.update(_verify_binding())
-        state.complete(stage, bind_result)
+            stage = "P1_VERIFY_AND_BIND"
+            state.start(stage)
+            bind_result = run_guarded(
+                stage=stage,
+                command=(
+                    str(python_bin),
+                    "-u",
+                    "-m",
+                    "ue_framework.tools.bind_tausb_sdh_e2e_v0",
+                    "--mechanism-root",
+                    str(MECHANISM_ROOT),
+                    "--mechanism-config",
+                    "ue_framework/configs/tausb_sdh_e2e_v0_mechanism.yaml",
+                    "--base-config",
+                    "ue_framework/configs/exp_voc_person_sdh_lfc_cicr_cgr_nla_map50_v3.yaml",
+                    "--dataset-root",
+                    str(DATASET_ROOT),
+                    "--output-dir",
+                    str(BINDING_ROOT),
+                    "--run-root-prefix",
+                    str(RUN_ROOT_PREFIX),
+                ),
+                cwd=project_root,
+                log_path=log_root / "binding.log",
+                wall_seconds=600,
+                first_progress_seconds=300,
+                idle_seconds=600,
+            )
+            bind_result.update(_verify_binding())
+            state.complete(stage, bind_result)
 
         smoke_started = time.monotonic()
         for arm_id in ("C0", "M1"):
@@ -761,7 +792,7 @@ def _run_controller(args: argparse.Namespace) -> int:
                 stage=stage,
                 command=_launch_command(python_bin, project_root, "smoke", arm_id, args.device),
                 cwd=project_root,
-                log_path=LOG_ROOT / ("smoke_%s.log" % arm_id.lower()),
+                log_path=log_root / ("smoke_%s.log" % arm_id.lower()),
                 wall_seconds=remaining,
                 first_progress_seconds=300,
                 idle_seconds=1200,
@@ -796,7 +827,7 @@ def _run_controller(args: argparse.Namespace) -> int:
             m1_artifact_bytes=_directory_size(RUN_ROOTS[("smoke", "M1")]),
             disk_free_bytes=shutil.disk_usage("/root").free,
         )
-        smoke_review_path = CONTROL_ROOT / "smoke_review.json"
+        smoke_review_path = control_root / "smoke_review.json"
         atomic_write_json(str(smoke_review_path), smoke_review)
         if smoke_review["decision"] != "continue_e20":
             raise CostGateStop(stage, ",".join(smoke_review["stop_reasons"]), 20)
@@ -810,7 +841,7 @@ def _run_controller(args: argparse.Namespace) -> int:
                 stage=stage,
                 command=_launch_command(python_bin, project_root, "e20", arm_id, args.device),
                 cwd=project_root,
-                log_path=LOG_ROOT / ("e20_%s.log" % arm_id.lower()),
+                log_path=log_root / ("e20_%s.log" % arm_id.lower()),
                 wall_seconds=cap,
                 first_progress_seconds=300,
                 idle_seconds=1200,
@@ -842,15 +873,15 @@ def _run_controller(args: argparse.Namespace) -> int:
                 "--m1-metrics",
                 str(_metrics_path("e20", "M1")),
                 "--output-dir",
-                str(COMPARISON_ROOT),
+                str(comparison_root),
             ),
             cwd=project_root,
-            log_path=LOG_ROOT / "comparison.log",
+            log_path=log_root / "comparison.log",
             wall_seconds=300,
             first_progress_seconds=120,
             idle_seconds=300,
         )
-        comparison = _read_json(COMPARISON_ROOT / "comparison.json")
+        comparison = _read_json(comparison_root / "comparison.json")
         comparison_result["pilot_decision"] = comparison.get("pilot_decision")
         state.complete(stage, comparison_result)
         state.finish()
