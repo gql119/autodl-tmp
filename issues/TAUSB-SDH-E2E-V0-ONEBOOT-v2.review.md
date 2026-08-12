@@ -1,5 +1,15 @@
 # TAUSB-SDH-E2E-V0-ONEBOOT-v2 Review Handoff
 
+## R4 current status (authoritative)
+
+- `PRERUN-REVIEW-05`: `pass / allow_run_when_gpu_is_enabled`.
+- Execution commit: `83cfb21c11195e1b1e034db3422716a34b18e166`.
+- R4 binding and launch gate metadata: `f87efebe196b422c07f0375c2d030c66859b856a`.
+- Active row: `REMOTE-ONEBOOT-04`, `ready_waiting_gpu`.
+- No-card preparation is complete; no R4 tmux, smoke, or E20 job has started.
+- The launch wrapper shuts the instance down on controller failure and on final
+  completion; E20 starts only after paired smoke passes the frozen review.
+
 ## Current workflow state
 
 - Spec：`docs/research/specs/TAUSB-SDH-E2E-V0-ONEBOOT-v2.md`
@@ -255,3 +265,68 @@ evaluation、comparison、配置语义或 Success/Failure 阈值。
 - 2026-08-12：`PRERUN-REVIEW-01` blocked：smoke 单臂完整性校验晚于下一臂启动；插入最小修复与第二次 pre-run，GPU 未启动。
 - 2026-08-12：修复 commit `52d57fd` 完成并 push；54 项 focused regression 通过。
 - 2026-08-12：`PRERUN-REVIEW-02` pass / allow_run；冻结 one-boot payload `6bebac…47ac`，等待 GPU 开启。
+## R3 operational failure and minimal R4 correction
+
+- R3 completed the 200-image C0 smoke and the M1 generation, one-epoch victim
+  training, and full clean evaluation without CUDA OOM, NaN, or Inf. It stopped
+  at the M1 evaluation provenance sink before E20.
+- The first bad boundary is proven: `sdh_materializer.py` emitted
+  `secret_source_sha256`, but `generate.py` omitted that value from both the
+  manifest schema and per-row provenance initializer. The evaluator therefore
+  correctly rejected the incomplete manifest.
+- Commit `83cfb21c11195e1b1e034db3422716a34b18e166` adds that single provenance
+  field and R4 path overrides. It does not change losses, P1, dataset, target,
+  seed, steps, epochs, metric sinks, or scientific gates.
+- Evidence: the real 200-row R3 manifest replay passes after supplying the
+  frozen expected hash; 55 focused and 85 full SDH tests pass; py_compile,
+  Bash syntax, diff check, and credential scan pass.
+- Claim boundary: R3 remains an operational failure with no E20 scientific
+  result. The successful generation/training/evaluation is dataflow evidence,
+  not evidence that the method is effective.
+
+## PRERUN-REVIEW-05
+
+- Result: `pass`
+- Decision: `allow_run_when_gpu_is_enabled`
+- Gated run: `REMOTE-ONEBOOT-04 / ONEBOOT-S0-R4`
+- Code snapshot: `codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3@83cfb21c11195e1b1e034db3422716a34b18e166`.
+- Frozen evidence metadata: commit `f87efebe196b422c07f0375c2d030c66859b856a`.
+- Intent: reuse the exact verified P1, repeat paired smoke in fresh R4 roots,
+  and proceed to E20 only if the unchanged automatic dataflow/cost/disk review
+  returns `continue_e20`.
+- Parameter data flow: frozen P1 -> CPU-only R4 binder -> four load-valid R4
+  configs -> `launch_one(all)` C0 then M1 -> 20-class clean VOC AP50 validation
+  -> paired smoke review -> conditional E20 -> explicit comparison.
+- Root-cause closure: the manifest writer now records
+  `secret_source_sha256`; the materializer and evaluator contracts already
+  required the same value. A schema regression test prevents recurrence.
+- Baseline/disable path: C0 is still a separately trained clean-data victim;
+  M1 is still the P1-materialized arm. No mechanism rerun, resume, override,
+  EOT, robustness transform, new seed, or 200-epoch run is permitted.
+- Local validation: `55 passed` focused, `85 passed` complete SDH regression,
+  py_compile, controller CLI, Bash syntax, diff check, and credential scan.
+- Remote no-card validation: exact clean execution checkout exists; controller
+  `_verify_binding()` loads all four configs; R2/R4 semantic comparison is
+  paths-only; selection content is identical (200 images: 40 target and 160
+  person-free); seven R4 execution roots and the tmux session are absent.
+- Binding evidence: six files pulled and individually SHA-256 verified with
+  `missing_required=[]`; no dataset, poisoned image, checkpoint, weight, or
+  credential was transferred.
+- Run binding:
+  - checkout: `/root/tausb-sdh-checkouts/e2e-v0-83cfb21-r4-worktree`
+  - tmux: `tausb-sdh-e2e-v0-oneboot-s0-r4`
+  - wrapper SHA-256: `778093577f45ddd31bc705f22d6b8d4bc14a944b44e96ade90b8110da417b7e1`
+  - controller SHA-256: `91bb9d1db1c86bd1a4498ad5a018224972c407b0db1677f95a41ba85feefce61`
+  - manifest writer SHA-256: `5ba9b8af6cd3bb04057b89e330773a1d054b0fc8138e22d87179bdc9ee0898c1`
+  - binding report SHA-256: `f06efd60bf2adad91c0cfb148d8713747d9d3250e5d828f930d5bc2bc472c6b5`
+  - frozen state SHA-256: `c6c994384a563506126065382e35c941ba0bb0b2a21cd1d2dea63373bffd5168`
+  - launch gate SHA-256: `94c9446da49dee68b629cdeb2259698a95fefeee22eddbc1fa71b0ea768a83f1`
+  - contract: `research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/pre_run/oneboot_r4_run_contract.json`
+- Cost/recovery: 7,200-second paired-smoke cap, 1,200-second idle guard,
+  28,800-second paired-E20 cap, 1.5x disk projection gate, atomic status,
+  per-stage logs, failure/final auto-shutdown. No-card audit observed
+  13,420,335,104 free bytes; GPU precheck will re-evaluate this value.
+- Blockers: GPU is not enabled, so the launch gate was intentionally not run.
+- Validation gap: R4 smoke and E20 AP50 have not run. A scientific claim is
+  allowed only after the resulting status, metrics, logs, and comparison are
+  pulled and verified.
