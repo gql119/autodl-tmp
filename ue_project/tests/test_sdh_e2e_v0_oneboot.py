@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import inspect
 import os
 from pathlib import Path
@@ -12,9 +13,18 @@ import pytest
 
 from ue_framework.metrics_utils import VOC20_CLASS_NAMES
 from ue_framework.tools.run_tausb_sdh_e2e_v0_oneboot import (
+    MECHANISM_CONFIG_SHA256,
+    BINDING_ROOT,
+    COMPARISON_ROOT,
+    CONTROL_ROOT,
+    LOG_ROOT,
+    MECHANISM_ROOT,
+    RUN_ROOTS,
     MAX_PAIRED_E20_SECONDS,
     GuardFailure,
     SHARED_METRIC_HASH_KEYS,
+    _canonical_json_sha256,
+    _file_sha256,
     _launch_command,
     _run_controller,
     build_smoke_review,
@@ -29,6 +39,30 @@ WRAPPER = ROOT.parent / (
     "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/"
     "pre_run/oneboot_controller.sh"
 )
+MECHANISM_CONFIG = ROOT / "ue_framework/configs/tausb_sdh_e2e_v0_mechanism.yaml"
+
+
+def test_frozen_mechanism_config_uses_raw_file_hash_not_canonical_json_hash() -> None:
+    import yaml
+
+    parsed = yaml.safe_load(MECHANISM_CONFIG.read_text(encoding="utf-8"))
+    assert _file_sha256(MECHANISM_CONFIG) == MECHANISM_CONFIG_SHA256
+    assert (
+        hashlib.sha256(MECHANISM_CONFIG.read_bytes()).hexdigest()
+        == MECHANISM_CONFIG_SHA256
+    )
+    assert _canonical_json_sha256(parsed) != MECHANISM_CONFIG_SHA256
+
+
+def test_r2_uses_fresh_roots_and_never_reuses_failed_r1() -> None:
+    roots = [MECHANISM_ROOT, BINDING_ROOT, CONTROL_ROOT, LOG_ROOT, COMPARISON_ROOT]
+    roots.extend(RUN_ROOTS.values())
+    rendered = [str(path) for path in roots]
+    assert len(rendered) == len(set(rendered))
+    assert all("R2" in path for path in rendered)
+    assert all(
+        "ONEBOOT-R1" not in path and "BINDING-R1" not in path for path in rendered
+    )
 
 
 def _metrics(arm_id: str, *, pilot_kind: str = "smoke", epochs: int = 1) -> dict:

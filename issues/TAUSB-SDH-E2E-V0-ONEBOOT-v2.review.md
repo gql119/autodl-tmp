@@ -119,6 +119,34 @@ evaluation、comparison、配置语义或 Success/Failure 阈值。
 - Blockers：none。
 - Validation gaps：真实 CUDA/P1/smoke/E20/AP50 尚未运行；remote 首进度通过前不能声称启动成功。
 
+## R1 prelaunch failure and R2 correction
+
+- R1 terminal state: `failed_prelaunch`; the launcher created the detached
+  `52d57fd` checkout, but the controller failed in `PRECHECK` before any
+  mechanism, training, run root, or scientific metric was created.
+- Cost guard: the controller shutdown trap ran; a follow-up SSH probe returned
+  connection refused. No retry was attempted in GPU mode.
+- Pulled evidence: `remote_artifacts/controller_status.json`, 441 bytes,
+  SHA-256 `a295ce5564205150a4efc97105241838ebf53199d5591c1551f34098d51afe7f`;
+  the transfer report has `missing_required=[]` and contains no dataset,
+  checkpoint, poisoned image, model weight, or credential.
+- First bad boundary: the frozen value `46f757...` is the raw YAML file SHA-256,
+  while the R1 precheck compared it with canonical JSON SHA-256 `b75bb7...`.
+  The YAML contents and PyYAML 6.0 parser were valid; two different hash
+  conventions were mixed.
+- Minimum correction: precheck now compares the frozen value with the raw file
+  SHA-256. Runtime P1/binder provenance remains canonical JSON SHA-256 and is
+  reported separately. No method, stage, config, data, metric, seed, epoch, or
+  scientific gate changed.
+- Non-overwrite correction: every retry output uses fresh R2 names. R1 control
+  and checkout evidence remain untouched.
+- Local evidence: 11/11 focused one-boot tests and 82/82 expanded SDH tests
+  passed; py_compile, CLI help, Bash syntax, CSV integrity, and diff check
+  passed. Relative to `52d57fd`, `methods/`, `stages/`, and `configs/` have no
+  diff.
+- Claim boundary: R1 is an operational prelaunch failure, not a mechanism or
+  scientific failure. CUDA/P1/smoke/E20/AP50 evidence is still absent.
+
 ## Final claim/evidence review
 
 - Status：pending。

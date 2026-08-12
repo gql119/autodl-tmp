@@ -1,0 +1,16 @@
+{
+  "schema": "tausb.sdh-e2e-v0-oneboot-controller-status.v1",
+  "spec_id": "TAUSB-SDH-E2E-V0-ONEBOOT-v2",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "status": "failed",
+  "current_stage": "",
+  "stages": {
+    "PRECHECK": {
+      "status": "failed",
+      "error_type": "ValueError",
+      "error": "Mechanism config hash differs from the reviewed input.",
+      "ended_unix": 1786469546.977705
+    }
+  },
+  "ended_unix": 1786469546.9777083
+}

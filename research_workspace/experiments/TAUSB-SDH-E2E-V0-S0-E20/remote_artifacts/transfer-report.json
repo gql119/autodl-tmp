@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-12T02:19:28.929131+00:00",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "remote_artifact_root": "/root/tausb-sdh-control/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R1",
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/remote_artifacts",
+  "selected_files": 1,
+  "transferred": [
+    "controller_status.json"
+  ],
+  "existing_skipped": [],
+  "failed": [],
+  "verification": {
+    "present": [
+      {
+        "relative_path": "controller_status.json",
+        "bytes": 441,
+        "sha256": "a295ce5564205150a4efc97105241838ebf53199d5591c1551f34098d51afe7f"
+      }
+    ],
+    "missing_required": []
+  },
+  "credentials_persisted": false
+}

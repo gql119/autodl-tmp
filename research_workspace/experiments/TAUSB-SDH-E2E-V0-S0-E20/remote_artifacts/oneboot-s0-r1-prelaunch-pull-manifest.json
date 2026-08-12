@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-12T00:00:00+00:00",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "spec_id": "TAUSB-SDH-E2E-V0-ONEBOOT-v2",
+  "run_id": "ONEBOOT-S0-R1",
+  "branch": "codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3",
+  "pre_run_code_commit": "52d57fd005a318c912f5e43a5cf91dfe1357cddf",
+  "method": "tausb_sdh_e2e_v0",
+  "steps": 0,
+  "seed": 0,
+  "run_tag": "ONEBOOT-S0-R1-prelaunch",
+  "remote_artifact_root": "/root/tausb-sdh-control/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R1",
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/remote_artifacts",
+  "authentication": "Use SSH agent/config; never persist passwords.",
+  "items": [
+    {
+      "relative_path": "controller_status.json",
+      "required": true,
+      "reason": "exact prelaunch failure boundary and terminal state",
+      "size_policy": "small"
+    }
+  ],
+  "post_transfer_checks": [
+    "require controller_status.json and verify its SHA256",
+    "confirm status=failed and stages.PRECHECK.status=failed",
+    "confirm no datasets, weights, checkpoints, poisoned images, or secrets were selected"
+  ]
+}

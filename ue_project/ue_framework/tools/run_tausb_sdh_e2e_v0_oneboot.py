@@ -38,13 +38,13 @@ MECHANISM_CONFIG_SHA256 = (
     "46f757afa7f0a57944af2bec84cab72549230aa431d41bf99e3ff8a25ab4dc56"
 )
 
-MECHANISM_ROOT = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH")
-BINDING_ROOT = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R1")
-RUN_ROOT_PREFIX = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0")
-CONTROL_ROOT = Path("/root/tausb-sdh-control/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R1")
-LOG_ROOT = Path("/root/tausb-sdh-logs/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R1")
+MECHANISM_ROOT = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH-R2")
+BINDING_ROOT = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R2")
+RUN_ROOT_PREFIX = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2")
+CONTROL_ROOT = Path("/root/tausb-sdh-control/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R2")
+LOG_ROOT = Path("/root/tausb-sdh-logs/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R2")
 COMPARISON_ROOT = Path(
-    "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-COMPARISON-R1"
+    "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-COMPARISON-R2"
 )
 DATASET_ROOT = Path("/root/autodl-tmp/ue_project/VOC_0712_Kaggle_Ready")
 
@@ -103,6 +103,14 @@ def _canonical_json_sha256(payload: Any) -> str:
         ensure_ascii=False,
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _read_json(path: Path) -> Dict[str, Any]:
@@ -514,9 +522,9 @@ def _precheck(
     base_config_path = project_root / (
         "ue_framework/configs/exp_voc_person_sdh_lfc_cicr_cgr_nla_map50_v3.yaml"
     )
-    mechanism_config = yaml.safe_load(mechanism_config_path.read_text(encoding="utf-8"))
-    if _canonical_json_sha256(mechanism_config) != MECHANISM_CONFIG_SHA256:
+    if _file_sha256(mechanism_config_path) != MECHANISM_CONFIG_SHA256:
         raise ValueError("Mechanism config hash differs from the reviewed input.")
+    mechanism_config = yaml.safe_load(mechanism_config_path.read_text(encoding="utf-8"))
     load_config(str(base_config_path))
 
     audit_path = repository_root / (
@@ -580,7 +588,8 @@ def _precheck(
         "repository_root": str(repository_root),
         "project_root": str(project_root),
         "commit": expected_commit,
-        "mechanism_config_sha256": MECHANISM_CONFIG_SHA256,
+        "mechanism_config_file_sha256": MECHANISM_CONFIG_SHA256,
+        "mechanism_config_sha256": _canonical_json_sha256(mechanism_config),
         "disk_free_bytes": disk_free,
         "gpu_rows": gpu_rows.splitlines(),
         "input_audit": str(audit_path),
