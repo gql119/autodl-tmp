@@ -1,0 +1,54 @@
+{
+  "configs": [
+    {
+      "arm_id": "C0",
+      "canonical_sha256": "2d4f06d464a80771f488da1494e23bc4ca532a12005a598bb234b5c2b3482fbd",
+      "file_sha256": "e225fcc8c4d9b0107b6d01c3e5f21e818285a50c9cc9374c84cb6febde98bbeb",
+      "path": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R4/smoke-c0.yaml",
+      "pilot_kind": "smoke",
+      "run_root": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0"
+    },
+    {
+      "arm_id": "M1",
+      "canonical_sha256": "72866b4f59e84f92cd6e1dc0facbbad4d023ab9c0ae6728e09e13a50009a08ca",
+      "file_sha256": "d0bf860b993be17794c12fd716c85e8430bf15e37c0417b8a41ebdf2ebb78d5f",
+      "path": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R4/smoke-m1.yaml",
+      "pilot_kind": "smoke",
+      "run_root": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1"
+    },
+    {
+      "arm_id": "C0",
+      "canonical_sha256": "f75e49a57cf40319e21124953f7810bc3f6de867651ba00a39961cfa60edfa72",
+      "file_sha256": "a84c3f902b228055a291144653c0d5b8b42afa11aed9c3b72edf17e4dd303304",
+      "path": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R4/e20-c0.yaml",
+      "pilot_kind": "e20",
+      "run_root": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R4-E20-C0"
+    },
+    {
+      "arm_id": "M1",
+      "canonical_sha256": "d038db07e06bacc1472f1078b4500b1bebc8d0ccf724d4971107e8852affe5b9",
+      "file_sha256": "0447fa992e95810a512a8616a76a5dcdb696e039459abc19c580e6cc46cefb38",
+      "path": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R4/e20-m1.yaml",
+      "pilot_kind": "e20",
+      "run_root": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R4-E20-M1"
+    }
+  ],
+  "frozen_sdh_state": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH/mechanism/p1_feasibility_sdh_state.pt",
+  "hashes": {
+    "frozen_sdh_state_sha256": "c6c994384a563506126065382e35c941ba0bb0b2a21cd1d2dea63373bffd5168",
+    "hiding_checkpoint_sha256": "a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36",
+    "hiding_metrics_sha256": "c7d1b120ffbadeb7385be41669dda704b00a2cee60940e3c3d97112e24e59246",
+    "hiding_split_sha256": "9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280",
+    "mechanism_config_sha256": "b75bb7ad49efcea9dc0c872d3aa9e459e6a56bab7307b201179d2da455c58ce2",
+    "mechanism_decision_sha256": "65bf9568cc1859ad5a3f5f0f9ca121f0bc58d00b9146a430c1c5bb1d4a75e06c",
+    "mechanism_metrics_sha256": "fa0b99cb3df0ad834ab20373a877022a640d5ab67bb53099de229bf949c77358",
+    "p1_state_sha256": "2e102026a9356116de38acb1f5056bf5728afcd453e3447b516d4222f4d70b81"
+  },
+  "mechanism_gate_passed": false,
+  "mechanism_root": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH",
+  "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+  "schema": "tausb.sdh-e2e-v0-binding-report.v1",
+  "selection_manifest": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R4/smoke_train_selection.json",
+  "selection_manifest_sha256": "ced5d8ced679b6c9d01a5580ef38c50dda80f42482d897466d6db057f2a3bcc7",
+  "state_content_hash": "bbacd12ee7167cffe95ef2e0f9f80ab5def7654d1e9bcb9f2faf5e746cb4f26d"
+}
