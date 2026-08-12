@@ -204,6 +204,14 @@ def _git_head(repository_root: Path) -> str:
     ).strip()
 
 
+def _git_worktree_status(repository_root: Path) -> str:
+    return subprocess.check_output(
+        ["git", "status", "--porcelain"],
+        cwd=str(repository_root),
+        text=True,
+    ).strip()
+
+
 def _file_sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -582,12 +590,27 @@ def write_terminal_evidence_manifest(
             }
         )
     comparison_path = comparison_root / "comparison.json"
-    decision = "operational_failure_or_timeout"
+    scientific_outcome = "not_evaluable"
+    operational_outcome = "failed_or_timeout"
     if comparison_path.is_file():
-        decision = str(_read_json(comparison_path).get("pilot_decision", "unknown"))
+        scientific_outcome = str(
+            _read_json(comparison_path).get("pilot_decision", "unknown")
+        )
+        operational_outcome = "completed"
+    else:
+        controller_path = control_root / "controller_status.json"
+        controller = _read_json(controller_path) if controller_path.is_file() else {}
+        stages = controller.get("stages", {})
+        stage_names = set(stages) if isinstance(stages, Mapping) else set()
+        if any(
+            name.startswith(("C0_TRAIN", "C0_EVALUATE", "C0_VALIDATE", "M1_"))
+            for name in stage_names
+        ):
+            scientific_outcome = "full_horizon_failure_incomplete_or_integrity"
     manifest = {
         "schema": "tausb.sdh-terminal-evidence-manifest.v1",
-        "terminal_decision": decision,
+        "scientific_outcome": scientific_outcome,
+        "operational_outcome": operational_outcome,
         "retention_policy": "retain_and_report_all_terminal_outcomes",
         "file_count": len(records),
         "files": records,
@@ -644,6 +667,8 @@ def _run_controller(args: argparse.Namespace) -> int:
     fresh_paths = [binding_root, control_root, log_root, comparison_root, *run_roots.values()]
     if _git_head(repository_root) != args.expected_commit:
         raise GuardFailure("PRECHECK", "execution_commit_mismatch")
+    if _git_worktree_status(repository_root):
+        raise GuardFailure("PRECHECK", "execution_checkout_not_clean")
     if any(path.exists() for path in fresh_paths):
         raise GuardFailure("PRECHECK", "fresh_output_path_already_exists")
     cache_environment = (

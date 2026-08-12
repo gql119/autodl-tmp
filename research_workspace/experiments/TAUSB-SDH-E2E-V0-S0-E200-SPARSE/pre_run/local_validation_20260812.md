@@ -5,7 +5,7 @@ Scope: mechanical/no-card validation only; this is not E200 experimental evidenc
 
 ## Result
 
-- Focused and regression tests: `106 passed in 14.03s`.
+- Focused and regression tests: `108 passed in 14.31s`.
 - Python 3.8 AST gate: 5 changed runtime modules passed.
 - Git Bash syntax gate: `sparse_e200_controller_data_disk_v1.sh` passed `bash -n`.
 - Controller CLI exposes `--victim-epochs {20,200}`, `--cache-root`, and `--tmp-root`; default victim horizon remains 20.
@@ -27,11 +27,14 @@ Scope: mechanical/no-card validation only; this is not E200 experimental evidenc
 - E20 binder/config/controller compatibility remains tested.
 - E200 binds C0/M1 to 200 epochs and distinct E200 roots/IDs.
 - Overall E200 wall cap is 32,400 seconds; each arm train+evaluate cap is 12,600 seconds.
+- The wrapper also enforces an independent GNU `timeout` outer cap of 32,400 seconds with a 60-second forced-kill grace period.
 - E200 Success/Failure/Inconclusive thresholds are distinct from E20 feasibility thresholds.
 - C0 sanity blocks M1 when person AP50 is below 0.60 or non-target macro AP50 is below 0.50.
 - Fresh victim init evidence is written before training; M1 refuses to call `model.train` if its init hash differs from C0.
 - Cache/tmp/output roots must bind to the mounted data disk for E200.
 - Success, scientific failure, inconclusive, operational failure, and timeout retain a SHA256 terminal evidence manifest.
+- Scientific outcome and operational outcome are recorded separately when a run is incomplete.
+- The exact remote checkout must be fully clean, including no untracked runtime shadow files.
 - Wrapper installs the shutdown trap before validating required inputs and flushes evidence before shutdown.
 
 ## Validation gaps reserved for remote pre-run review

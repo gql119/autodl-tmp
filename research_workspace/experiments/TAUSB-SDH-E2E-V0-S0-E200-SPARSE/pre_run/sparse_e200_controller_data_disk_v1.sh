@@ -44,6 +44,11 @@ trap 'exit 143' TERM
 : "${CACHE_ROOT:?CACHE_ROOT is required}"
 : "${TMP_ROOT:?TMP_ROOT is required}"
 
+command -v timeout >/dev/null 2>&1 || {
+  echo "[SparseE200] GNU timeout is required for the 9-hour outer hard cap" >&2
+  exit 20
+}
+
 REQUIRED_STORAGE_ROOT="$(realpath -m "${REQUIRED_STORAGE_ROOT}")"
 REPOSITORY_ROOT="$(realpath -m "${REPOSITORY_ROOT}")"
 DATASET_ROOT="$(realpath -m "${DATASET_ROOT}")"
@@ -77,6 +82,7 @@ done
 mkdir -p "${TMPDIR}" "${XDG_CACHE_HOME}" "${TORCH_HOME}" "${YOLO_CONFIG_DIR}"
 
 cd "${REPOSITORY_ROOT}/ue_project"
+timeout --signal=TERM --kill-after=60s 32400s \
 "${PYTHON_BIN}" -u -m ue_framework.tools.run_tausb_sdh_sparse_e20 \
   --repository-root "${REPOSITORY_ROOT}" \
   --required-storage-root "${REQUIRED_STORAGE_ROOT}" \

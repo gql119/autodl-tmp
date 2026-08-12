@@ -25,6 +25,7 @@ from ue_framework.tools.run_tausb_sdh_sparse_e20 import (
     _experiment_contract,
     _config_path,
     _run_root,
+    _git_worktree_status,
     c0_ap50_is_interpretable,
     c0_full_horizon_sanity,
     validate_cache_environment,
@@ -236,6 +237,15 @@ def test_e200_contract_has_distinct_ids_paths_and_nine_hour_cap(tmp_path) -> Non
     assert _experiment_contract(20).overall_wall_seconds == 2 * 60 * 60
 
 
+def test_git_worktree_gate_observes_untracked_files(tmp_path) -> None:
+    import subprocess
+
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    assert _git_worktree_status(tmp_path) == ""
+    (tmp_path / "untracked.txt").write_text("runtime shadow", encoding="utf-8")
+    assert "untracked.txt" in _git_worktree_status(tmp_path)
+
+
 def test_e200_c0_sanity_and_fresh_init_pair_gates() -> None:
     ap50 = {name: 0.55 for name in (
         "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car",
@@ -308,9 +318,37 @@ def test_terminal_manifest_retains_failure_logs_and_partial_metrics(tmp_path) ->
         comparison_root=comparison,
         run_roots={"C0": run_root},
     )
-    assert manifest["terminal_decision"] == "operational_failure_or_timeout"
+    assert manifest["scientific_outcome"] == "not_evaluable"
+    assert manifest["operational_outcome"] == "failed_or_timeout"
     assert manifest["file_count"] == 3
     assert (control / "terminal_evidence_manifest.json").is_file()
+
+
+def test_terminal_manifest_marks_incomplete_training_as_full_horizon_failure(tmp_path) -> None:
+    control = tmp_path / "control"
+    logs = tmp_path / "logs"
+    control.mkdir()
+    logs.mkdir()
+    (control / "controller_status.json").write_text(
+        json.dumps(
+            {
+                "status": "failed",
+                "stages": {"C0_TRAIN_VICTIM": {"status": "failed"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    manifest = write_terminal_evidence_manifest(
+        control_root=control,
+        binding_root=tmp_path / "binding",
+        log_root=logs,
+        comparison_root=tmp_path / "comparison",
+        run_roots={},
+    )
+    assert manifest["scientific_outcome"] == (
+        "full_horizon_failure_incomplete_or_integrity"
+    )
+    assert manifest["operational_outcome"] == "failed_or_timeout"
 
 
 def test_e20_only_binder_does_not_build_or_write_smoke_selection(
