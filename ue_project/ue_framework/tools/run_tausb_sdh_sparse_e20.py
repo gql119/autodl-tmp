@@ -42,6 +42,12 @@ MAX_SYSTEM_DISK_STAGE_GROWTH_BYTES = 1 * 1024 ** 3
 E200_SURROGATE_CHECKPOINT_SHA256 = (
     "8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89"
 )
+E200_FROZEN_SDH_STATE_SHA256 = (
+    "c6c994384a563506126065382e35c941ba0bb0b2a21cd1d2dea63373bffd5168"
+)
+E200_P1_STATE_SHA256 = (
+    "2e102026a9356116de38acb1f5056bf5728afcd453e3447b516d4222f4d70b81"
+)
 
 
 @dataclass(frozen=True)
@@ -247,6 +253,18 @@ def validate_gpu_idle() -> Dict[str, Any]:
     if processes.stdout.strip():
         raise GuardFailure("PRECHECK", "gpu_not_idle")
     return {"gpu_rows": gpu.stdout.strip().splitlines(), "compute_processes": []}
+
+
+def validate_e200_mechanism_hashes(binding: Mapping[str, Any]) -> Dict[str, str]:
+    hashes = binding.get("hashes", {})
+    expected = {
+        "frozen_sdh_state_sha256": E200_FROZEN_SDH_STATE_SHA256,
+        "p1_state_sha256": E200_P1_STATE_SHA256,
+    }
+    for name, value in expected.items():
+        if hashes.get(name) != value:
+            raise GuardFailure("PRECHECK", "%s_mismatch" % name)
+    return expected
 
 
 def _file_sha256(path: Path) -> str:
@@ -718,7 +736,12 @@ def _run_controller(args: argparse.Namespace) -> int:
     system_disk_monitor = (
         SystemDiskMonitor() if contract.victim_epochs == 200 else None
     )
-    _validate_mechanism_binding(mechanism_root, mechanism_config)
+    mechanism_binding = _validate_mechanism_binding(mechanism_root, mechanism_config)
+    frozen_mechanism_hashes = (
+        validate_e200_mechanism_hashes(mechanism_binding)
+        if contract.victim_epochs == 200
+        else {}
+    )
     base_payload = yaml.safe_load(base_config.read_text(encoding="utf-8"))
     surrogate_checkpoint = Path(base_payload["surrogate"]["ckpt"]).resolve()
     if not surrogate_checkpoint.is_file():
@@ -752,6 +775,7 @@ def _run_controller(args: argparse.Namespace) -> int:
             "run_id": contract.run_id,
             "execution_commit": args.expected_commit,
             "mechanism_root": str(mechanism_root),
+            "frozen_mechanism_hashes": frozen_mechanism_hashes,
             "surrogate_checkpoint": str(surrogate_checkpoint),
             "surrogate_checkpoint_sha256": surrogate_checkpoint_sha256,
             "storage_paths": storage_paths,

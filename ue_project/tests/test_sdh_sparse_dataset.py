@@ -29,6 +29,7 @@ from ue_framework.tools.run_tausb_sdh_sparse_e20 import (
     c0_ap50_is_interpretable,
     c0_full_horizon_sanity,
     validate_cache_environment,
+    validate_e200_mechanism_hashes,
     validate_gpu_idle,
     validate_fresh_init_pair,
     write_terminal_evidence_manifest,
@@ -290,6 +291,33 @@ def test_e200_c0_sanity_and_fresh_init_pair_gates() -> None:
             {**common, "run_tag": "C0"},
             {**common, "run_tag": "M1", "victim_init_tensor_sha256": "c" * 64},
             "a" * 64,
+        )
+
+
+def test_e200_mechanism_hashes_are_bound_to_the_approved_p1() -> None:
+    expected = validate_e200_mechanism_hashes(
+        {
+            "hashes": {
+                "frozen_sdh_state_sha256": (
+                    "c6c994384a563506126065382e35c941ba0bb0b2a21cd1d2dea63373bffd5168"
+                ),
+                "p1_state_sha256": (
+                    "2e102026a9356116de38acb1f5056bf5728afcd453e3447b516d4222f4d70b81"
+                ),
+            }
+        }
+    )
+    assert expected["p1_state_sha256"].startswith("2e102026")
+    with pytest.raises(GuardFailure, match="p1_state_sha256_mismatch"):
+        validate_e200_mechanism_hashes(
+            {
+                "hashes": {
+                    "frozen_sdh_state_sha256": expected[
+                        "frozen_sdh_state_sha256"
+                    ],
+                    "p1_state_sha256": "0" * 64,
+                }
+            }
         )
 
 
