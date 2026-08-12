@@ -7,6 +7,7 @@
   "execution_commit": "36f74cab2222f41cb1f206b42db3118237f18a52",
   "remote_branch_sha_verified": true,
   "checkout": "/root/autodl-tmp/tausb-sdh/checkouts/36f74cab2222f41cb1f206b42db3118237f18a52",
+  "source_repository": "/root/autodl-tmp",
   "tmux_session": "tausb-sdh-e200-s0-r1",
   "wrapper": "/root/autodl-tmp/tausb-sdh/checkouts/36f74cab2222f41cb1f206b42db3118237f18a52/research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E200-SPARSE/pre_run/sparse_e200_controller_data_disk_v1.sh",
   "wrapper_sha256": "06a7f652fbb12d4a0c9bd896ca836a063b05a4b9d826cd64abd25548287c3684",
