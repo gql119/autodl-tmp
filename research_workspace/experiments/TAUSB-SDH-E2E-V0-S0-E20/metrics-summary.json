@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-12T06:25:00+00:00",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "spec_id": "TAUSB-SDH-E2E-V0-ONEBOOT-v2",
+  "run_id": "ONEBOOT-S0-R4",
+  "branch": "codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3",
+  "pre_run_code_commit": "83cfb21c11195e1b1e034db3422716a34b18e166",
+  "terminal_class": "cost_gate_stop",
+  "scientific_outcome": "not_evaluated_e20_not_run",
+  "controller_status": "cost_gate_stop",
+  "completed_stages": [
+    "PRECHECK",
+    "P1_VERIFY_AND_BIND",
+    "SMOKE_C0",
+    "SMOKE_M1"
+  ],
+  "stopped_stage": "SMOKE_DATAFLOW_REVIEW",
+  "stop_reasons": [
+    "paired_e20_estimate_exceeds_8_gpu_hours",
+    "disk_safety_margin_below_1_5x_projection"
+  ],
+  "smoke": {
+    "dataflow_gate_passed": true,
+    "cost_gate_passed": false,
+    "C0_elapsed_seconds": 145.24145982414484,
+    "M1_elapsed_seconds": 135.25125795975327,
+    "C0_poisoned_count": 0,
+    "M1_poisoned_count": 40,
+    "M1_actual_linf_max": 0.0627445,
+    "M1_PSNR": 34.85976595,
+    "M1_LPIPS": 0.020801788195967674,
+    "M1_average_perturbed_area_ratio": 0.41392781549999996,
+    "M1_support_source": "person_gt_bbox",
+    "M1_single_final_secret": true,
+    "M1_secret_source_sha256": "66bd89ebef12b21d578341e945d56ed315372b213e52c2cc07d2110543cc6a48",
+    "manifest_rows": 200,
+    "C0_all_stages_completed": true,
+    "M1_all_stages_completed": true,
+    "training_losses_finite": true,
+    "log_error_scan_hits": []
+  },
+  "cost_projection": {
+    "paired_e20_estimated_seconds": 213440.76346047877,
+    "paired_e20_estimated_hours": 59.2891009612441,
+    "approved_max_paired_e20_seconds": 28800,
+    "projected_required_disk_bytes": 29789969543,
+    "disk_free_bytes": 13157421056,
+    "disk_safety_factor": 1.5
+  },
+  "e20_metrics": {
+    "mAP50_target_C0": null,
+    "mAP50_target_M1": null,
+    "mAP50_non_target_C0": null,
+    "mAP50_non_target_M1": null,
+    "mAP50_all_C0": null,
+    "mAP50_all_M1": null,
+    "person_AP50_drop": null,
+    "non_target_macro_AP50_drop": null,
+    "per_class_AP50": null
+  },
+  "validation_gaps": [
+    "E20 C0 and M1 were not started due to the approved cost and disk stop conditions",
+    "the one-epoch smoke AP50 values are all zero and are not scientifically interpretable",
+    "no E20 comparison artifact exists",
+    "no conclusion about target unlearnability or non-target preservation is supported"
+  ],
+  "evidence": {
+    "controller_status": {
+      "path": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/remote_artifacts/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R4/controller_status.json",
+      "sha256": "79e99f3e619ba9111b7142e4fb6bfdfe7219cb6a6e98deb901ee012e9651ca2d"
+    },
+    "smoke_review": {
+      "path": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/remote_artifacts/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R4/smoke_review.json",
+      "sha256": "51f7081c01be834bcc6312f0e87be562c0d56482fcd2db1e7d6400303e418164"
+    },
+    "C0_metrics": {
+      "path": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/remote_artifacts/TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/metrics/metrics.json",
+      "sha256": "6403cb522655a07cf3e6b0c4852896a8480cad724cd7f9513ee0e13da6bce9e1"
+    },
+    "M1_metrics": {
+      "path": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/remote_artifacts/TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/metrics/metrics.json",
+      "sha256": "227c23db9eb12af1778c2fd5d9af8aebc0323fd7f96252f1aa85406091620eb6"
+    },
+    "M1_manifest": {
+      "path": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/remote_artifacts/TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/poisoned_datasets/tausb_sdh/steps40/seed0/manifest.csv",
+      "sha256": "d72fbb7865de648d6738a564a0f600345378663a72507ac30c6e19c10e780c06"
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "schema": "tausb.sdh-e2e-v0-oneboot-controller-status.v1",
+  "spec_id": "TAUSB-SDH-E2E-V0-ONEBOOT-v2",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "status": "cost_gate_stop",
+  "current_stage": "",
+  "stages": {
+    "PRECHECK": {
+      "status": "completed",
+      "started_unix": 1786514325.9978888,
+      "ended_unix": 1786514325.9980597,
+      "repository_root": "/root/tausb-sdh-checkouts/e2e-v0-83cfb21-r4-worktree",
+      "project_root": "/root/tausb-sdh-checkouts/e2e-v0-83cfb21-r4-worktree/ue_project",
+      "commit": "83cfb21c11195e1b1e034db3422716a34b18e166",
+      "mechanism_config_file_sha256": "46f757afa7f0a57944af2bec84cab72549230aa431d41bf99e3ff8a25ab4dc56",
+      "mechanism_config_sha256": "b75bb7ad49efcea9dc0c872d3aa9e459e6a56bab7307b201179d2da455c58ce2",
+      "disk_free_bytes": 13420335104,
+      "gpu_rows": [
+        "0, NVIDIA GeForce RTX 4090 D, 24564"
+      ],
+      "input_audit": "/root/tausb-sdh-checkouts/e2e-v0-83cfb21-r4-worktree/research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/pre_run/remote_input_audit.json"
+    },
+    "P1_VERIFY_AND_BIND": {
+      "status": "completed",
+      "started_unix": 1786514325.9982562,
+      "ended_unix": 1786514326.0524151,
+      "mode": "reuse_existing_verified_binding",
+      "binding_report": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R4/binding_report.json",
+      "selection_manifest_sha256": "ced5d8ced679b6c9d01a5580ef38c50dda80f42482d897466d6db057f2a3bcc7",
+      "config_count": 4
+    },
+    "SMOKE_C0": {
+      "status": "completed",
+      "started_unix": 1786514326.0527687,
+      "ended_unix": 1786514471.2973025,
+      "command": [
+        "/root/miniconda3/bin/python",
+        "-u",
+        "/root/tausb-sdh-checkouts/e2e-v0-83cfb21-r4-worktree/ue_project/ue_framework/launch_one.py",
+        "--config",
+        "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R4/smoke-c0.yaml",
+        "--method",
+        "tausb_sdh",
+        "--steps",
+        "40",
+        "--seed",
+        "0",
+        "--stage",
+        "all",
+        "--gpu_id",
+        "0",
+        "--run_tag",
+        "C0"
+      ],
+      "log_path": "/root/tausb-sdh-logs/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R4/smoke_c0.log",
+      "elapsed_seconds": 145.24145982414484,
+      "exit_code": 0,
+      "gpu_process_observed": true
+    },
+    "SMOKE_M1": {
+      "status": "completed",
+      "started_unix": 1786514471.2986104,
+      "ended_unix": 1786514606.553532,
+      "command": [
+        "/root/miniconda3/bin/python",
+        "-u",
+        "/root/tausb-sdh-checkouts/e2e-v0-83cfb21-r4-worktree/ue_project/ue_framework/launch_one.py",
+        "--config",
+        "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R4/smoke-m1.yaml",
+        "--method",
+        "tausb_sdh",
+        "--steps",
+        "40",
+        "--seed",
+        "0",
+        "--stage",
+        "all",
+        "--gpu_id",
+        "0",
+        "--run_tag",
+        "M1"
+      ],
+      "log_path": "/root/tausb-sdh-logs/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R4/smoke_m1.log",
+      "elapsed_seconds": 135.25125795975327,
+      "exit_code": 0,
+      "gpu_process_observed": true
+    },
+    "SMOKE_DATAFLOW_REVIEW": {
+      "status": "failed",
+      "started_unix": 1786514606.5549445,
+      "ended_unix": 1786514606.6949604,
+      "error_type": "CostGateStop",
+      "error": "SMOKE_DATAFLOW_REVIEW failed: paired_e20_estimate_exceeds_8_gpu_hours,disk_safety_margin_below_1_5x_projection"
+    }
+  },
+  "started_unix": 1786514325.9970021,
+  "ended_unix": 1786514606.694964
+}

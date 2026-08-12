@@ -1,0 +1,12 @@
+{
+  "repository_root": "/root/tausb-sdh-checkouts/e2e-v0-83cfb21-r4-worktree",
+  "project_root": "/root/tausb-sdh-checkouts/e2e-v0-83cfb21-r4-worktree/ue_project",
+  "commit": "83cfb21c11195e1b1e034db3422716a34b18e166",
+  "mechanism_config_file_sha256": "46f757afa7f0a57944af2bec84cab72549230aa431d41bf99e3ff8a25ab4dc56",
+  "mechanism_config_sha256": "b75bb7ad49efcea9dc0c872d3aa9e459e6a56bab7307b201179d2da455c58ce2",
+  "disk_free_bytes": 13420335104,
+  "gpu_rows": [
+    "0, NVIDIA GeForce RTX 4090 D, 24564"
+  ],
+  "input_audit": "/root/tausb-sdh-checkouts/e2e-v0-83cfb21-r4-worktree/research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/pre_run/remote_input_audit.json"
+}

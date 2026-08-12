@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-12T06:15:00+00:00",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "spec_id": "TAUSB-SDH-E2E-V0-ONEBOOT-v2",
+  "run_id": "ONEBOOT-S0-R4",
+  "branch": "codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3",
+  "pre_run_code_commit": "83cfb21c11195e1b1e034db3422716a34b18e166",
+  "method": "tausb_sdh",
+  "steps": 40,
+  "seed": 0,
+  "run_tag": "R4-SMOKE",
+  "remote_artifact_root": "/root/tausb-sdh-runs",
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/remote_artifacts",
+  "authentication": "Use SSH config only; no credentials are persisted.",
+  "items": [
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/poisoned_datasets/tausb_sdh/steps40/seed0/status.json", "required": true, "reason": "C0 generation completion and counts", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/poisoned_datasets/tausb_sdh/steps40/seed0/manifest.csv", "required": true, "reason": "C0 manifest and zero poison evidence", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/status.json", "required": true, "reason": "C0 all-stage status", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/metrics/metrics.json", "required": true, "reason": "canonical C0 smoke metrics", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/metrics/metrics.csv", "required": true, "reason": "C0 metrics mirror", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/logs/eval_log.txt", "required": true, "reason": "C0 clean evaluation evidence", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/train_runs/victim/results.csv", "required": true, "reason": "C0 finite one-epoch losses", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/poisoned_datasets/tausb_sdh/steps40/seed0/status.json", "required": true, "reason": "M1 generation completion and poison count", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/poisoned_datasets/tausb_sdh/steps40/seed0/manifest.csv", "required": true, "reason": "M1 complete provenance manifest", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/status.json", "required": true, "reason": "M1 all-stage status", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/metrics/metrics.json", "required": true, "reason": "canonical M1 smoke metrics and provenance", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/metrics/metrics.csv", "required": true, "reason": "M1 metrics mirror", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/logs/eval_log.txt", "required": true, "reason": "M1 clean evaluation evidence", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/train_runs/victim/results.csv", "required": true, "reason": "M1 finite one-epoch losses", "size_policy": "small"}
+  ],
+  "post_transfer_checks": ["require missing_required empty", "verify every SHA-256", "confirm E20 and comparison roots absent", "exclude datasets images checkpoints and weights"]
+}

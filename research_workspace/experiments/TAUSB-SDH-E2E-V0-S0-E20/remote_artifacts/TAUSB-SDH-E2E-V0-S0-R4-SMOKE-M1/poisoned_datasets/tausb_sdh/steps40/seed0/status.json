@@ -1,0 +1,24 @@
+{
+  "method": "tausb_sdh",
+  "steps": 40,
+  "seed": 0,
+  "created_at": "2026-08-12T06:01:13.535085Z",
+  "updated_at": "2026-08-12T06:01:23.761244Z",
+  "current_stage": "",
+  "completed_stages": [
+    "generate_poisoned_dataset"
+  ],
+  "stage_state": {
+    "generate_poisoned_dataset": {
+      "status": "completed",
+      "start_time": "2026-08-12T06:01:13.535600Z",
+      "processed": 200,
+      "total": 200,
+      "end_time": "2026-08-12T06:01:23.761236Z",
+      "poisoned_count": 40,
+      "target_image_count": 40,
+      "selection_manifest_sha256": "ced5d8ced679b6c9d01a5580ef38c50dda80f42482d897466d6db057f2a3bcc7",
+      "manifest_csv": "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/poisoned_datasets/tausb_sdh/steps40/seed0/manifest.csv"
+    }
+  }
+}

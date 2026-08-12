@@ -1,0 +1,45 @@
+{
+  "schema": "tausb.sdh-e2e-v0-oneboot-smoke-review.v1",
+  "spec_id": "TAUSB-SDH-E2E-V0-ONEBOOT-v2",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "dataflow_gate_passed": true,
+  "cost_gate_passed": false,
+  "decision": "cost_gate_stop",
+  "stop_reasons": [
+    "paired_e20_estimate_exceeds_8_gpu_hours",
+    "disk_safety_margin_below_1_5x_projection"
+  ],
+  "smoke_stage_seconds": {
+    "C0": {
+      "generate_poisoned_dataset": 6.601701021194458,
+      "train_victim": 64.00396800041199,
+      "evaluate": 62.21506214141846
+    },
+    "M1": {
+      "generate_poisoned_dataset": 10.2256600856781,
+      "train_victim": 64.04509806632996,
+      "evaluate": 51.990882873535156
+    }
+  },
+  "train_scale": 82.755,
+  "e20_estimates": {
+    "C0": {
+      "estimated_seconds": 106541.50626763224,
+      "hard_cap_seconds": 160413.0
+    },
+    "M1": {
+      "estimated_seconds": 106899.25719284653,
+      "hard_cap_seconds": 160949.0
+    }
+  },
+  "paired_e20_estimated_seconds": 213440.76346047877,
+  "max_paired_e20_seconds": 28800,
+  "smoke_artifact_bytes": {
+    "C0": 113288396,
+    "M1": 126696858
+  },
+  "projected_required_disk_bytes": 29789969543,
+  "disk_free_bytes": 13157421056,
+  "disk_safety_factor": 1.5,
+  "claim_boundary": "dataflow and cost gate only; not scientific efficacy"
+}

@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-12T06:18:11.432594+00:00",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "remote_artifact_root": "/root/tausb-sdh-runs",
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/remote_artifacts",
+  "selected_files": 14,
+  "transferred": [
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/logs/eval_log.txt",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/metrics/metrics.csv",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/metrics/metrics.json",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/status.json",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/train_runs/victim/results.csv",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/poisoned_datasets/tausb_sdh/steps40/seed0/manifest.csv",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/poisoned_datasets/tausb_sdh/steps40/seed0/status.json",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/logs/eval_log.txt",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/metrics/metrics.csv",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/metrics/metrics.json",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/status.json",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/train_runs/victim/results.csv",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/poisoned_datasets/tausb_sdh/steps40/seed0/manifest.csv",
+    "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/poisoned_datasets/tausb_sdh/steps40/seed0/status.json"
+  ],
+  "existing_skipped": [],
+  "failed": [],
+  "verification": {
+    "present": [
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/logs/eval_log.txt",
+        "bytes": 13332,
+        "sha256": "4eea381bb9c6ebae9f877627e893ab4d1061be5df12e5524d8e8cbf444826627"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/metrics/metrics.csv",
+        "bytes": 13241,
+        "sha256": "166c43fbb99f8cda54e5a4da5bad92e7a52ecf73fc27f037c9fcb515ca3f751e"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/metrics/metrics.json",
+        "bytes": 17639,
+        "sha256": "6403cb522655a07cf3e6b0c4852896a8480cad724cd7f9513ee0e13da6bce9e1"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/status.json",
+        "bytes": 2357,
+        "sha256": "733f36420fd1b8e3fc35620f7fbc183989710bbb3b7c736c634b55454901014a"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/artifacts/tausb_sdh/steps40/seed0_C0/train_runs/victim/results.csv",
+        "bytes": 279,
+        "sha256": "970da6a62e1b82ba05be6b41051d2c1b1509641e394d5a92646a8d568a6d8615"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/poisoned_datasets/tausb_sdh/steps40/seed0/manifest.csv",
+        "bytes": 44802,
+        "sha256": "6617db1ecff622459ad94113dfc47dd3b3edf2d54e4711fcb144a8a11f85f576"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-C0/poisoned_datasets/tausb_sdh/steps40/seed0/status.json",
+        "bytes": 765,
+        "sha256": "ba411ba7b12f72286741a661e160f7b89ea64ed49e2e5db9d3e3ae1f648b8e2f"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/logs/eval_log.txt",
+        "bytes": 13812,
+        "sha256": "34f7bc4fef085253cac9d187840b84917179a9c8ff22b372a567fa91ac3b16c5"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/metrics/metrics.csv",
+        "bytes": 13722,
+        "sha256": "38cb2bb9cd08a59c905e9a5cc1f094fcf1b70748e601301a0e4b867c943ba00e"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/metrics/metrics.json",
+        "bytes": 18150,
+        "sha256": "227c23db9eb12af1778c2fd5d9af8aebc0323fd7f96252f1aa85406091620eb6"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/status.json",
+        "bytes": 2358,
+        "sha256": "8c9bd48d101e08c7120cf1a4b9811e466f8669e89c440ff22f18e43281fd036e"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/artifacts/tausb_sdh/steps40/seed0_M1/train_runs/victim/results.csv",
+        "bytes": 278,
+        "sha256": "d37d036bb669e114c94f0085f4f6b07422ea095ad1051ad6a67d2317017fdf4a"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/poisoned_datasets/tausb_sdh/steps40/seed0/manifest.csv",
+        "bytes": 81482,
+        "sha256": "d72fbb7865de648d6738a564a0f600345378663a72507ac30c6e19c10e780c06"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-R4-SMOKE-M1/poisoned_datasets/tausb_sdh/steps40/seed0/status.json",
+        "bytes": 766,
+        "sha256": "4a8d9c377b5e33e1377149d28d117f5300f3758d3a8a66e0b9b66cda62077ddb"
+      }
+    ],
+    "missing_required": []
+  },
+  "credentials_persisted": false
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-12T06:15:00+00:00",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "spec_id": "TAUSB-SDH-E2E-V0-ONEBOOT-v2",
+  "run_id": "ONEBOOT-S0-R4",
+  "branch": "codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3",
+  "pre_run_code_commit": "83cfb21c11195e1b1e034db3422716a34b18e166",
+  "method": "tausb_sdh",
+  "steps": 40,
+  "seed": 0,
+  "run_tag": "R4-LOGS",
+  "remote_artifact_root": "/root/tausb-sdh-logs",
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/remote_artifacts",
+  "authentication": "Use SSH config only; no credentials are persisted.",
+  "items": [
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R4/smoke_c0.log", "required": true, "reason": "complete C0 smoke dataflow and timings", "size_policy": "small"},
+    {"relative_path": "TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R4/smoke_m1.log", "required": true, "reason": "complete M1 smoke dataflow and provenance evidence", "size_policy": "small"}
+  ],
+  "post_transfer_checks": ["require missing_required empty", "verify every SHA-256", "exclude datasets weights and credentials"]
+}

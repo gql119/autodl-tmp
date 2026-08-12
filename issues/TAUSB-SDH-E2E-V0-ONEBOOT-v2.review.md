@@ -2,23 +2,30 @@
 
 ## R4 current status (authoritative)
 
-- `PRERUN-REVIEW-05`: `pass / allow_run_when_gpu_is_enabled`.
+- R4 terminal class: `cost_gate_stop`; this is an approved operational stop,
+  not a code failure and not a scientific failure.
 - Execution commit: `83cfb21c11195e1b1e034db3422716a34b18e166`.
-- R4 binding and launch gate metadata: `f87efebe196b422c07f0375c2d030c66859b856a`.
-- Active row: `REMOTE-ONEBOOT-04`, `ready_waiting_gpu`.
-- No-card preparation is complete; no R4 tmux, smoke, or E20 job has started.
-- The launch wrapper shuts the instance down on controller failure and on final
-  completion; E20 starts only after paired smoke passes the frozen review.
+- `PRECHECK`, P1/binding reuse, `SMOKE_C0`, and `SMOKE_M1` completed. Both
+  smoke arms exited 0 and completed generate, fresh-victim train, and clean
+  evaluation.
+- The paired-smoke data-flow review passed. E20 did not start because the
+  paired estimate was 59.29 GPU hours versus the approved 8-hour cap, and
+  projected disk need was 29.79 GB versus 13.16 GB free.
+- The controller automatically shut the instance down. Nineteen minimal files
+  were pulled and SHA-256 verified with no missing required file and no
+  dataset, image, weight, checkpoint, or credential.
+- Scientific status: `inconclusive / not evaluated`; one-epoch all-zero AP50
+  is not interpretable, so `STATE.md` Current Best remains unchanged.
 
 ## Current workflow state
 
 - Spec：`docs/research/specs/TAUSB-SDH-E2E-V0-ONEBOOT-v2.md`
-- Status：approved；第一次 pre-run blocked 的单臂顺序缺口已修复，第二次 pre-run `pass / allow_run`。
+- Status：approved execution closed；R4 按成本门禁终止，所有 CSV 行已收口。
 - Branch：`codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3`
 - Method implementation base：`3a7a1aaff912d0904794a91a4d3512d18b5c69fa`
-- Execution commit：`52d57fd005a318c912f5e43a5cf91dfe1357cddf`（第二次 review，pass，已 push）。
-- Active CSV row：`REMOTE-ONEBOOT-01`，等待用户开启 GPU 后启动唯一 reviewed payload。
-- Remote/GPU：未启动；AutoDL 当前不应执行旧的 mechanism-only contract。
+- Execution commit：`83cfb21c11195e1b1e034db3422716a34b18e166`（R4 provenance 修复后 review pass，已 push）。
+- Active CSV row：无；`REVIEW-01` 已完成。
+- Remote/GPU：R4 已自动关机；E20 未启动，后续实验必须由新批准 Spec 定义。
 
 ## Objective scientific result
 
@@ -330,3 +337,34 @@ evaluation、comparison、配置语义或 Success/Failure 阈值。
 - Validation gap: R4 smoke and E20 AP50 have not run. A scientific claim is
   allowed only after the resulting status, metrics, logs, and comparison are
   pulled and verified.
+
+## R4 terminal execution and final review
+
+- Final review result: `vision_met_for_approved_cost_guarded_workflow`.
+- Scientific hypothesis: `inconclusive / not evaluated` because paired E20
+  was never started. This result is neither Success nor scientific Failure.
+- R4 controller completed `PRECHECK`, P1/binding reuse, C0 smoke, and M1 smoke.
+  C0 and M1 exited 0 after generate, one-epoch fresh-victim train, and clean
+  evaluation. Finite training losses and an active RTX 4090 D process were
+  observed for both arms.
+- M1 materialized 40 poisoned images in the frozen 200-image smoke selection.
+  Actual Linf max was `0.0627445`; all 40 poisoned manifest rows recorded the
+  same frozen secret hash. This closes the R3 provenance failure.
+- The data-flow gate passed. The cost gate stopped E20 because the paired
+  estimate was `213440.76` seconds (`59.29` hours) against the approved
+  `28800`-second cap. Projected disk need was `29.79` GB with only `13.16` GB
+  free, also below the frozen 1.5x safety margin.
+- Both one-epoch smoke arms produced all-zero 20-class AP50, which is expected
+  to be non-discriminative at this training budget. These values are excluded
+  from scientific comparison rather than reported as a method result.
+- Artifact closure: 19 selected files, 365148 bytes, three transfer reports,
+  `missing_required=[]`, no failed transfer, individual SHA-256 verification,
+  and no data, image, weight, checkpoint, or credential transfer.
+- Automatic shutdown and the user's cost constraint were honored. No E20 or
+  comparison root was created, so no additional GPU spending occurred.
+- `STATE.md` was not modified. The evidence-backed candidate is to leave
+  Current Best unchanged.
+- Remaining validation gap: target-class unlearnability and 19-class
+  preservation remain untested at an interpretable victim-training budget.
+  The next experiment requires a new approved Spec for a cost-bounded paired
+  pilot whose clean C0 AP50 must first leave the all-zero region.

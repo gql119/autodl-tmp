@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-12T06:17:49.606425+00:00",
+  "exp_id": "TAUSB-SDH-E2E-V0-S0-E20",
+  "remote_artifact_root": "/root/tausb-sdh-logs",
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/remote_artifacts",
+  "selected_files": 2,
+  "transferred": [
+    "TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R4/smoke_c0.log",
+    "TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R4/smoke_m1.log"
+  ],
+  "existing_skipped": [],
+  "failed": [],
+  "verification": {
+    "present": [
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R4/smoke_c0.log",
+        "bytes": 72306,
+        "sha256": "73feb5c0d44e39b3b984ba0a0f671f585e2a0ba2b90de8b471c19d37ae93120d"
+      },
+      {
+        "relative_path": "TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R4/smoke_m1.log",
+        "bytes": 64400,
+        "sha256": "c05d8abf1a6afc8c6489ee91aa695cd297a22412cd24eba9e4081c8bc7ebffd5"
+      }
+    ],
+    "missing_required": []
+  },
+  "credentials_persisted": false
+}
