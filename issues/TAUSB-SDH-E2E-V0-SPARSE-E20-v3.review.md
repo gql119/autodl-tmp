@@ -57,3 +57,5 @@
 - 2026-08-12: 92/92 SDH tests, Python 3.8 AST for eight active files, Python 3.12 compile, controller CLI, Bash syntax and diff checks passed; no GPU job was run.
 - 2026-08-12: added and tested the C0 all-zero AP50 stop gate; an uninterpretable clean control now prevents M1 training and exits through the guarded shutdown path.
 - 2026-08-12: AutoDL no-card compatibility probe returned connection refused; recorded as a pre-run validation gap rather than retried or treated as pass.
+- 2026-08-12: exact execution snapshot `b70fc87ecfcda8c2adb5f40b86a1147dbe738633` was committed and ordinarily pushed; the GitHub branch resolved to the same SHA and unrelated dirty files remained uncommitted.
+- 2026-08-12: `PRERUN-REVIEW-01` found the local implementation and active data/metric chain ready, but recorded `blocked / do_not_run` because the AutoDL endpoint remained offline and remote input/fresh-root/GPU/disk/shutdown gates could not be observed.
