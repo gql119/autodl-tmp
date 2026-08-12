@@ -43,6 +43,10 @@ RESUME_WRAPPER = ROOT.parent / (
     "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/"
     "pre_run/oneboot_r3_resume_controller.sh"
 )
+R4_RESUME_WRAPPER = ROOT.parent / (
+    "research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/"
+    "pre_run/oneboot_r4_resume_controller.sh"
+)
 MECHANISM_CONFIG = ROOT / "ue_framework/configs/tausb_sdh_e2e_v0_mechanism.yaml"
 
 
@@ -334,3 +338,38 @@ def test_resume_mode_skips_mechanism_and_reuses_verified_binding() -> None:
     assert "--resume-from-binding" in wrapper
     assert "ONEBOOT-R3" in wrapper
     assert "COMPARISON-R3" in wrapper
+
+
+def test_r4_runtime_paths_are_frozen_by_environment() -> None:
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "TAUSB_SDH_BINDING_ROOT": "/tmp/binding-r4",
+            "TAUSB_SDH_RUN_ROOT_PREFIX": "/tmp/run-r4",
+        }
+    )
+    output = subprocess.check_output(
+        [
+            sys.executable,
+            "-c",
+            (
+                "from ue_framework.tools.run_tausb_sdh_e2e_v0_oneboot import "
+                "BINDING_ROOT, RUN_ROOTS; "
+                "print(BINDING_ROOT); print(RUN_ROOTS[('smoke', 'C0')])"
+            ),
+        ],
+        cwd=str(ROOT),
+        env=environment,
+        text=True,
+    ).splitlines()
+    assert [Path(value) for value in output] == [
+        Path("/tmp/binding-r4"),
+        Path("/tmp/run-r4-SMOKE-C0"),
+    ]
+
+    wrapper = R4_RESUME_WRAPPER.read_text(encoding="utf-8")
+    assert "trap shutdown_once EXIT" in wrapper
+    assert "TAUSB_SDH_BINDING_ROOT=" in wrapper
+    assert "TAUSB_SDH_RUN_ROOT_PREFIX=" in wrapper
+    assert "ONEBOOT-R4" in wrapper
+    assert "COMPARISON-R4" in wrapper

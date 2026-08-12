@@ -39,8 +39,18 @@ MECHANISM_CONFIG_SHA256 = (
 )
 
 MECHANISM_ROOT = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH")
-BINDING_ROOT = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R2")
-RUN_ROOT_PREFIX = Path("/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2")
+BINDING_ROOT = Path(
+    os.environ.get(
+        "TAUSB_SDH_BINDING_ROOT",
+        "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R2",
+    )
+)
+RUN_ROOT_PREFIX = Path(
+    os.environ.get(
+        "TAUSB_SDH_RUN_ROOT_PREFIX",
+        "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2",
+    )
+)
 CONTROL_ROOT = Path("/root/tausb-sdh-control/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R2")
 LOG_ROOT = Path("/root/tausb-sdh-logs/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R2")
 COMPARISON_ROOT = Path(

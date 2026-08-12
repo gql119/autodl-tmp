@@ -11,6 +11,7 @@ import yaml
 from ue_framework.config import load_config
 from ue_framework.methods.sdh_experiment import validate_sdh_experiment_config
 from ue_framework.stages.generate import (
+    MANIFEST_FIELDS,
     _canonical_json_sha256,
     resolve_train_image_selection,
 )
@@ -32,6 +33,10 @@ HASH_KEYS = (
     "mechanism_config_sha256",
     "p1_state_sha256",
 )
+
+
+def test_sdh_manifest_schema_preserves_secret_source_hash() -> None:
+    assert "secret_source_sha256" in MANIFEST_FIELDS
 
 
 def _hashes() -> dict:

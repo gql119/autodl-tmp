@@ -67,6 +67,7 @@ MANIFEST_FIELDS = [
     "mechanism_decision_sha256",
     "mechanism_config_sha256",
     "p1_state_sha256",
+    "secret_source_sha256",
 ]
 
 
@@ -368,6 +369,7 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
                 "mechanism_decision_sha256",
                 "mechanism_config_sha256",
                 "p1_state_sha256",
+                "secret_source_sha256",
             )
         }
         
