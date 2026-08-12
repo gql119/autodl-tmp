@@ -18,6 +18,37 @@ shutdown_once() {
     fi
     printf '{"schema":"tausb.sdh-e200-wrapper-terminal.v1","exit_code":%d,"shutdown_requested":true}\n' "${rc}" \
       > "${terminal_path}"
+    if [[ -n "${REPOSITORY_ROOT:-}" ]] \
+      && [[ -d "${REPOSITORY_ROOT}/ue_project" ]] \
+      && [[ -x "${PYTHON_BIN}" ]] \
+      && [[ -n "${BINDING_ROOT:-}" ]] \
+      && [[ -n "${RUN_ROOT_PREFIX:-}" ]] \
+      && [[ -n "${CONTROL_ROOT:-}" ]] \
+      && [[ -n "${COMPARISON_ROOT:-}" ]]; then
+      (
+        cd "${REPOSITORY_ROOT}/ue_project"
+        "${PYTHON_BIN}" -u -m ue_framework.tools.run_tausb_sdh_sparse_e20 \
+          --repository-root "${REPOSITORY_ROOT}" \
+          --required-storage-root "${REQUIRED_STORAGE_ROOT}" \
+          --expected-commit "${EXPECTED_COMMIT:-unknown}" \
+          --python-bin "${PYTHON_BIN}" \
+          --device "${DEVICE}" \
+          --mechanism-root "${MECHANISM_ROOT:-${REQUIRED_STORAGE_ROOT}}" \
+          --mechanism-config "${MECHANISM_CONFIG:-${REQUIRED_STORAGE_ROOT}/missing}" \
+          --base-config "${BASE_CONFIG:-${REQUIRED_STORAGE_ROOT}/missing}" \
+          --dataset-root "${DATASET_ROOT:-${REQUIRED_STORAGE_ROOT}}" \
+          --binding-root "${BINDING_ROOT}" \
+          --run-root-prefix "${RUN_ROOT_PREFIX}" \
+          --control-root "${CONTROL_ROOT}" \
+          --log-root "${LOG_ROOT}" \
+          --comparison-root "${COMPARISON_ROOT}" \
+          --cache-root "${CACHE_ROOT:-${REQUIRED_STORAGE_ROOT}/cache}" \
+          --tmp-root "${TMP_ROOT:-${REQUIRED_STORAGE_ROOT}/tmp}" \
+          --victim-epochs 200 \
+          --finalize-only \
+          > /dev/null 2>&1 || true
+      )
+    fi
   fi
   echo "[SparseE200] controller_exit=${rc}; evidence flushed; requesting AutoDL shutdown"
   sync || true

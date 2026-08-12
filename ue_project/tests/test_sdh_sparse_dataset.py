@@ -324,6 +324,27 @@ def test_terminal_manifest_retains_failure_logs_and_partial_metrics(tmp_path) ->
     assert (control / "terminal_evidence_manifest.json").is_file()
 
 
+def test_terminal_manifest_includes_wrapper_terminal_status(tmp_path) -> None:
+    control = tmp_path / "control"
+    logs = tmp_path / "logs"
+    control.mkdir()
+    logs.mkdir()
+    (logs / "wrapper_terminal.json").write_text(
+        '{"exit_code":124}', encoding="utf-8"
+    )
+    manifest = write_terminal_evidence_manifest(
+        control_root=control,
+        binding_root=tmp_path / "binding",
+        log_root=logs,
+        comparison_root=tmp_path / "comparison",
+        run_roots={},
+    )
+    assert any(
+        record["path"].endswith("wrapper_terminal.json")
+        for record in manifest["files"]
+    )
+
+
 def test_terminal_manifest_marks_incomplete_training_as_full_horizon_failure(tmp_path) -> None:
     control = tmp_path / "control"
     logs = tmp_path / "logs"

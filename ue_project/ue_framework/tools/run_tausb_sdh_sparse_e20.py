@@ -124,6 +124,11 @@ def _arguments() -> argparse.Namespace:
         default=20,
         help="Select the frozen E20 compatibility contract or approved E200 contract.",
     )
+    parser.add_argument(
+        "--finalize-only",
+        action="store_true",
+        help="Write a terminal evidence manifest from existing outputs without running stages.",
+    )
     return parser.parse_args()
 
 
@@ -560,6 +565,7 @@ def write_terminal_evidence_manifest(
         comparison_root / "per_class_ap50.csv",
     ]
     candidates.extend(sorted(log_root.glob("*.log")))
+    candidates.extend(sorted(log_root.glob("wrapper_terminal*.json")))
     for arm_id, run_root in run_roots.items():
         poisoned_root = _poisoned_root(run_root)
         artifact_root = _artifact_root(run_root, arm_id)
@@ -926,6 +932,33 @@ def _run_controller(args: argparse.Namespace) -> int:
 
 def main() -> int:
     args = _arguments()
+    if args.finalize_only:
+        required_root = Path(args.required_storage_root).resolve()
+        control_root = Path(args.control_root).resolve()
+        paths = {
+            "control_root": control_root,
+            "binding_root": Path(args.binding_root).resolve(),
+            "log_root": Path(args.log_root).resolve(),
+            "comparison_root": Path(args.comparison_root).resolve(),
+        }
+        run_roots = {
+            arm: _run_root(args.run_root_prefix, arm, int(args.victim_epochs))
+            for arm in ("C0", "M1")
+        }
+        validate_storage_roots(
+            required_root,
+            {**paths, **{"run_root_%s" % arm: root for arm, root in run_roots.items()}},
+        )
+        control_root.mkdir(parents=True, exist_ok=True)
+        manifest = write_terminal_evidence_manifest(
+            control_root=control_root,
+            binding_root=paths["binding_root"],
+            log_root=paths["log_root"],
+            comparison_root=paths["comparison_root"],
+            run_roots=run_roots,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return 0
     try:
         return _run_controller(args)
     except BaseException as error:
