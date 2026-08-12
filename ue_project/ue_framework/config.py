@@ -476,6 +476,14 @@ def load_config(config_path: str) -> Dict[str, Any]:
                     raise ValueError("E2E V0 smoke requires a hash-bound selection manifest.")
             elif selection_path or selection_hash:
                 raise ValueError("E2E V0 full-VOC pilot forbids a train selection manifest.")
+            layout = str(cfg["data"].get("materialization_layout", "full_png_v1"))
+            if pilot_kind == "e20" and layout not in {
+                "full_png_v1",
+                "sparse_mixed_list_v1",
+            }:
+                raise ValueError("E2E V0 E20 materialization layout is unsupported.")
+            if pilot_kind == "smoke" and layout != "full_png_v1":
+                raise ValueError("Legacy E2E V0 smoke must preserve full_png_v1 materialization.")
             for key in (
                 "frozen_sdh_state_sha256",
                 "hiding_metrics_sha256",

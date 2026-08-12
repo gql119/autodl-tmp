@@ -27,6 +27,16 @@ from ..methods.tausb_universal import TAUSBMaskGenerator, TAUSBUniversalTrainer
 from ..methods.sirc_malc_cgr import resolve_sirc_malc_effective_method
 from ..paths import ensure_run_dirs
 from ..runtime import RunContext
+from ..sparse_dataset import (
+    SPARSE_REPORT_NAME,
+    SPARSE_TRAIN_LIST_NAME,
+    audit_sparse_training_list,
+    file_sha256,
+    is_sparse_mixed_list,
+    png_roundtrip_exact,
+    save_png_and_reload,
+    write_train_path_list,
+)
 from ..status import (
     load_or_init_status,
     mark_stage_completed,
@@ -39,10 +49,16 @@ from ..status import (
 MANIFEST_FIELDS = [
     "stem",
     "image_path",
+    "source_image_path",
+    "label_path",
+    "source_image_sha256",
+    "label_sha256",
+    "saved_image_sha256",
     "is_poisoned",
     "poisoned",  # 🚑 修复：去掉了错误的 out_img_path
     "has_target",
     "support_ratio",
+    "support_outside_linf",
     "perturbed_area_ratio",
     "linf",
     "psnr",
@@ -272,31 +288,37 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
     atomic_write_json(os.path.join(paths.logs_dir, "runtime_info.json"), runtime_info)
 
     set_global_seed(ctx.seed)
-    device = select_device(ctx.gpu_id)
+    sparse_mode = is_sparse_mixed_list(cfg)
+    expected_poisoned_count = cfg["experiment"].get("expected_poisoned_count")
+    needs_generator = not sparse_mode or int(expected_poisoned_count or 0) > 0
+    generator = None
+    if needs_generator:
+        device = select_device(ctx.gpu_id)
+        surrogate_ckpt = cfg["surrogate"]["ckpt"]
+        yolo_wrapper = YOLO(surrogate_ckpt)
+        _assert_surrogate_alignment(yolo_wrapper, cfg)
+        surrogate = yolo_wrapper.model.to(device)
+        surrogate.eval()
 
-    surrogate_ckpt = cfg["surrogate"]["ckpt"]
-    yolo_wrapper = YOLO(surrogate_ckpt)
-    _assert_surrogate_alignment(yolo_wrapper, cfg)
-    surrogate = yolo_wrapper.model.to(device)
-    surrogate.eval()
-
-    effective_method, effective_method_cfg = resolve_effective_generation_method(
-        ctx.method,
-        cfg,
-    )
-
-    if effective_method == "tausb_mask":
-        generator = _build_tausb_generator(
-            ctx,
+        effective_method, effective_method_cfg = resolve_effective_generation_method(
+            ctx.method,
             cfg,
-            effective_method_cfg,
-            device,
-            surrogate,
-            poison_status,
-            artifact_status,
         )
-    else:
-        generator = build_generator(effective_method, cfg, effective_method_cfg, device, surrogate)
+
+        if effective_method == "tausb_mask":
+            generator = _build_tausb_generator(
+                ctx,
+                cfg,
+                effective_method_cfg,
+                device,
+                surrogate,
+                poison_status,
+                artifact_status,
+            )
+        else:
+            generator = build_generator(
+                effective_method, cfg, effective_method_cfg, device, surrogate
+            )
 
     train_img_dir = ctx.train_img_dir
     train_label_dir = ctx.train_label_dir
@@ -319,11 +341,21 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
         )
 
     existing_rows = read_csv_rows(paths.manifest_csv)
+    if sparse_mode and existing_rows:
+        raise RuntimeError(
+            "Sparse E2E V0 generation forbids partial resume; use a fresh run root."
+        )
     done_stems = set(r["stem"] for r in existing_rows)
     rows: List[Dict] = existing_rows[:]
 
     save_every = int(cfg["platform"].get("save_every_n_images", 50))
     poisoning_ratio = float(cfg["experiment"].get("poisoning_ratio", 1.0))
+    if sparse_mode and poisoning_ratio not in {0.0, 1.0}:
+        raise ValueError("Sparse E2E V0 supports only the frozen C0/M1 poison ratios.")
+    sparse_train_list = os.path.join(paths.poisoned_root, SPARSE_TRAIN_LIST_NAME)
+    clean_roundtrip_probes = 0
+    source_image_hashes: Dict[str, str] = {}
+    source_label_hashes: Dict[str, str] = {}
 
     viz_saved = len([n for n in os.listdir(paths.viz_dir) if n.endswith("_quad.png")])
     noise_meta_rows = []
@@ -335,8 +367,9 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
         if stem in done_stems:
             continue
 
-        clean = load_image_rgb_float(img_path)
         label_path = label_path_for_image(img_path, train_label_dir)
+        if sparse_mode and not os.path.isfile(label_path):
+            raise FileNotFoundError("Sparse E2E V0 label is missing: %s" % label_path)
         anns = read_yolo_annotations(label_path)
         has_target = image_has_target(anns, cfg["experiment"]["target_class_id"])
         target_image_count += int(has_target)
@@ -345,8 +378,18 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
         # 🚀 强制改为 .png 格式并确定输出路径
         # ---------------------------------------------------------
         stem = os.path.splitext(os.path.basename(img_path))[0]
-        out_img_path = os.path.join(paths.poisoned_images, stem + ".png")
-        out_label_path = os.path.join(paths.poisoned_labels, os.path.basename(label_path)) # 🚑 修复：存入 poisoned_labels
+        if sparse_mode:
+            out_img_path = os.path.join(
+                paths.poisoned_root, "images", "poisoned", stem + ".png"
+            )
+            out_label_path = os.path.join(
+                paths.poisoned_root, "labels", "poisoned", stem + ".txt"
+            )
+        else:
+            out_img_path = os.path.join(paths.poisoned_images, stem + ".png")
+            out_label_path = os.path.join(
+                paths.poisoned_labels, os.path.basename(label_path)
+            )
 
         support_source = "none"
         state_content_hash = ""
@@ -374,9 +417,16 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
         }
         
         # 🚑 修复：补回漏掉的 should_poison 定义
-        should_poison = has_target and (random.random() <= poisoning_ratio)
+        should_poison = has_target and (
+            poisoning_ratio == 1.0
+            if sparse_mode
+            else random.random() <= poisoning_ratio
+        )
 
         if should_poison:
+            if generator is None:
+                raise RuntimeError("Sparse poison arm did not initialize its generator.")
+            clean = load_image_rgb_float(img_path)
             result = generator.generate(
                 image=clean,
                 annotations=anns,
@@ -405,12 +455,30 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
                     f"clean={clean.shape} support={support.shape} perturb={perturb.shape}"
                 )
 
-            _save_png_rgb_float(out_img_path, poisoned)
+            if sparse_mode:
+                saved_poisoned, saved_image_sha256 = save_png_and_reload(
+                    out_img_path, poisoned
+                )
+            else:
+                _save_png_rgb_float(out_img_path, poisoned)
+                saved_poisoned = poisoned
+                saved_image_sha256 = ""
             copy_label(label_path, out_label_path)
 
+            if sparse_mode:
+                poisoned = saved_poisoned
+                perturb = poisoned - clean
             linf = float(np.max(np.abs(perturb)))
             psnr = _calc_psnr(clean, poisoned)
             support_ratio = float(np.mean(support > 0.5))
+            support_outside_linf = float(
+                np.max(np.abs(perturb[support <= 0.5]))
+            ) if np.any(support <= 0.5) else 0.0
+            if sparse_mode and support_outside_linf != 0.0:
+                raise RuntimeError(
+                    "Saved sparse perturbation escaped person GT support for %s."
+                    % stem
+                )
             perturbed_area_ratio = _calc_area_ratio(clean, poisoned)
             actual_poisoned = bool(
                 result.extras.get("is_poisoned", result.extras.get("poisoned", linf > (1.0 / 255.0)))
@@ -438,24 +506,49 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             noise_meta_rows.append(noise_meta)
 
         else:
-            _save_png_rgb_float(out_img_path, clean)
-            copy_label(label_path, out_label_path)
-
-            perturb = np.zeros_like(clean)
+            if sparse_mode:
+                out_img_path = os.path.abspath(img_path)
+                out_label_path = os.path.abspath(label_path)
+                saved_image_sha256 = ""
+                if clean_roundtrip_probes < 64:
+                    clean = load_image_rgb_float(img_path)
+                    if not png_roundtrip_exact(clean):
+                        raise RuntimeError(
+                            "Clean JPEG decode-to-PNG round-trip changed pixels for %s."
+                            % stem
+                        )
+                    clean_roundtrip_probes += 1
+                perturb = None
+            else:
+                clean = load_image_rgb_float(img_path)
+                _save_png_rgb_float(out_img_path, clean)
+                copy_label(label_path, out_label_path)
+                saved_image_sha256 = _file_sha256(out_img_path)
+                perturb = np.zeros_like(clean)
             support_ratio = 0.0
+            support_outside_linf = 0.0
             perturbed_area_ratio = 0.0
             linf = 0.0
             psnr = 99.0
             support_source = "none"
             actual_poisoned = False
 
+        if sparse_mode:
+            source_image_hashes[stem] = file_sha256(img_path)
+            source_label_hashes[stem] = file_sha256(label_path)
         row = {
             "stem": stem,
             "image_path": out_img_path,
+            "source_image_path": os.path.abspath(img_path),
+            "label_path": os.path.abspath(out_label_path),
+            "source_image_sha256": source_image_hashes.get(stem, ""),
+            "label_sha256": source_label_hashes.get(stem, ""),
+            "saved_image_sha256": saved_image_sha256,
             "is_poisoned": "1" if actual_poisoned else "0",
             "poisoned": "1" if actual_poisoned else "0",
             "has_target": "1" if has_target else "0",
             "support_ratio": f"{support_ratio:.8f}",
+            "support_outside_linf": f"{support_outside_linf:.8f}",
             "perturbed_area_ratio": f"{perturbed_area_ratio:.8f}",
             "linf": f"{linf:.8f}",
             "psnr": f"{psnr:.6f}",
@@ -491,15 +584,53 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             )
             save_status(paths.poisoned_status_json, poison_status)
             save_status(paths.artifact_status_json, artifact_status)
+            print(
+                "[generate_poisoned_dataset] progress: "
+                f"processed={len(done_stems)}/{total_images}, "
+                f"poisoned={sum(int(str(row.get('poisoned', '0')) == '1') for row in rows)}"
+            )
             processed_since_last_flush = 0
 
     atomic_write_csv(paths.manifest_csv, rows, MANIFEST_FIELDS)
     atomic_write_json(os.path.join(paths.noise_dir, "noise_meta.json"), {"items": noise_meta_rows})
 
+    sparse_audit = None
+    if sparse_mode:
+        if clean_roundtrip_probes != 64:
+            raise RuntimeError(
+                "Sparse clean format gate requires exactly 64 probes; got %d."
+                % clean_roundtrip_probes
+            )
+        ordered_effective_paths = [str(row["image_path"]) for row in rows]
+        train_list_sha256 = write_train_path_list(
+            sparse_train_list, ordered_effective_paths
+        )
+        sparse_audit = audit_sparse_training_list(
+            sparse_train_list,
+            rows,
+            expected_total=total_images,
+            expected_poisoned=int(expected_poisoned_count or 0),
+            expected_target=int(cfg["experiment"].get("expected_target_images", 0)),
+            target_class_id=int(cfg["experiment"]["target_class_id"]),
+            num_classes=int(cfg["experiment"]["num_classes"]),
+            verify_hashes=False,
+        )
+        if sparse_audit["train_list_sha256"] != train_list_sha256:
+            raise RuntimeError("Sparse train list changed during its audit.")
+        sparse_audit.update(
+            {
+                "materialization_layout": cfg["data"]["materialization_layout"],
+                "manifest_csv": os.path.abspath(paths.manifest_csv),
+                "clean_png_roundtrip_probe_count": clean_roundtrip_probes,
+            }
+        )
+        atomic_write_json(
+            os.path.join(paths.poisoned_root, SPARSE_REPORT_NAME), sparse_audit
+        )
+
     actual_poisoned_count = sum(
         int(str(row.get("poisoned", "0")) == "1") for row in rows
     )
-    expected_poisoned_count = cfg["experiment"].get("expected_poisoned_count")
     if expected_poisoned_count is not None and actual_poisoned_count != int(expected_poisoned_count):
         raise RuntimeError(
             "Poisoned image count differs from the frozen protocol: "
@@ -523,6 +654,8 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             "target_image_count": target_image_count,
             "selection_manifest_sha256": selection_manifest_sha256,
             "manifest_csv": paths.manifest_csv,
+            "sparse_train_list": sparse_train_list if sparse_mode else "",
+            "sparse_audit": sparse_audit or {},
         },
     )
     mark_stage_completed(
@@ -536,6 +669,8 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
             "target_image_count": target_image_count,
             "selection_manifest_sha256": selection_manifest_sha256,
             "manifest_csv": paths.manifest_csv,
+            "sparse_train_list": sparse_train_list if sparse_mode else "",
+            "sparse_audit": sparse_audit or {},
         },
     )
 

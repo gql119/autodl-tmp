@@ -1,14 +1,23 @@
 ﻿import csv
+import json
 import os
 import shutil
 
 from ultralytics import YOLO
+from ultralytics.cfg import get_cfg
+from ultralytics.data.build import build_dataloader, build_yolo_dataset
 
 from ..env_utils import resolve_workers, set_global_seed
-from ..io_utils import atomic_write_json
+from ..io_utils import atomic_write_json, read_csv_rows
 from ..metrics_utils import VOC20_CLASS_NAMES
 from ..pack import pack_run_artifacts
 from ..runtime import RunContext
+from ..sparse_dataset import (
+    SPARSE_REPORT_NAME,
+    SPARSE_TRAIN_LIST_NAME,
+    audit_sparse_training_list,
+    is_sparse_mixed_list,
+)
 from ..status import (
     load_or_init_status,
     mark_stage_completed,
@@ -19,11 +28,52 @@ from ..train_utils import copy_if_exists, remove_yolo_cache_files
 
 
 
-def _write_train_yaml(ctx: RunContext) -> str:
+def _sparse_train_audit(ctx: RunContext) -> dict:
+    train_list = os.path.join(ctx.paths.poisoned_root, SPARSE_TRAIN_LIST_NAME)
+    audit = audit_sparse_training_list(
+        train_list,
+        read_csv_rows(ctx.paths.manifest_csv),
+        expected_total=int(ctx.cfg["experiment"]["expected_train_images"]),
+        expected_poisoned=int(ctx.cfg["experiment"]["expected_poisoned_count"]),
+        expected_target=int(ctx.cfg["experiment"]["expected_target_images"]),
+        target_class_id=int(ctx.cfg["experiment"]["target_class_id"]),
+        num_classes=int(ctx.cfg["experiment"]["num_classes"]),
+    )
+    generation_report_path = os.path.join(
+        ctx.paths.poisoned_root, SPARSE_REPORT_NAME
+    )
+    if not os.path.isfile(generation_report_path):
+        raise FileNotFoundError(
+            "Sparse generation report is missing: %s" % generation_report_path
+        )
+    with open(generation_report_path, "r", encoding="utf-8") as handle:
+        generation_report = json.load(handle)
+    for key in (
+        "train_list_sha256",
+        "ordered_stems_sha256",
+        "label_content_manifest_sha256",
+        "total_count",
+        "target_count",
+        "poisoned_count",
+        "poisoned_png_count",
+        "original_jpeg_count",
+    ):
+        if audit[key] != generation_report.get(key):
+            raise ValueError("Sparse generation/train audit differs for %s." % key)
+    return audit
+
+
+def _write_train_yaml(ctx: RunContext, sparse_audit: dict = None) -> str:
     yaml_path = os.path.join(ctx.paths.artifact_root, "train_data.yaml")
-    content = f"""path: {ctx.paths.poisoned_root}
-train: images/train
-val: {ctx.val_img_dir}
+    if sparse_audit is None:
+        data_root = ctx.paths.poisoned_root
+        train_source = "images/train"
+    else:
+        data_root = ctx.dataset_root
+        train_source = str(sparse_audit["train_list_path"])
+    content = f"""path: {json.dumps(os.path.abspath(data_root))}
+train: {json.dumps(train_source)}
+val: {json.dumps(os.path.abspath(ctx.val_img_dir))}
 names:
 """
     num_classes = int(ctx.cfg["experiment"]["num_classes"])
@@ -35,6 +85,59 @@ names:
     with open(yaml_path, "w", encoding="utf-8") as f:
         f.write(content)
     return yaml_path
+
+
+def _probe_sparse_dataloader(ctx: RunContext, sparse_audit: dict) -> dict:
+    train_list = str(sparse_audit["train_list_path"])
+    cfg = get_cfg(
+        overrides={
+            "task": "detect",
+            "mode": "train",
+            "imgsz": int(ctx.cfg["victim"]["imgsz"]),
+            "cache": False,
+            "workers": 0,
+            "rect": False,
+            "mosaic": 0.0,
+            "mixup": 0.0,
+            "close_mosaic": 0,
+        }
+    )
+    names = {index: name for index, name in enumerate(VOC20_CLASS_NAMES)}
+    dataset = build_yolo_dataset(
+        cfg,
+        train_list,
+        batch=1,
+        data={"names": names, "nc": len(names)},
+        mode="train",
+        rect=True,
+        stride=32,
+    )
+    if len(dataset) != int(sparse_audit["total_count"]):
+        raise ValueError("Ultralytics sparse dataset silently changed the image count.")
+    loader = build_dataloader(
+        dataset,
+        batch=1,
+        workers=0,
+        shuffle=False,
+        drop_last=False,
+        pin_memory=False,
+    )
+    batch = next(iter(loader))
+    images = batch.get("img")
+    classes = batch.get("cls")
+    if images is None or int(images.shape[0]) != 1:
+        raise ValueError("Ultralytics sparse dataloader probe did not yield one image.")
+    if classes is None:
+        raise ValueError("Ultralytics sparse dataloader probe omitted class labels.")
+    if classes.numel() and (
+        int(classes.min()) < 0 or int(classes.max()) >= len(VOC20_CLASS_NAMES)
+    ):
+        raise ValueError("Ultralytics sparse dataloader yielded an invalid class id.")
+    return {
+        "dataset_count": len(dataset),
+        "batch_image_shape": [int(value) for value in images.shape],
+        "batch_label_count": int(classes.numel()),
+    }
 
 
 
@@ -117,8 +220,12 @@ def run_train_victim(ctx: RunContext) -> None:
 
     status = mark_stage_running(ctx.paths.artifact_status_json, status, "train_victim")
 
-    yaml_path = _write_train_yaml(ctx)
-    deleted_cache = remove_yolo_cache_files(
+    sparse_audit = _sparse_train_audit(ctx) if is_sparse_mixed_list(cfg) else None
+    sparse_dataloader_probe = (
+        _probe_sparse_dataloader(ctx, sparse_audit) if sparse_audit else None
+    )
+    yaml_path = _write_train_yaml(ctx, sparse_audit=sparse_audit)
+    deleted_cache = 0 if sparse_audit else remove_yolo_cache_files(
         [
             ctx.paths.poisoned_root,
             ctx.dataset_root,
@@ -174,7 +281,11 @@ def run_train_victim(ctx: RunContext) -> None:
             latest_epoch = _snapshot_train_state(ctx, run_dir, latest_ckpt_ultra, best_ckpt_ultra)
             print(f"[train_victim] snapshot saved at epoch={latest_epoch}")
 
-        if pack_every > 0 and epoch_num % pack_every == 0:
+        if (
+            bool(cfg["platform"].get("zip_after_stage", True))
+            and pack_every > 0
+            and epoch_num % pack_every == 0
+        ):
             bundle_path = pack_run_artifacts(ctx.paths)
             print(f"[train_victim] packed bundle at epoch={epoch_num}: {bundle_path}")
 
@@ -188,7 +299,11 @@ def run_train_victim(ctx: RunContext) -> None:
         model.train(**train_args)
 
     latest_epoch = _snapshot_train_state(ctx, run_dir, latest_ckpt_ultra, best_ckpt_ultra)
-    bundle_path = pack_run_artifacts(ctx.paths)
+    bundle_path = (
+        pack_run_artifacts(ctx.paths)
+        if bool(cfg["platform"].get("zip_after_stage", True))
+        else ""
+    )
 
     latest_ckpt = os.path.join(ctx.paths.checkpoints_dir, "latest.pt")
     best_ckpt = os.path.join(ctx.paths.checkpoints_dir, "best.pt")
@@ -205,6 +320,8 @@ def run_train_victim(ctx: RunContext) -> None:
         "save_every_n_epochs": save_every,
         "pack_every_n_epochs": pack_every,
         "resume_enabled": resume_enabled,
+        "sparse_train_audit": sparse_audit or {},
+        "sparse_dataloader_probe": sparse_dataloader_probe or {},
     }
     mark_stage_completed(ctx.paths.artifact_status_json, status, "train_victim", stage_extra)
     atomic_write_json(os.path.join(ctx.paths.logs_dir, "train_stage_summary.json"), stage_extra)

@@ -82,8 +82,19 @@ def test_bound_v0_pair_configs_validate_and_keep_arm_identity(
     assert config["methods"]["tausb_sdh"]["require_mechanism_gate_pass"] is False
     if pilot_kind == "smoke":
         assert config["data"]["train_selection_manifest"]
+        assert config["data"]["materialization_layout"] == "full_png_v1"
     else:
         assert config["data"]["train_selection_manifest"] == ""
+        assert config["data"]["materialization_layout"] == "sparse_mixed_list_v1"
+
+
+def test_legacy_e20_full_png_config_remains_loadable(tmp_path) -> None:
+    path = _write_bound_config(tmp_path, pilot_kind="e20", arm_id="M1")
+    config = yaml.safe_load(path.read_text(encoding="utf-8"))
+    config["data"]["materialization_layout"] = "full_png_v1"
+    path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    loaded = load_config(str(path))
+    assert loaded["data"]["materialization_layout"] == "full_png_v1"
 
 
 @pytest.mark.parametrize(

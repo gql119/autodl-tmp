@@ -162,7 +162,14 @@ def build_sdh_e2e_v0_comparison(
         raise ValueError("E2E V0 comparison requires explicit C0 and M1 arm identity.")
     if clean.get("mechanism_gate_passed") != poisoned.get("mechanism_gate_passed"):
         raise ValueError("C0/M1 mechanism gate provenance differs.")
-    for key in (
+    clean_layout = str(clean.get("materialization_layout", "full_png_v1"))
+    poisoned_layout = str(poisoned.get("materialization_layout", "full_png_v1"))
+    if clean_layout != poisoned_layout or clean_layout not in {
+        "full_png_v1",
+        "sparse_mixed_list_v1",
+    }:
+        raise ValueError("C0/M1 materialization layout is missing or mismatched.")
+    shared_hash_keys = [
         "clean_val_manifest_sha256",
         "paired_training_protocol_sha256",
         "frozen_sdh_state_sha256",
@@ -173,7 +180,12 @@ def build_sdh_e2e_v0_comparison(
         "mechanism_decision_sha256",
         "mechanism_config_sha256",
         "p1_state_sha256",
-    ):
+    ]
+    if clean_layout == "sparse_mixed_list_v1":
+        shared_hash_keys.extend(
+            ["ordered_stems_sha256", "label_content_manifest_sha256"]
+        )
+    for key in shared_hash_keys:
         clean_value = str(clean.get(key, ""))
         poison_value = str(poisoned.get(key, ""))
         if len(clean_value) != 64 or clean_value != poison_value:
@@ -182,13 +194,21 @@ def build_sdh_e2e_v0_comparison(
         raise ValueError("E2E V0 C0 poisoned_count must be zero.")
     if int(poisoned.get("poisoned_count", -1)) != 6095:
         raise ValueError("E2E V0 M1 poisoned_count must be 6095.")
+    if clean_layout == "sparse_mixed_list_v1":
+        if str(clean.get("sparse_train_list_sha256", "")) == str(
+            poisoned.get("sparse_train_list_sha256", "")
+        ) or any(
+            len(str(metrics.get("sparse_train_list_sha256", ""))) != 64
+            for metrics in (clean, poisoned)
+        ):
+            raise ValueError("E2E V0 requires distinct hash-bound C0/M1 train lists.")
     linf = float(poisoned.get("actual_linf_max", float("nan")))
     if not np.isfinite(linf) or linf > 16.0 / 255.0 + 1.0 / 255.0:
         raise ValueError("E2E V0 M1 Linf is invalid or exceeds tolerance.")
     per_class = []
+    if not any(clean_ap[class_name] > 0 for class_name in VOC20_CLASS_NAMES):
+        raise ValueError("C0 AP50 is all zero; the E20 comparison is uninterpretable.")
     for class_id, class_name in enumerate(VOC20_CLASS_NAMES):
-        if clean_ap[class_name] <= 0:
-            raise ValueError("C0 AP50 is zero; retention is undefined for %s." % class_name)
         drop = clean_ap[class_name] - poison_ap[class_name]
         per_class.append(
             {
@@ -197,7 +217,11 @@ def build_sdh_e2e_v0_comparison(
                 "C0_AP50": clean_ap[class_name],
                 "M1_AP50": poison_ap[class_name],
                 "drop_C0_minus_M1": drop,
-                "retention_M1_over_C0": poison_ap[class_name] / clean_ap[class_name],
+                "retention_M1_over_C0": (
+                    poison_ap[class_name] / clean_ap[class_name]
+                    if clean_ap[class_name] > 0
+                    else None
+                ),
                 "is_target": class_name == "person",
             }
         )
@@ -239,6 +263,7 @@ def build_sdh_e2e_v0_comparison(
         "mechanism_gate_passed": bool(clean["mechanism_gate_passed"]),
         "hiding_gate_passed": False,
         "evidence_scope": "end_to_end_feasibility_not_formal_method",
+        "materialization_layout": clean_layout,
         "per_class": per_class,
         "summary": {
             "person_drop": person_drop,
@@ -250,13 +275,24 @@ def build_sdh_e2e_v0_comparison(
         },
         "paired_identity": {
             key: clean[key]
-            for key in (
+            for key in tuple(
+                [
                 "clean_val_manifest_sha256",
                 "paired_training_protocol_sha256",
                 "frozen_sdh_state_sha256",
                 "mechanism_metrics_sha256",
                 "mechanism_decision_sha256",
                 "mechanism_config_sha256",
+                ]
+                + (
+                    ["ordered_stems_sha256", "label_content_manifest_sha256"]
+                    if clean_layout == "sparse_mixed_list_v1"
+                    else []
+                )
             )
+        },
+        "arm_train_list_sha256": {
+            "C0": clean.get("sparse_train_list_sha256", ""),
+            "M1": poisoned.get("sparse_train_list_sha256", ""),
         },
     }

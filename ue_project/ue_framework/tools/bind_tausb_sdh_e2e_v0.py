@@ -34,6 +34,11 @@ def _arguments() -> argparse.Namespace:
         "--run-root-prefix",
         default="/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0",
     )
+    parser.add_argument(
+        "--e20-only",
+        action="store_true",
+        help="Bind only sparse full-VOC E20 configs; do not create smoke inputs.",
+    )
     return parser.parse_args()
 
 
@@ -215,6 +220,9 @@ def _bound_config(
         {
             "dataset_root": str(dataset_root),
             "allow_pseudo_mask_fallback": False,
+            "materialization_layout": (
+                "sparse_mixed_list_v1" if not smoke else "full_png_v1"
+            ),
             "train_selection_manifest": selection_path if smoke else "",
             "train_selection_manifest_sha256": selection_hash if smoke else "",
         }
@@ -266,20 +274,26 @@ def main() -> int:
     dataset_root = Path(args.dataset_root).resolve()
     binding = _validate_mechanism_binding(mechanism_root, mechanism_config_path)
     base = yaml.safe_load(base_path.read_text(encoding="utf-8"))
-    selection = build_smoke_selection_manifest(dataset_root)
-    selection_hash = _canonical_json_sha256(selection)
     output_dir.mkdir(parents=True, exist_ok=False)
     selection_path = output_dir / "smoke_train_selection.json"
-    selection_path.write_text(
-        json.dumps(selection, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    if args.e20_only:
+        selection_hash = ""
+    else:
+        selection = build_smoke_selection_manifest(dataset_root)
+        selection_hash = _canonical_json_sha256(selection)
+        selection_path.write_text(
+            json.dumps(selection, indent=2, sort_keys=True), encoding="utf-8"
+        )
     config_records: List[Dict[str, str]] = []
-    for pilot_kind, arm_id, suffix in (
+    bindings = (
         ("smoke", "C0", "SMOKE-C0"),
         ("smoke", "M1", "SMOKE-M1"),
         ("e20", "C0", "E20-C0"),
         ("e20", "M1", "E20-M1"),
-    ):
+    )
+    if args.e20_only:
+        bindings = bindings[2:]
+    for pilot_kind, arm_id, suffix in bindings:
         config = _bound_config(
             base,
             arm_id=arm_id,
@@ -287,7 +301,7 @@ def main() -> int:
             dataset_root=dataset_root,
             state_path=binding["state_path"],
             hashes=binding["hashes"],
-            selection_path=str(selection_path),
+            selection_path=str(selection_path) if pilot_kind == "smoke" else "",
             selection_hash=selection_hash,
             run_root="%s-%s" % (args.run_root_prefix.rstrip("-"), suffix),
         )
@@ -312,8 +326,9 @@ def main() -> int:
         "hashes": binding["hashes"],
         "state_content_hash": binding["state"]["state_content_hash"],
         "mechanism_gate_passed": bool(binding["state"]["mechanism_gate_passed"]),
-        "selection_manifest": str(selection_path),
+        "selection_manifest": str(selection_path) if not args.e20_only else "",
         "selection_manifest_sha256": selection_hash,
+        "binding_scope": "e20_only" if args.e20_only else "smoke_and_e20",
         "configs": config_records,
     }
     (output_dir / "binding_report.json").write_text(

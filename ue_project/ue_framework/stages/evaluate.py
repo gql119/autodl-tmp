@@ -748,6 +748,24 @@ def run_evaluate(ctx: RunContext) -> None:
 
     manifest_rows = read_csv_rows(ctx.paths.manifest_csv)
     quality_metrics = _compute_image_quality(ctx, manifest_rows)
+    sparse_materialization = {}
+    if cfg["data"].get("materialization_layout") == "sparse_mixed_list_v1":
+        sparse_report_path = os.path.join(
+            ctx.paths.poisoned_root, "sparse_materialization.json"
+        )
+        if not os.path.isfile(sparse_report_path):
+            raise FileNotFoundError(
+                "Sparse materialization report is missing: %s" % sparse_report_path
+            )
+        with open(sparse_report_path, "r", encoding="utf-8") as handle:
+            sparse_materialization = json.load(handle)
+        for key in (
+            "train_list_sha256",
+            "ordered_stems_sha256",
+            "label_content_manifest_sha256",
+        ):
+            if len(str(sparse_materialization.get(key, ""))) != 64:
+                raise ValueError("Sparse materialization report is missing %s." % key)
     provenance = _sirc_manifest_provenance(ctx, manifest_rows)
     provenance.update(_sdh_manifest_provenance(ctx, manifest_rows))
     mechanism_evidence = _sirc_mechanism_evidence(ctx)
@@ -798,6 +816,7 @@ def run_evaluate(ctx: RunContext) -> None:
         "victim_weight_decay": float(cfg["victim"].get("weight_decay", 0.0005)),
         "clean_val_manifest_sha256": clean_val_manifest_sha256,
         "frozen_sdh_state_sha256": sdh_method_cfg.get("frozen_sdh_state_sha256", ""),
+        "materialization_layout": cfg["data"].get("materialization_layout", "full_png_v1"),
     }
     final_metrics = {
         "method": ctx.method,
@@ -814,6 +833,7 @@ def run_evaluate(ctx: RunContext) -> None:
         "train_selection_manifest_sha256": cfg["data"].get(
             "train_selection_manifest_sha256", ""
         ),
+        "materialization_layout": cfg["data"].get("materialization_layout", "full_png_v1"),
         "mAP50_target": full_metrics["mAP50_target"],
         "mAP50_non_target": full_metrics["mAP50_non_target"],
         "mAP50_non_target_macro": full_metrics["mAP50_non_target"],
@@ -830,6 +850,12 @@ def run_evaluate(ctx: RunContext) -> None:
         "actual_linf_max": quality_metrics["actual_linf_max"],
         "actual_linf_mean": quality_metrics["actual_linf_mean"],
         "quality_validation_gaps": quality_metrics["validation_gaps"],
+        "sparse_train_list_sha256": sparse_materialization.get("train_list_sha256", ""),
+        "ordered_stems_sha256": sparse_materialization.get("ordered_stems_sha256", ""),
+        "label_content_manifest_sha256": sparse_materialization.get(
+            "label_content_manifest_sha256", ""
+        ),
+        "sparse_materialization": sparse_materialization,
     }
     final_metrics.update(provenance)
     final_metrics.update(mechanism_evidence)

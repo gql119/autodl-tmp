@@ -216,6 +216,8 @@ def _e2e_metrics(*, arm_id, person=0.8, other=0.8):
         "mechanism_decision_sha256": "2" * 64,
         "mechanism_config_sha256": "3" * 64,
         "p1_state_sha256": "4" * 64,
+        "ordered_stems_sha256": "5" * 64,
+        "label_content_manifest_sha256": "6" * 64,
     }
     return {
         **_metrics(other, person=person),
@@ -228,9 +230,11 @@ def _e2e_metrics(*, arm_id, person=0.8, other=0.8):
         "victim_epochs": 20,
         "evidence_scope": "end_to_end_feasibility_not_formal_method",
         "hiding_gate_passed": False,
+        "materialization_layout": "sparse_mixed_list_v1",
         "mechanism_gate_passed": False,
         "poisoned_count": 0 if arm_id == "C0" else 6095,
         "actual_linf_max": 0.0 if arm_id == "C0" else 16 / 255,
+        "sparse_train_list_sha256": ("7" if arm_id == "C0" else "8") * 64,
     }
 
 
@@ -260,10 +264,11 @@ def test_e2e_v0_comparison_failure_and_identity_checks_are_independent() -> None
 
     zero_baseline = _e2e_metrics(arm_id="C0", person=0.8, other=0.8)
     zero_baseline["ap50_by_class"]["dog"] = 0.0
-    with pytest.raises(ValueError, match="retention is undefined"):
-        build_sdh_e2e_v0_comparison(
-            zero_baseline, _e2e_metrics(arm_id="M1", person=0.65, other=0.76)
-        )
+    zero_result = build_sdh_e2e_v0_comparison(
+        zero_baseline, _e2e_metrics(arm_id="M1", person=0.65, other=0.76)
+    )
+    dog = next(row for row in zero_result["per_class"] if row["class_name"] == "dog")
+    assert dog["retention_M1_over_C0"] is None
 
 
 def _sdh_v0_ctx(tmp_path):
