@@ -1,0 +1,64 @@
+﻿{
+    "schema":  "tausb.sdh-e2e-v0-oneboot-run-contract.v2",
+    "created":  "2026-08-12",
+    "spec_id":  "TAUSB-SDH-E2E-V0-ONEBOOT-v2",
+    "parent_spec_id":  "TAUSB-SDH-E2E-V0-MAP50-v1",
+    "exp_id":  "TAUSB-SDH-E2E-V0-S0-E20",
+    "run_id":  "ONEBOOT-S0-R2",
+    "execution_owner":  "codex",
+    "branch":  "codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3",
+    "pre_run_code_commit":  "7535a3c9d9167648eaafaa1afbb8c895673404d0",
+    "source_repository":  "/root/autodl-tmp",
+    "checkout":  "/root/tausb-sdh-checkouts/e2e-v0-7535a3c-r2-worktree",
+    "project_root":  "/root/tausb-sdh-checkouts/e2e-v0-7535a3c-r2-worktree/ue_project",
+    "wrapper":  "/root/tausb-sdh-checkouts/e2e-v0-7535a3c-r2-worktree/research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/pre_run/oneboot_controller.sh",
+    "wrapper_sha256":  "4a18558f97bd4e5c6ab71b006069fbdd6ac8be922a0aa9486e467e714a14e345",
+    "controller_module_sha256":  "635037bc1f0443641e4c80fdbcd0b840282308d1117be3e4d34967b99284c0f2",
+    "tmux_session":  "tausb-sdh-e2e-v0-oneboot-s0-r2",
+    "control_root":  "/root/tausb-sdh-control/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R2",
+    "log_root":  "/root/tausb-sdh-logs/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R2",
+    "mechanism_root":  "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH-R2",
+    "binding_root":  "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-BINDING-R2",
+    "smoke_roots":  [
+                        "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2-SMOKE-C0",
+                        "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2-SMOKE-M1"
+                    ],
+    "e20_roots":  [
+                      "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2-E20-C0",
+                      "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-R2-E20-M1"
+                  ],
+    "comparison_root":  "/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-COMPARISON-R2",
+    "mechanism_wall_cap_seconds":  1200,
+    "smoke_paired_wall_cap_seconds":  7200,
+    "no_progress_guard_seconds":  1200,
+    "max_paired_e20_seconds":  28800,
+    "disk_safety_factor":  1.5,
+    "auto_shutdown_on_failure":  true,
+    "auto_shutdown_on_final_completion":  true,
+    "continue_after_mechanism_success":  true,
+    "continue_after_smoke_only_if_review_passes":  true,
+    "payload_sha256":  "99f86ee6451611d4f8cb08498141b6a0a093342202bccddadc9d3325f8046890",
+    "payload_base64":  "IyEvdXNyL2Jpbi9lbnYgYmFzaApzZXQgLUVldW8gcGlwZWZhaWwKCmZhaWx1cmVfc2h1dGRvd24oKSB7CiAgbG9jYWwgcmM9JD8KICB0cmFwIC0gRVhJVCBJTlQgVEVSTQogIGlmIFtbICR7cmN9IC1uZSAwIF1dOyB0aGVuCiAgICBlY2hvICJbTGF1bmNoR2F0ZV0gZmFpbGVkIGV4aXQ9JHtyY307IHJlcXVlc3RpbmcgQXV0b0RMIHNodXRkb3duIiA+JjIKICAgIHN5bmMgfHwgdHJ1ZQogICAgL3Vzci9iaW4vc2h1dGRvd24gLWggbm93IHx8IHRydWUKICBmaQogIGV4aXQgIiR7cmN9Igp9Cgp0cmFwIGZhaWx1cmVfc2h1dGRvd24gRVhJVAp0cmFwICdleGl0IDEzMCcgSU5UCnRyYXAgJ2V4aXQgMTQzJyBURVJNCgpTT1VSQ0VfUkVQTz0vcm9vdC9hdXRvZGwtdG1wCkJSQU5DSD1jb2RleC90YXVzYi1zZGgtbGZjLWNpY3ItY2dyLW5sYS1tYXA1MC12MwpDT01NSVQ9NzUzNWEzYzlkOTE2NzY0OGVhYWZhYTFhZmJiOGM4OTU2NzM0MDRkMApDSEVDS09VVD0vcm9vdC90YXVzYi1zZGgtY2hlY2tvdXRzL2UyZS12MC03NTM1YTNjLXIyLXdvcmt0cmVlCldSQVBQRVI9JHtDSEVDS09VVH0vcmVzZWFyY2hfd29ya3NwYWNlL2V4cGVyaW1lbnRzL1RBVVNCLVNESC1FMkUtVjAtUzAtRTIwL3ByZV9ydW4vb25lYm9vdF9jb250cm9sbGVyLnNoCldSQVBQRVJfU0hBMjU2PTRhMTg1NThmOTdiZDRlNWM2YWI3MWIwMDYwNjlmYmRkNmFjOGJlOTIyYTBhYTk0ODZlNDY3ZTcxNGExNGUzNDUKVE9PTF9TSEEyNTY9NjM1MDM3YmMxZjA0NDM2NDFlNGM4MGZkYmNkMGI4NDAyODIzMDhkMTExN2JlM2U0ZDM0OTY3Yjk5Mjg0YzBmMgpTRVNTSU9OPXRhdXNiLXNkaC1lMmUtdjAtb25lYm9vdC1zMC1yMgoKdGVzdCAteCAvdXNyL2Jpbi90bXV4CnRlc3QgLXggL3Vzci9iaW4vc2h1dGRvd24KdGVzdCAteCAvcm9vdC9taW5pY29uZGEzL2Jpbi9weXRob24KdGVzdCAhIC1lICIke0NIRUNLT1VUfSIKaWYgdG11eCBoYXMtc2Vzc2lvbiAtdCAiJHtTRVNTSU9OfSIgMj4vZGV2L251bGw7IHRoZW4KICBleGl0IDQxCmZpCgpnaXQgLUMgIiR7U09VUkNFX1JFUE99IiBmZXRjaCBvcmlnaW4gIiR7QlJBTkNIfSIKZ2l0IC1DICIke1NPVVJDRV9SRVBPfSIgY2F0LWZpbGUgLWUgIiR7Q09NTUlUfV57Y29tbWl0fSIKZ2l0IC1DICIke1NPVVJDRV9SRVBPfSIgd29ya3RyZWUgYWRkIC0tZGV0YWNoICIke0NIRUNLT1VUfSIgIiR7Q09NTUlUfSIKdGVzdCAiJChnaXQgLUMgIiR7Q0hFQ0tPVVR9IiByZXYtcGFyc2UgSEVBRCkiID0gIiR7Q09NTUlUfSIKdGVzdCAteiAiJChnaXQgLUMgIiR7Q0hFQ0tPVVR9IiBzdGF0dXMgLS1wb3JjZWxhaW4gLS11bnRyYWNrZWQtZmlsZXM9bm8pIgp0ZXN0ICIkKHNoYTI1NnN1bSAiJHtXUkFQUEVSfSIgfCBhd2sgJ3twcmludCAkMX0nKSIgPSAiJHtXUkFQUEVSX1NIQTI1Nn0iCnRlc3QgIiQoc2hhMjU2c3VtICIke0NIRUNLT1VUfS91ZV9wcm9qZWN0L3VlX2ZyYW1ld29yay90b29scy9ydW5fdGF1c2Jfc2RoX2UyZV92MF9vbmVib290LnB5IiB8IGF3ayAne3ByaW50ICQxfScpIiA9ICIke1RPT0xfU0hBMjU2fSIKCnRtdXggbmV3LXNlc3Npb24gLWQgLXMgIiR7U0VTU0lPTn0iIGVudiBcCiAgUkVQT1NJVE9SWV9ST09UPSIke0NIRUNLT1VUfSIgXAogIEVYUEVDVEVEX0NPTU1JVD0iJHtDT01NSVR9IiBcCiAgUFlUSE9OX0JJTj0vcm9vdC9taW5pY29uZGEzL2Jpbi9weXRob24gXAogIERFVklDRT0wIFwKICBiYXNoICIke1dSQVBQRVJ9IgpzbGVlcCA1CnRtdXggaGFzLXNlc3Npb24gLXQgIiR7U0VTU0lPTn0iCgp0cmFwIC0gRVhJVCBJTlQgVEVSTQplY2hvICJbTGF1bmNoR2F0ZV0gcGFzcyBzZXNzaW9uPSR7U0VTU0lPTn0gY29tbWl0PSR7Q09NTUlUfSIK",
+    "launch_command":  "echo IyEvdXNyL2Jpbi9lbnYgYmFzaApzZXQgLUVldW8gcGlwZWZhaWwKCmZhaWx1cmVfc2h1dGRvd24oKSB7CiAgbG9jYWwgcmM9JD8KICB0cmFwIC0gRVhJVCBJTlQgVEVSTQogIGlmIFtbICR7cmN9IC1uZSAwIF1dOyB0aGVuCiAgICBlY2hvICJbTGF1bmNoR2F0ZV0gZmFpbGVkIGV4aXQ9JHtyY307IHJlcXVlc3RpbmcgQXV0b0RMIHNodXRkb3duIiA+JjIKICAgIHN5bmMgfHwgdHJ1ZQogICAgL3Vzci9iaW4vc2h1dGRvd24gLWggbm93IHx8IHRydWUKICBmaQogIGV4aXQgIiR7cmN9Igp9Cgp0cmFwIGZhaWx1cmVfc2h1dGRvd24gRVhJVAp0cmFwICdleGl0IDEzMCcgSU5UCnRyYXAgJ2V4aXQgMTQzJyBURVJNCgpTT1VSQ0VfUkVQTz0vcm9vdC9hdXRvZGwtdG1wCkJSQU5DSD1jb2RleC90YXVzYi1zZGgtbGZjLWNpY3ItY2dyLW5sYS1tYXA1MC12MwpDT01NSVQ9NzUzNWEzYzlkOTE2NzY0OGVhYWZhYTFhZmJiOGM4OTU2NzM0MDRkMApDSEVDS09VVD0vcm9vdC90YXVzYi1zZGgtY2hlY2tvdXRzL2UyZS12MC03NTM1YTNjLXIyLXdvcmt0cmVlCldSQVBQRVI9JHtDSEVDS09VVH0vcmVzZWFyY2hfd29ya3NwYWNlL2V4cGVyaW1lbnRzL1RBVVNCLVNESC1FMkUtVjAtUzAtRTIwL3ByZV9ydW4vb25lYm9vdF9jb250cm9sbGVyLnNoCldSQVBQRVJfU0hBMjU2PTRhMTg1NThmOTdiZDRlNWM2YWI3MWIwMDYwNjlmYmRkNmFjOGJlOTIyYTBhYTk0ODZlNDY3ZTcxNGExNGUzNDUKVE9PTF9TSEEyNTY9NjM1MDM3YmMxZjA0NDM2NDFlNGM4MGZkYmNkMGI4NDAyODIzMDhkMTExN2JlM2U0ZDM0OTY3Yjk5Mjg0YzBmMgpTRVNTSU9OPXRhdXNiLXNkaC1lMmUtdjAtb25lYm9vdC1zMC1yMgoKdGVzdCAteCAvdXNyL2Jpbi90bXV4CnRlc3QgLXggL3Vzci9iaW4vc2h1dGRvd24KdGVzdCAteCAvcm9vdC9taW5pY29uZGEzL2Jpbi9weXRob24KdGVzdCAhIC1lICIke0NIRUNLT1VUfSIKaWYgdG11eCBoYXMtc2Vzc2lvbiAtdCAiJHtTRVNTSU9OfSIgMj4vZGV2L251bGw7IHRoZW4KICBleGl0IDQxCmZpCgpnaXQgLUMgIiR7U09VUkNFX1JFUE99IiBmZXRjaCBvcmlnaW4gIiR7QlJBTkNIfSIKZ2l0IC1DICIke1NPVVJDRV9SRVBPfSIgY2F0LWZpbGUgLWUgIiR7Q09NTUlUfV57Y29tbWl0fSIKZ2l0IC1DICIke1NPVVJDRV9SRVBPfSIgd29ya3RyZWUgYWRkIC0tZGV0YWNoICIke0NIRUNLT1VUfSIgIiR7Q09NTUlUfSIKdGVzdCAiJChnaXQgLUMgIiR7Q0hFQ0tPVVR9IiByZXYtcGFyc2UgSEVBRCkiID0gIiR7Q09NTUlUfSIKdGVzdCAteiAiJChnaXQgLUMgIiR7Q0hFQ0tPVVR9IiBzdGF0dXMgLS1wb3JjZWxhaW4gLS11bnRyYWNrZWQtZmlsZXM9bm8pIgp0ZXN0ICIkKHNoYTI1NnN1bSAiJHtXUkFQUEVSfSIgfCBhd2sgJ3twcmludCAkMX0nKSIgPSAiJHtXUkFQUEVSX1NIQTI1Nn0iCnRlc3QgIiQoc2hhMjU2c3VtICIke0NIRUNLT1VUfS91ZV9wcm9qZWN0L3VlX2ZyYW1ld29yay90b29scy9ydW5fdGF1c2Jfc2RoX2UyZV92MF9vbmVib290LnB5IiB8IGF3ayAne3ByaW50ICQxfScpIiA9ICIke1RPT0xfU0hBMjU2fSIKCnRtdXggbmV3LXNlc3Npb24gLWQgLXMgIiR7U0VTU0lPTn0iIGVudiBcCiAgUkVQT1NJVE9SWV9ST09UPSIke0NIRUNLT1VUfSIgXAogIEVYUEVDVEVEX0NPTU1JVD0iJHtDT01NSVR9IiBcCiAgUFlUSE9OX0JJTj0vcm9vdC9taW5pY29uZGEzL2Jpbi9weXRob24gXAogIERFVklDRT0wIFwKICBiYXNoICIke1dSQVBQRVJ9IgpzbGVlcCA1CnRtdXggaGFzLXNlc3Npb24gLXQgIiR7U0VTU0lPTn0iCgp0cmFwIC0gRVhJVCBJTlQgVEVSTQplY2hvICJbTGF1bmNoR2F0ZV0gcGFzcyBzZXNzaW9uPSR7U0VTU0lPTn0gY29tbWl0PSR7Q09NTUlUfSIK | base64 -d | bash",
+    "health_checks":  [
+                          "tmux has-session -t tausb-sdh-e2e-v0-oneboot-s0-r2",
+                          "tmux capture-pane -pt tausb-sdh-e2e-v0-oneboot-s0-r2 -S -160",
+                          "pgrep -af run_tausb_sdh_e2e_v0_oneboot",
+                          "nvidia-smi",
+                          "test -f /root/tausb-sdh-control/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R2/controller_status.json \u0026\u0026 cat /root/tausb-sdh-control/TAUSB-SDH-E2E-V0-S0-E20-ONEBOOT-R2/controller_status.json"
+                      ],
+    "recovery":  [
+                     "Read R2 controller_status.json and stage logs before any action.",
+                     "Never resume overwrite or remove R1 or R2 roots; a further attempt requires a new RunID checkout session and roots.",
+                     "cost_gate_stop is operational and must not be reported as scientific failure."
+                 ],
+    "supersedes":  "ONEBOOT-S0-R1 operational attempt only; preserves all R1 evidence",
+    "forbidden":  [
+                      "force_resume",
+                      "poisoned_root_override",
+                      "200_epoch",
+                      "robustness_transforms",
+                      "new_seed",
+                      "reuse_R1_roots"
+                  ]
+}

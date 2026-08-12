@@ -147,6 +147,33 @@ evaluation、comparison、配置语义或 Success/Failure 阈值。
 - Claim boundary: R1 is an operational prelaunch failure, not a mechanism or
   scientific failure. CUDA/P1/smoke/E20/AP50 evidence is still absent.
 
+## PRERUN-REVIEW-03
+
+- Result: `pass`
+- Decision: `allow_run`
+- Gated run: `REMOTE-ONEBOOT-02 / ONEBOOT-S0-R2`
+- Code snapshot: `codex/tausb-sdh-lfc-cicr-cgr-nla-map50-v3@7535a3c9d9167648eaafaa1afbb8c895673404d0`; the pushed branch and AutoDL Git object resolve to the same SHA.
+- Intent: correct only the R1 raw/canonical config-hash mismatch and allocate fresh retry paths; preserve the approved one-boot state machine and every scientific setting.
+- Code location: the active controller precheck uses `_file_sha256` for the frozen YAML file; mechanism generation and the binder still use canonical JSON SHA-256 for runtime provenance.
+- Parameter data flow: launch gate → shutdown wrapper → controller PRECHECK → mechanism T0/T1/P0/P1 → binder → four bound configs → `launch_one(all)` → fresh victims → clean VOC evaluation → explicit comparison.
+- Runtime state: local 11/11 focused and 82/82 expanded SDH tests pass; remote Python 3.8.10 raw/canonical hash assertions, import, `py_compile`, and nine-root uniqueness assertions pass. Remote pytest is unavailable and was not installed.
+- Sink effect: no method/loss/stage/config code differs from `52d57fd`; the correction affects only the precheck comparison and provenance field naming.
+- Baseline/disable path: C0 remains an independent clean-data fresh victim; M1 remains the P1-materialized arm. No TAUSB/SIRC fallback, EOT, robustness transform, 200-epoch run, resume, or override was introduced.
+- Local validation: py_compile, CLI help, Bash syntax, CSV integrity, credential scan, payload round-trip, and diff check pass.
+- Minimal probe: AutoDL Python 3.8 reports raw SHA `46f757...`, canonical SHA `b75bb7...`, nine unique R2 controller roots, and no formal R2 root creation.
+- Run command binding:
+  - execution checkout: `/root/tausb-sdh-checkouts/e2e-v0-7535a3c-r2-worktree`
+  - tmux: `tausb-sdh-e2e-v0-oneboot-s0-r2`
+  - wrapper SHA-256: `4a18558f97bd4e5c6ab71b006069fbdd6ac8be922a0aa9486e467e714a14e345`
+  - controller SHA-256: `635037bc1f0443641e4c80fdbcd0b840282308d1117be3e4d34967b99284c0f2`
+  - launch payload SHA-256: `99f86ee6451611d4f8cb08498141b6a0a093342202bccddadc9d3325f8046890`
+  - contract: `research_workspace/experiments/TAUSB-SDH-E2E-V0-S0-E20/pre_run/oneboot_r2_run_contract.json`
+- Experiment validity: VOC20, person id 14, seed 0, steps 40, eps 16/255, bbox support, no EOT/JND, full clean validation, fresh C0/M1 victims, and the approved success/failure thresholds are unchanged.
+- Output non-overwrite: the R2 session, checkout, control, log, mechanism, binding, smoke, E20, and comparison paths were all remotely confirmed absent. All R1 evidence remains untouched.
+- Recoverability/secrecy: one tmux, atomic controller status, per-stage logs, failure/final shutdown, and recovery paths are frozen; credential scan has zero hits.
+- Blockers: none.
+- Validation gaps: CUDA/P1/smoke/E20/AP50 remain unexecuted. A successful GPU launch may only be claimed after first progress, finite quantities, GPU-process observation, and controller status creation.
+
 ## Final claim/evidence review
 
 - Status：pending。
