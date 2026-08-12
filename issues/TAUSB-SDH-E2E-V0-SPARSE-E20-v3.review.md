@@ -59,3 +59,4 @@
 - 2026-08-12: AutoDL no-card compatibility probe returned connection refused; recorded as a pre-run validation gap rather than retried or treated as pass.
 - 2026-08-12: exact execution snapshot `b70fc87ecfcda8c2adb5f40b86a1147dbe738633` was committed and ordinarily pushed; the GitHub branch resolved to the same SHA and unrelated dirty files remained uncommitted.
 - 2026-08-12: `PRERUN-REVIEW-01` found the local implementation and active data/metric chain ready, but recorded `blocked / do_not_run` because the AutoDL endpoint remained offline and remote input/fresh-root/GPU/disk/shutdown gates could not be observed.
+- 2026-08-12: after GPU enablement, exact commit fetch and a clean detached worktree succeeded. Remote CUDA/runtime/P1/disk/GPU/fresh-root checks and the full 16,551-image Ultralytics 8.4.33 sparse-list probe passed; `PRERUN-REVIEW-02` is `pass / allow_run` for the exact recorded controller contract.
