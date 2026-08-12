@@ -204,7 +204,7 @@ def test_person_audit_subset_is_balanced_deterministic_and_hashed(tmp_path) -> N
     assert len(first) == 4
 
 
-def _e2e_metrics(*, arm_id, person=0.8, other=0.8):
+def _e2e_metrics(*, arm_id, person=0.8, other=0.8, pilot_kind="e20"):
     hashes = {
         "clean_val_manifest_sha256": "a" * 64,
         "paired_training_protocol_sha256": "b" * 64,
@@ -223,11 +223,11 @@ def _e2e_metrics(*, arm_id, person=0.8, other=0.8):
         **_metrics(other, person=person),
         **hashes,
         "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
-        "pilot_kind": "e20",
+        "pilot_kind": pilot_kind,
         "arm_id": arm_id,
         "seed": 0,
         "steps": 40,
-        "victim_epochs": 20,
+        "victim_epochs": 200 if pilot_kind == "e200" else 20,
         "evidence_scope": "end_to_end_feasibility_not_formal_method",
         "hiding_gate_passed": False,
         "materialization_layout": "sparse_mixed_list_v1",
@@ -269,6 +269,26 @@ def test_e2e_v0_comparison_failure_and_identity_checks_are_independent() -> None
     )
     dog = next(row for row in zero_result["per_class"] if row["class_name"] == "dog")
     assert dog["retention_M1_over_C0"] is None
+
+
+def test_e2e_v0_e200_uses_frozen_full_horizon_thresholds() -> None:
+    clean = _e2e_metrics(
+        arm_id="C0", person=0.80, other=0.80, pilot_kind="e200"
+    )
+    success = _e2e_metrics(
+        arm_id="M1", person=0.45, other=0.76, pilot_kind="e200"
+    )
+    result = build_sdh_e2e_v0_comparison(clean, success)
+    assert result["pilot_decision"] == "selective_full_horizon_success_single_seed"
+    assert result["summary"]["success_checks"]["person_drop_ge_0_30"] is True
+    assert result["summary"]["non_target_classes_drop_le_0_10"] == 19
+
+    failed = _e2e_metrics(
+        arm_id="M1", person=0.72, other=0.76, pilot_kind="e200"
+    )
+    failure = build_sdh_e2e_v0_comparison(clean, failed)
+    assert failure["pilot_decision"] == "full_horizon_failure"
+    assert failure["summary"]["failure_checks"]["person_drop_lt_0_10"] is True
 
 
 def _sdh_v0_ctx(tmp_path):

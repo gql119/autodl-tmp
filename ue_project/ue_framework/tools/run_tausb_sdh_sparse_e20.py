@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
+import hashlib
+import math
 import json
 import os
 from pathlib import Path
@@ -14,6 +17,7 @@ import cv2
 import yaml
 
 from ue_framework.io_utils import atomic_write_json
+from ue_framework.metrics_utils import VOC20_CLASS_NAMES
 from ue_framework.tools.bind_tausb_sdh_e2e_v0 import _validate_mechanism_binding
 from ue_framework.tools.run_tausb_sdh_e2e_v0_oneboot import (
     GuardFailure,
@@ -33,13 +37,64 @@ DISK_RESERVE_BYTES = 3 * 1024 ** 3
 DISK_CONTINGENCY_BYTES = 1 * 1024 ** 3
 CHECKPOINT_BUDGET_BYTES = 512 * 1024 ** 2
 FINAL_EVIDENCE_BUDGET_BYTES = 256 * 1024 ** 2
+MIN_SYSTEM_DISK_FREE_BYTES = 4 * 1024 ** 3
+MAX_SYSTEM_DISK_STAGE_GROWTH_BYTES = 1 * 1024 ** 3
+E200_SURROGATE_CHECKPOINT_SHA256 = (
+    "8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89"
+)
+
+
+@dataclass(frozen=True)
+class SparseExperimentContract:
+    victim_epochs: int
+    spec_id: str
+    exp_id: str
+    run_id: str
+    overall_wall_seconds: int
+    materialize_wall_seconds: int
+    arm_train_eval_wall_seconds: int
+    disk_reserve_bytes: int
+    expected_paired_wall_minutes: Sequence[int]
+
+
+def _experiment_contract(victim_epochs: int) -> SparseExperimentContract:
+    if victim_epochs == 20:
+        return SparseExperimentContract(
+            victim_epochs=20,
+            spec_id=SPEC_ID,
+            exp_id=EXP_ID,
+            run_id=RUN_ID,
+            overall_wall_seconds=OVERALL_WALL_SECONDS,
+            materialize_wall_seconds=MATERIALIZE_WALL_SECONDS,
+            arm_train_eval_wall_seconds=ARM_TRAIN_EVAL_WALL_SECONDS,
+            disk_reserve_bytes=DISK_RESERVE_BYTES,
+            expected_paired_wall_minutes=(45, 90),
+        )
+    if victim_epochs == 200:
+        return SparseExperimentContract(
+            victim_epochs=200,
+            spec_id="TAUSB-SDH-E2E-V0-SPARSE-E200-v1",
+            exp_id="TAUSB-SDH-E2E-V0-S0-E200-SPARSE",
+            run_id="SPARSE-E200-S0-R1",
+            overall_wall_seconds=9 * 60 * 60,
+            materialize_wall_seconds=20 * 60,
+            arm_train_eval_wall_seconds=int(3.5 * 60 * 60),
+            disk_reserve_bytes=8 * 1024 ** 3,
+            expected_paired_wall_minutes=(300, 540),
+        )
+    raise ValueError("victim_epochs must be 20 or 200.")
 
 
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run the approved sparse-materialized paired SDH E20 experiment."
+        description="Run an approved sparse-materialized paired SDH E20/E200 experiment."
     )
     parser.add_argument("--repository-root", required=True)
+    parser.add_argument(
+        "--required-storage-root",
+        required=True,
+        help="Mounted AutoDL data-disk root that must contain the checkout, dataset, and all writable outputs.",
+    )
     parser.add_argument("--expected-commit", required=True)
     parser.add_argument("--python-bin", default="/root/miniconda3/bin/python")
     parser.add_argument("--device", default="0")
@@ -52,6 +107,23 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--control-root", required=True)
     parser.add_argument("--log-root", required=True)
     parser.add_argument("--comparison-root", required=True)
+    parser.add_argument(
+        "--cache-root",
+        default="",
+        help="Required data-disk cache root for E200; optional for legacy E20.",
+    )
+    parser.add_argument(
+        "--tmp-root",
+        default="",
+        help="Required data-disk temp root for E200; optional for legacy E20.",
+    )
+    parser.add_argument(
+        "--victim-epochs",
+        type=int,
+        choices=(20, 200),
+        default=20,
+        help="Select the frozen E20 compatibility contract or approved E200 contract.",
+    )
     return parser.parse_args()
 
 
@@ -72,10 +144,72 @@ def c0_ap50_is_interpretable(metrics: Mapping[str, Any]) -> bool:
     return any(float(value) > 0.0 for value in values.values())
 
 
+def c0_full_horizon_sanity(metrics: Mapping[str, Any]) -> Dict[str, Any]:
+    values = metrics.get("ap50_by_class")
+    if not isinstance(values, Mapping) or set(values) != set(VOC20_CLASS_NAMES):
+        raise ValueError("C0 metrics must contain exactly 20 named VOC AP50 values.")
+    ap50 = {name: float(values[name]) for name in VOC20_CLASS_NAMES}
+    if not all(math.isfinite(value) and 0 <= value <= 1 for value in ap50.values()):
+        raise ValueError("C0 AP50 contains a non-finite or out-of-range value.")
+    non_target = [ap50[name] for name in VOC20_CLASS_NAMES if name != "person"]
+    non_target_macro = sum(non_target) / len(non_target)
+    checks = {
+        "person_ap50_ge_0_60": ap50["person"] >= 0.60,
+        "non_target_macro_ap50_ge_0_50": non_target_macro >= 0.50,
+    }
+    return {
+        "schema": "tausb.sdh-e200-c0-sanity.v1",
+        "person_ap50": ap50["person"],
+        "non_target_macro_ap50": non_target_macro,
+        "checks": checks,
+        "pass": all(checks.values()),
+    }
+
+
+def validate_fresh_init_pair(
+    c0: Mapping[str, Any],
+    m1: Mapping[str, Any],
+    expected_surrogate_sha256: str,
+) -> Dict[str, Any]:
+    for arm_id, record in (("C0", c0), ("M1", m1)):
+        validate_fresh_init_record(record, arm_id, expected_surrogate_sha256)
+    if c0["victim_init_tensor_sha256"] != m1["victim_init_tensor_sha256"]:
+        raise ValueError("C0/M1 victim init tensor hashes differ.")
+    return {
+        "schema": "tausb.sdh-e200-fresh-init-pair.v1",
+        "victim_init_tensor_sha256": c0["victim_init_tensor_sha256"],
+        "surrogate_checkpoint_sha256": expected_surrogate_sha256,
+        "matched": True,
+    }
+
+
+def validate_fresh_init_record(
+    record: Mapping[str, Any], arm_id: str, expected_surrogate_sha256: str
+) -> None:
+    if record.get("run_tag") != arm_id:
+        raise ValueError("%s fresh init run_tag is mismatched." % arm_id)
+    if record.get("resume_enabled") is not False:
+        raise ValueError("%s victim is not a fresh no-resume initialization." % arm_id)
+    if record.get("surrogate_checkpoint_used_for_victim_init") is not False:
+        raise ValueError("%s victim incorrectly used the surrogate checkpoint." % arm_id)
+    if record.get("surrogate_checkpoint_sha256") != expected_surrogate_sha256:
+        raise ValueError("%s surrogate checkpoint hash is mismatched." % arm_id)
+    if len(str(record.get("victim_init_tensor_sha256", ""))) != 64:
+        raise ValueError("%s victim init tensor hash is missing." % arm_id)
+
+
 def _git_head(repository_root: Path) -> str:
     return subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=str(repository_root), text=True
     ).strip()
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def _directory_size(path: Path) -> int:
@@ -93,12 +227,86 @@ def _existing_ancestor(path: Path) -> Path:
     return candidate
 
 
-def _config_path(binding_root: Path, arm_id: str) -> Path:
-    return binding_root / ("e20-%s.yaml" % arm_id.lower())
+def _is_within(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
 
 
-def _run_root(run_root_prefix: str, arm_id: str) -> Path:
-    return Path(run_root_prefix.rstrip("-") + "-E20-" + arm_id)
+def validate_storage_roots(required_root: Path, paths: Mapping[str, Path]) -> Dict[str, str]:
+    """Fail closed unless every growing experiment path is on the mounted data disk."""
+    root = required_root.resolve()
+    if not root.is_dir():
+        raise GuardFailure("PRECHECK", "required_storage_root_missing")
+    if not os.path.ismount(str(root)):
+        raise GuardFailure("PRECHECK", "required_storage_root_not_mountpoint")
+    root_device = root.stat().st_dev
+    resolved = {}
+    for name, path in paths.items():
+        candidate = path.resolve()
+        if not _is_within(candidate, root):
+            raise GuardFailure("PRECHECK", "%s_outside_required_storage_root" % name)
+        if _existing_ancestor(candidate).stat().st_dev != root_device:
+            raise GuardFailure("PRECHECK", "%s_not_on_required_storage_device" % name)
+        resolved[name] = str(candidate)
+    return {"required_storage_root": str(root), **resolved}
+
+
+def validate_cache_environment(cache_root: Path, tmp_root: Path) -> Dict[str, str]:
+    expected = {
+        "TMPDIR": tmp_root.resolve(),
+        "XDG_CACHE_HOME": (cache_root / "xdg").resolve(),
+        "TORCH_HOME": (cache_root / "torch").resolve(),
+        "YOLO_CONFIG_DIR": (cache_root / "yolo").resolve(),
+    }
+    resolved = {}
+    for name, path in expected.items():
+        actual = os.environ.get(name, "")
+        if not actual or Path(actual).resolve() != path:
+            raise GuardFailure("PRECHECK", "%s_not_bound_to_data_disk" % name)
+        resolved[name] = str(path)
+    return resolved
+
+
+class SystemDiskMonitor:
+    def __init__(self, root: Path = Path("/")) -> None:
+        self.root = root
+        self.previous_free_bytes = shutil.disk_usage(str(root)).free
+        if self.previous_free_bytes < MIN_SYSTEM_DISK_FREE_BYTES:
+            raise GuardFailure("PRECHECK", "system_disk_free_below_4GiB", 20)
+        self.initial_free_bytes = self.previous_free_bytes
+
+    def after_stage(self, stage: str) -> Dict[str, Any]:
+        current_free = shutil.disk_usage(str(self.root)).free
+        growth = max(0, self.previous_free_bytes - current_free)
+        record = {
+            "root": str(self.root),
+            "initial_free_bytes": self.initial_free_bytes,
+            "previous_free_bytes": self.previous_free_bytes,
+            "current_free_bytes": current_free,
+            "stage_growth_bytes": growth,
+            "stage_growth_limit_bytes": MAX_SYSTEM_DISK_STAGE_GROWTH_BYTES,
+            "pass": (
+                current_free >= MIN_SYSTEM_DISK_FREE_BYTES
+                and growth <= MAX_SYSTEM_DISK_STAGE_GROWTH_BYTES
+            ),
+        }
+        self.previous_free_bytes = current_free
+        if current_free < MIN_SYSTEM_DISK_FREE_BYTES:
+            raise GuardFailure(stage, "system_disk_free_below_4GiB", 20)
+        if growth > MAX_SYSTEM_DISK_STAGE_GROWTH_BYTES:
+            raise GuardFailure(stage, "system_disk_stage_growth_exceeds_1GiB", 20)
+        return record
+
+
+def _config_path(binding_root: Path, arm_id: str, victim_epochs: int = 20) -> Path:
+    return binding_root / ("e%d-%s.yaml" % (victim_epochs, arm_id.lower()))
+
+
+def _run_root(run_root_prefix: str, arm_id: str, victim_epochs: int = 20) -> Path:
+    return Path(run_root_prefix.rstrip("-") + "-E%d-" % victim_epochs + arm_id)
 
 
 def _poisoned_root(run_root: Path) -> Path:
@@ -115,6 +323,10 @@ def _metrics_path(run_root: Path, arm_id: str) -> Path:
 
 def _status_path(run_root: Path, arm_id: str) -> Path:
     return _artifact_root(run_root, arm_id) / "status.json"
+
+
+def _fresh_init_path(run_root: Path, arm_id: str) -> Path:
+    return _artifact_root(run_root, arm_id) / "logs/fresh_init.json"
 
 
 def _launch_command(
@@ -146,7 +358,11 @@ def _launch_command(
     )
 
 
-def build_sparse_disk_projection(dataset_root: Path, sample_count: int = 64) -> Dict[str, int]:
+def build_sparse_disk_projection(
+    dataset_root: Path,
+    sample_count: int = 64,
+    disk_reserve_bytes: int = DISK_RESERVE_BYTES,
+) -> Dict[str, int]:
     image_dir = dataset_root / "images/train"
     label_dir = dataset_root / "labels/train"
     target_images = []
@@ -204,7 +420,7 @@ def build_sparse_disk_projection(dataset_root: Path, sample_count: int = 64) -> 
         "final_evidence_budget_bytes": FINAL_EVIDENCE_BUDGET_BYTES,
         "contingency_bytes": DISK_CONTINGENCY_BYTES,
         "projected_new_bytes": projected_new_bytes,
-        "required_free_bytes_with_reserve": projected_new_bytes + DISK_RESERVE_BYTES,
+        "required_free_bytes_with_reserve": projected_new_bytes + disk_reserve_bytes,
     }
 
 
@@ -242,14 +458,21 @@ def validate_sparse_pair(c0_report: Mapping[str, Any], m1_report: Mapping[str, A
 
 
 class SparseControllerState:
-    def __init__(self, root: Path) -> None:
+    def __init__(
+        self,
+        root: Path,
+        contract: SparseExperimentContract,
+        system_disk_monitor: SystemDiskMonitor = None,
+    ) -> None:
         self.root = root
         self.path = root / "controller_status.json"
+        self.system_disk_monitor = system_disk_monitor
         self.payload = {
-            "schema": "tausb.sdh-sparse-e20-controller-status.v1",
-            "spec_id": SPEC_ID,
-            "exp_id": EXP_ID,
-            "run_id": RUN_ID,
+            "schema": "tausb.sdh-sparse-e%d-controller-status.v1"
+            % contract.victim_epochs,
+            "spec_id": contract.spec_id,
+            "exp_id": contract.exp_id,
+            "run_id": contract.run_id,
             "status": "running",
             "current_stage": "",
             "stages": {},
@@ -270,9 +493,10 @@ class SparseControllerState:
         self._write()
 
     def complete(self, stage: str, details: Mapping[str, Any] = None) -> None:
-        self.payload["stages"][stage].update(
-            {"status": "completed", "ended_unix": time.time(), **dict(details or {})}
-        )
+        record = {"status": "completed", "ended_unix": time.time(), **dict(details or {})}
+        if self.system_disk_monitor is not None:
+            record["system_disk"] = self.system_disk_monitor.after_stage(stage)
+        self.payload["stages"][stage].update(record)
         self.payload["current_stage"] = ""
         self._write()
 
@@ -298,16 +522,86 @@ class SparseControllerState:
         self._write()
 
 
-def _remaining(started: float, requested: int) -> int:
-    remaining = OVERALL_WALL_SECONDS - int(time.monotonic() - started)
+def _remaining(
+    started: float, requested: int, contract: SparseExperimentContract
+) -> int:
+    remaining = contract.overall_wall_seconds - int(time.monotonic() - started)
     if remaining <= 0:
-        raise GuardFailure("OVERALL", "paired_sparse_e20_wall_timeout", 124)
+        raise GuardFailure(
+            "OVERALL", "paired_sparse_e%d_wall_timeout" % contract.victim_epochs, 124
+        )
     return min(requested, remaining)
+
+
+def write_terminal_evidence_manifest(
+    *,
+    control_root: Path,
+    binding_root: Path,
+    log_root: Path,
+    comparison_root: Path,
+    run_roots: Mapping[str, Path],
+) -> Dict[str, Any]:
+    candidates = [
+        control_root / "controller_status.json",
+        control_root / "precheck.json",
+        control_root / "mixed_list_gate.json",
+        control_root / "c0_sanity_gate.json",
+        control_root / "fresh_init_pair_gate.json",
+        binding_root / "binding_report.json",
+        comparison_root / "comparison.json",
+        comparison_root / "per_class_ap50.csv",
+    ]
+    candidates.extend(sorted(log_root.glob("*.log")))
+    for arm_id, run_root in run_roots.items():
+        poisoned_root = _poisoned_root(run_root)
+        artifact_root = _artifact_root(run_root, arm_id)
+        candidates.extend(
+            [
+                poisoned_root / "status.json",
+                poisoned_root / "manifest.csv",
+                poisoned_root / "sparse_materialization.json",
+                artifact_root / "status.json",
+                artifact_root / "metrics/metrics.json",
+                artifact_root / "logs/fresh_init.json",
+                artifact_root / "logs/train_stage_summary.json",
+                artifact_root / "logs/train_stage_live_summary.json",
+            ]
+        )
+    records = []
+    seen = set()
+    for path in candidates:
+        resolved = path.resolve()
+        if resolved in seen or not resolved.is_file():
+            continue
+        seen.add(resolved)
+        records.append(
+            {
+                "path": str(resolved),
+                "size_bytes": resolved.stat().st_size,
+                "sha256": _file_sha256(resolved),
+            }
+        )
+    comparison_path = comparison_root / "comparison.json"
+    decision = "operational_failure_or_timeout"
+    if comparison_path.is_file():
+        decision = str(_read_json(comparison_path).get("pilot_decision", "unknown"))
+    manifest = {
+        "schema": "tausb.sdh-terminal-evidence-manifest.v1",
+        "terminal_decision": decision,
+        "retention_policy": "retain_and_report_all_terminal_outcomes",
+        "file_count": len(records),
+        "files": records,
+    }
+    atomic_write_json(str(control_root / "terminal_evidence_manifest.json"), manifest)
+    return manifest
 
 
 def _run_controller(args: argparse.Namespace) -> int:
     started = time.monotonic()
+    os.environ.pop("TAUSB_EXPECTED_VICTIM_INIT_TENSOR_SHA256", None)
+    contract = _experiment_contract(int(args.victim_epochs))
     repository_root = Path(args.repository_root).resolve()
+    required_storage_root = Path(args.required_storage_root).resolve()
     project_root = repository_root / "ue_project"
     python_bin = Path(args.python_bin).resolve()
     mechanism_root = Path(args.mechanism_root).resolve()
@@ -318,40 +612,100 @@ def _run_controller(args: argparse.Namespace) -> int:
     control_root = Path(args.control_root).resolve()
     log_root = Path(args.log_root).resolve()
     comparison_root = Path(args.comparison_root).resolve()
+    cache_root = Path(args.cache_root).resolve() if args.cache_root else None
+    tmp_root = Path(args.tmp_root).resolve() if args.tmp_root else None
     run_roots = {
-        arm: _run_root(args.run_root_prefix, arm) for arm in ("C0", "M1")
+        arm: _run_root(args.run_root_prefix, arm, contract.victim_epochs)
+        for arm in ("C0", "M1")
     }
+    growing_paths = {
+            "repository_root": repository_root,
+            "dataset_root": dataset_root,
+            "binding_root": binding_root,
+            "control_root": control_root,
+            "log_root": log_root,
+            "comparison_root": comparison_root,
+            "run_root_C0": run_roots["C0"],
+            "run_root_M1": run_roots["M1"],
+    }
+    if cache_root is not None and tmp_root is not None:
+        growing_paths.update(
+            {
+                "cache_root": cache_root,
+                "tmp_root": tmp_root,
+                "xdg_cache_root": cache_root / "xdg",
+                "torch_cache_root": cache_root / "torch",
+                "yolo_config_root": cache_root / "yolo",
+            }
+        )
+    elif contract.victim_epochs == 200:
+        raise GuardFailure("PRECHECK", "E200_requires_cache_root_and_tmp_root")
+    storage_paths = validate_storage_roots(required_storage_root, growing_paths)
     fresh_paths = [binding_root, control_root, log_root, comparison_root, *run_roots.values()]
     if _git_head(repository_root) != args.expected_commit:
         raise GuardFailure("PRECHECK", "execution_commit_mismatch")
     if any(path.exists() for path in fresh_paths):
         raise GuardFailure("PRECHECK", "fresh_output_path_already_exists")
+    cache_environment = (
+        validate_cache_environment(cache_root, tmp_root)
+        if cache_root is not None and tmp_root is not None
+        else {}
+    )
+    system_disk_monitor = (
+        SystemDiskMonitor() if contract.victim_epochs == 200 else None
+    )
     _validate_mechanism_binding(mechanism_root, mechanism_config)
-    disk = build_sparse_disk_projection(dataset_root)
+    base_payload = yaml.safe_load(base_config.read_text(encoding="utf-8"))
+    surrogate_checkpoint = Path(base_payload["surrogate"]["ckpt"]).resolve()
+    if not surrogate_checkpoint.is_file():
+        raise GuardFailure("PRECHECK", "surrogate_checkpoint_missing")
+    surrogate_checkpoint_sha256 = _file_sha256(surrogate_checkpoint)
+    if (
+        contract.victim_epochs == 200
+        and surrogate_checkpoint_sha256 != E200_SURROGATE_CHECKPOINT_SHA256
+    ):
+        raise GuardFailure("PRECHECK", "surrogate_checkpoint_hash_mismatch")
+    disk = build_sparse_disk_projection(
+        dataset_root, disk_reserve_bytes=contract.disk_reserve_bytes
+    )
     disk_probe_path = _existing_ancestor(Path(args.run_root_prefix).resolve().parent)
     disk["disk_probe_path"] = str(disk_probe_path)
     disk["free_bytes"] = shutil.disk_usage(str(disk_probe_path)).free
     if disk["free_bytes"] < disk["required_free_bytes_with_reserve"]:
-        raise GuardFailure("PRECHECK", "insufficient_disk_for_sparse_e20", 20)
+        raise GuardFailure(
+            "PRECHECK",
+            "insufficient_disk_for_sparse_e%d" % contract.victim_epochs,
+            20,
+        )
 
-    state = SparseControllerState(control_root)
+    state = SparseControllerState(control_root, contract, system_disk_monitor)
     log_root.mkdir(parents=True, exist_ok=False)
     atomic_write_json(
         str(control_root / "precheck.json"),
         {
-            "spec_id": SPEC_ID,
-            "exp_id": EXP_ID,
-            "run_id": RUN_ID,
+            "spec_id": contract.spec_id,
+            "exp_id": contract.exp_id,
+            "run_id": contract.run_id,
             "execution_commit": args.expected_commit,
             "mechanism_root": str(mechanism_root),
+            "surrogate_checkpoint": str(surrogate_checkpoint),
+            "surrogate_checkpoint_sha256": surrogate_checkpoint_sha256,
+            "storage_paths": storage_paths,
+            "cache_environment": cache_environment,
+            "system_disk_initial_free_bytes": (
+                system_disk_monitor.initial_free_bytes
+                if system_disk_monitor is not None
+                else None
+            ),
             "disk_projection": disk,
             "historical_full_voc_e20_seconds_per_arm": 15.96 * 60,
-            "expected_paired_wall_minutes": [45, 90],
-            "overall_wall_cap_seconds": OVERALL_WALL_SECONDS,
+            "expected_paired_wall_minutes": list(contract.expected_paired_wall_minutes),
+            "overall_wall_cap_seconds": contract.overall_wall_seconds,
+            "victim_epochs": contract.victim_epochs,
         },
     )
     try:
-        stage = "BIND_SPARSE_E20"
+        stage = "BIND_SPARSE_E%d" % contract.victim_epochs
         state.start(stage)
         bind_result = run_guarded(
             stage=stage,
@@ -363,16 +717,20 @@ def _run_controller(args: argparse.Namespace) -> int:
                 "--dataset-root", str(dataset_root),
                 "--output-dir", str(binding_root),
                 "--run-root-prefix", args.run_root_prefix,
-                "--e20-only",
+                "--full-voc-only",
+                "--victim-epochs", str(contract.victim_epochs),
             ),
             cwd=project_root,
             log_path=log_root / "binding.log",
-            wall_seconds=_remaining(started, 300),
+            wall_seconds=_remaining(started, 300, contract),
             idle_seconds=300,
         )
         configs = {}
+        fresh_init_records = {}
         for arm_id in ("C0", "M1"):
-            config_path = _config_path(binding_root, arm_id)
+            config_path = _config_path(
+                binding_root, arm_id, contract.victim_epochs
+            )
             config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
             if config["data"].get("materialization_layout") != "sparse_mixed_list_v1":
                 raise GuardFailure(stage, "%s_sparse_layout_missing" % arm_id)
@@ -380,8 +738,9 @@ def _run_controller(args: argparse.Namespace) -> int:
                 raise GuardFailure(stage, "%s_run_root_mismatch" % arm_id)
             configs[arm_id] = config_path
         report = _read_json(binding_root / "binding_report.json")
-        if report.get("binding_scope") != "e20_only" or len(report.get("configs", [])) != 2:
-            raise GuardFailure(stage, "binding_scope_is_not_e20_only")
+        expected_binding_scope = "e%d_only" % contract.victim_epochs
+        if report.get("binding_scope") != expected_binding_scope or len(report.get("configs", [])) != 2:
+            raise GuardFailure(stage, "binding_scope_is_not_%s" % expected_binding_scope)
         if any(binding_root.glob("smoke-*.yaml")) or (
             binding_root / "smoke_train_selection.json"
         ).exists():
@@ -400,7 +759,9 @@ def _run_controller(args: argparse.Namespace) -> int:
                 cwd=project_root,
                 log_path=log_root / ("materialize_%s.log" % arm_id.lower()),
                 wall_seconds=_remaining(
-                    started, MATERIALIZE_WALL_SECONDS if arm_id == "M1" else 600
+                    started,
+                    contract.materialize_wall_seconds if arm_id == "M1" else 600,
+                    contract,
                 ),
                 idle_seconds=IDLE_SECONDS,
                 require_gpu=arm_id == "M1",
@@ -422,7 +783,7 @@ def _run_controller(args: argparse.Namespace) -> int:
             for train_stage in ("train_victim", "evaluate"):
                 stage = "%s_%s" % (arm_id, train_stage.upper())
                 state.start(stage)
-                remaining_arm = ARM_TRAIN_EVAL_WALL_SECONDS - int(
+                remaining_arm = contract.arm_train_eval_wall_seconds - int(
                     time.monotonic() - arm_started
                 )
                 if remaining_arm <= 0:
@@ -435,7 +796,7 @@ def _run_controller(args: argparse.Namespace) -> int:
                     ),
                     cwd=project_root,
                     log_path=log_root / ("%s_%s.log" % (arm_id.lower(), train_stage)),
-                    wall_seconds=_remaining(started, remaining_arm),
+                    wall_seconds=_remaining(started, remaining_arm, contract),
                     idle_seconds=IDLE_SECONDS,
                     require_gpu=True,
                 )
@@ -446,18 +807,53 @@ def _run_controller(args: argparse.Namespace) -> int:
             arm_timings = validate_arm(
                 arm_metrics,
                 _read_json(_status_path(run_roots[arm_id], arm_id)),
-                pilot_kind="e20",
+                pilot_kind="e%d" % contract.victim_epochs,
                 arm_id=arm_id,
-                expected_epochs=20,
+                expected_epochs=contract.victim_epochs,
                 expected_poisoned_count=0 if arm_id == "C0" else 6095,
             )
-            if arm_id == "C0" and not c0_ap50_is_interpretable(arm_metrics):
-                raise GuardFailure(
-                    stage,
-                    "C0_AP50_all_zero_M1_training_forbidden",
-                    21,
+            fresh_init_records[arm_id] = _read_json(
+                _fresh_init_path(run_roots[arm_id], arm_id)
+            )
+            validate_fresh_init_record(
+                fresh_init_records[arm_id], arm_id, surrogate_checkpoint_sha256
+            )
+            stage_details = {
+                "stage_seconds": arm_timings,
+                "fresh_init": fresh_init_records[arm_id],
+            }
+            if arm_id == "C0":
+                if contract.victim_epochs == 200:
+                    c0_sanity = c0_full_horizon_sanity(arm_metrics)
+                    atomic_write_json(
+                        str(control_root / "c0_sanity_gate.json"), c0_sanity
+                    )
+                    stage_details["c0_sanity"] = c0_sanity
+                    if not c0_sanity["pass"]:
+                        state.complete(stage, stage_details)
+                        raise GuardFailure(
+                            stage, "C0_full_horizon_sanity_failed_M1_forbidden", 21
+                        )
+                elif not c0_ap50_is_interpretable(arm_metrics):
+                    raise GuardFailure(
+                        stage,
+                        "C0_AP50_all_zero_M1_training_forbidden",
+                        21,
+                    )
+            state.complete(stage, stage_details)
+            if arm_id == "C0":
+                os.environ["TAUSB_EXPECTED_VICTIM_INIT_TENSOR_SHA256"] = str(
+                    fresh_init_records["C0"]["victim_init_tensor_sha256"]
                 )
-            state.complete(stage, {"stage_seconds": arm_timings})
+            if arm_id == "M1":
+                fresh_init_gate = validate_fresh_init_pair(
+                    fresh_init_records["C0"],
+                    fresh_init_records["M1"],
+                    surrogate_checkpoint_sha256,
+                )
+                atomic_write_json(
+                    str(control_root / "fresh_init_pair_gate.json"), fresh_init_gate
+                )
 
         stage = "COMPARE"
         state.start(stage)
@@ -471,7 +867,7 @@ def _run_controller(args: argparse.Namespace) -> int:
             ),
             cwd=project_root,
             log_path=log_root / "comparison.log",
-            wall_seconds=_remaining(started, 300),
+            wall_seconds=_remaining(started, 300, contract),
             idle_seconds=300,
         )
         comparison = _read_json(comparison_root / "comparison.json")
@@ -481,9 +877,23 @@ def _run_controller(args: argparse.Namespace) -> int:
         }
         state.complete(stage, compare_result)
         state.finish()
+        write_terminal_evidence_manifest(
+            control_root=control_root,
+            binding_root=binding_root,
+            log_root=log_root,
+            comparison_root=comparison_root,
+            run_roots=run_roots,
+        )
         return 0
     except BaseException as error:
         state.fail(locals().get("stage", "UNKNOWN"), error)
+        write_terminal_evidence_manifest(
+            control_root=control_root,
+            binding_root=binding_root,
+            log_root=log_root,
+            comparison_root=comparison_root,
+            run_roots=run_roots,
+        )
         if isinstance(error, GuardFailure):
             return error.exit_code
         raise
@@ -494,7 +904,38 @@ def main() -> int:
     try:
         return _run_controller(args)
     except BaseException as error:
-        print("[SparseE20][Failure] %s: %s" % (type(error).__name__, error), file=sys.stderr)
+        print("[SparseController][Failure] %s: %s" % (type(error).__name__, error), file=sys.stderr)
+        control_root = Path(args.control_root).resolve()
+        required_root = Path(args.required_storage_root).resolve()
+        if (
+            not control_root.exists()
+            and required_root.is_dir()
+            and os.path.ismount(str(required_root))
+            and _is_within(control_root, required_root)
+        ):
+            control_root.mkdir(parents=True, exist_ok=False)
+            atomic_write_json(
+                str(control_root / "controller_status.json"),
+                {
+                    "schema": "tausb.sdh-sparse-controller-bootstrap-failure.v1",
+                    "status": "failed",
+                    "current_stage": "",
+                    "terminal_stage": "PRECHECK",
+                    "error_type": type(error).__name__,
+                    "error": str(error),
+                    "ended_unix": time.time(),
+                },
+            )
+            write_terminal_evidence_manifest(
+                control_root=control_root,
+                binding_root=Path(args.binding_root).resolve(),
+                log_root=Path(args.log_root).resolve(),
+                comparison_root=Path(args.comparison_root).resolve(),
+                run_roots={
+                    arm: _run_root(args.run_root_prefix, arm, int(args.victim_epochs))
+                    for arm in ("C0", "M1")
+                },
+            )
         return int(getattr(error, "exit_code", 1))
 
 

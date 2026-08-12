@@ -23,7 +23,7 @@ from ue_framework.methods.sdh_materializer import (
 
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Bind one completed E2E V0 mechanism state to paired smoke/E20 configs."
+        description="Bind one completed E2E V0 mechanism state to paired smoke/full-VOC configs."
     )
     parser.add_argument("--mechanism-root", required=True)
     parser.add_argument("--mechanism-config", required=True)
@@ -37,7 +37,19 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument(
         "--e20-only",
         action="store_true",
-        help="Bind only sparse full-VOC E20 configs; do not create smoke inputs.",
+        help="Legacy alias for --full-voc-only --victim-epochs 20.",
+    )
+    parser.add_argument(
+        "--full-voc-only",
+        action="store_true",
+        help="Bind only sparse full-VOC configs; do not create smoke inputs.",
+    )
+    parser.add_argument(
+        "--victim-epochs",
+        type=int,
+        choices=(20, 200),
+        default=20,
+        help="Full-VOC victim horizon. Smoke remains one epoch when included.",
     )
     return parser.parse_args()
 
@@ -200,6 +212,7 @@ def _bound_config(
     selection_path: str,
     selection_hash: str,
     run_root: str,
+    victim_epochs: int = 20,
 ) -> Dict[str, Any]:
     config = copy.deepcopy(base)
     smoke = pilot_kind == "smoke"
@@ -227,19 +240,25 @@ def _bound_config(
             "train_selection_manifest_sha256": selection_hash if smoke else "",
         }
     )
+    full_save_period = 10 if victim_epochs == 200 else 5
     config["platform"].update(
         {
             "mode": "cloud",
             "run_root": run_root,
             "resume": False,
             "zip_after_stage": False,
-            "save_every_n_epochs": 1 if smoke else 5,
-            "pack_every_n_epochs": 1 if smoke else 5,
+            "save_every_n_epochs": 1 if smoke else full_save_period,
+            "pack_every_n_epochs": 1 if smoke else full_save_period,
         }
     )
+    if not smoke and pilot_kind != "e%d" % victim_epochs:
+        raise ValueError(
+            "Full-VOC pilot_kind %s does not match victim_epochs %d."
+            % (pilot_kind, victim_epochs)
+        )
     config["victim"].update(
         {
-            "epochs": 1 if smoke else 20,
+            "epochs": 1 if smoke else victim_epochs,
             "imgsz": 640,
             "batch": 36,
             "optimizer": "SGD",
@@ -265,6 +284,12 @@ def _bound_config(
 
 def main() -> int:
     args = _arguments()
+    victim_epochs = int(getattr(args, "victim_epochs", 20))
+    legacy_e20_only = bool(getattr(args, "e20_only", False))
+    full_voc_only = bool(getattr(args, "full_voc_only", False)) or legacy_e20_only
+    if legacy_e20_only and victim_epochs != 20:
+        raise ValueError("--e20-only cannot be combined with --victim-epochs 200.")
+    pilot_kind_full = "e%d" % victim_epochs
     output_dir = Path(args.output_dir).resolve()
     if output_dir.exists():
         raise FileExistsError("Binding output directory already exists: %s" % output_dir)
@@ -276,7 +301,7 @@ def main() -> int:
     base = yaml.safe_load(base_path.read_text(encoding="utf-8"))
     output_dir.mkdir(parents=True, exist_ok=False)
     selection_path = output_dir / "smoke_train_selection.json"
-    if args.e20_only:
+    if full_voc_only:
         selection_hash = ""
     else:
         selection = build_smoke_selection_manifest(dataset_root)
@@ -288,10 +313,10 @@ def main() -> int:
     bindings = (
         ("smoke", "C0", "SMOKE-C0"),
         ("smoke", "M1", "SMOKE-M1"),
-        ("e20", "C0", "E20-C0"),
-        ("e20", "M1", "E20-M1"),
+        (pilot_kind_full, "C0", "%s-C0" % pilot_kind_full.upper()),
+        (pilot_kind_full, "M1", "%s-M1" % pilot_kind_full.upper()),
     )
-    if args.e20_only:
+    if full_voc_only:
         bindings = bindings[2:]
     for pilot_kind, arm_id, suffix in bindings:
         config = _bound_config(
@@ -304,6 +329,7 @@ def main() -> int:
             selection_path=str(selection_path) if pilot_kind == "smoke" else "",
             selection_hash=selection_hash,
             run_root="%s-%s" % (args.run_root_prefix.rstrip("-"), suffix),
+            victim_epochs=victim_epochs,
         )
         path = output_dir / ("%s-%s.yaml" % (pilot_kind, arm_id.lower()))
         path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
@@ -326,9 +352,13 @@ def main() -> int:
         "hashes": binding["hashes"],
         "state_content_hash": binding["state"]["state_content_hash"],
         "mechanism_gate_passed": bool(binding["state"]["mechanism_gate_passed"]),
-        "selection_manifest": str(selection_path) if not args.e20_only else "",
+        "selection_manifest": str(selection_path) if not full_voc_only else "",
         "selection_manifest_sha256": selection_hash,
-        "binding_scope": "e20_only" if args.e20_only else "smoke_and_e20",
+        "binding_scope": (
+            "%s_only" % pilot_kind_full
+            if full_voc_only
+            else "smoke_and_%s" % pilot_kind_full
+        ),
         "configs": config_records,
     }
     (output_dir / "binding_report.json").write_text(

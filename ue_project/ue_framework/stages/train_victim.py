@@ -1,7 +1,10 @@
 ﻿import csv
+import hashlib
 import json
 import os
 import shutil
+
+import torch
 
 from ultralytics import YOLO
 from ultralytics.cfg import get_cfg
@@ -16,15 +19,74 @@ from ..sparse_dataset import (
     SPARSE_REPORT_NAME,
     SPARSE_TRAIN_LIST_NAME,
     audit_sparse_training_list,
+    file_sha256,
     is_sparse_mixed_list,
 )
 from ..status import (
     load_or_init_status,
     mark_stage_completed,
     mark_stage_running,
+    save_status,
     stage_completed,
 )
 from ..train_utils import copy_if_exists, remove_yolo_cache_files
+
+
+def _canonical_model_tensor_sha256(yolo_wrapper) -> str:
+    """Hash model tensor names, metadata, and bytes in a stable order."""
+    model = getattr(yolo_wrapper, "model", None)
+    if model is None or not hasattr(model, "state_dict"):
+        raise TypeError("YOLO wrapper does not expose a model state_dict.")
+    digest = hashlib.sha256()
+    for name, tensor in sorted(model.state_dict().items()):
+        if not torch.is_tensor(tensor):
+            raise TypeError("Model state entry %s is not a tensor." % name)
+        value = tensor.detach().cpu().contiguous()
+        metadata = json.dumps(
+            {"name": name, "dtype": str(value.dtype), "shape": list(value.shape)},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        digest.update(len(metadata).to_bytes(8, "big"))
+        digest.update(metadata)
+        raw = value.reshape(-1).view(torch.uint8).numpy().tobytes()
+        digest.update(len(raw).to_bytes(8, "big"))
+        digest.update(raw)
+    return digest.hexdigest()
+
+
+def _fresh_init_evidence(ctx: RunContext, model, resume_enabled: bool) -> dict:
+    surrogate_ckpt = str(ctx.cfg.get("surrogate", {}).get("ckpt", ""))
+    surrogate_sha256 = (
+        file_sha256(surrogate_ckpt)
+        if surrogate_ckpt and os.path.isfile(surrogate_ckpt)
+        else ""
+    )
+    tensor_sha256 = _canonical_model_tensor_sha256(model)
+    expected_tensor_sha256 = os.environ.get(
+        "TAUSB_EXPECTED_VICTIM_INIT_TENSOR_SHA256", ""
+    ).strip().lower()
+    if expected_tensor_sha256 and len(expected_tensor_sha256) != 64:
+        raise ValueError("Expected victim init tensor hash is not SHA-256.")
+    if surrogate_sha256 and surrogate_sha256 == tensor_sha256:
+        raise ValueError("Victim init tensor hash unexpectedly equals surrogate file hash.")
+    return {
+        "schema": "tausb.fresh-victim-init.v1",
+        "run_tag": ctx.run_tag,
+        "seed": int(ctx.seed),
+        "resume_enabled": bool(resume_enabled),
+        "victim_init_source": str(ctx.cfg["victim"]["init"]),
+        "victim_init_tensor_sha256": tensor_sha256,
+        "expected_victim_init_tensor_sha256": expected_tensor_sha256,
+        "matches_expected_victim_init": (
+            tensor_sha256 == expected_tensor_sha256
+            if expected_tensor_sha256
+            else None
+        ),
+        "surrogate_checkpoint": surrogate_ckpt,
+        "surrogate_checkpoint_sha256": surrogate_sha256,
+        "surrogate_checkpoint_used_for_victim_init": False,
+    }
 
 
 
@@ -289,12 +351,30 @@ def run_train_victim(ctx: RunContext) -> None:
             bundle_path = pack_run_artifacts(ctx.paths)
             print(f"[train_victim] packed bundle at epoch={epoch_num}: {bundle_path}")
 
+    fresh_init = {}
     if resume_enabled and os.path.isfile(latest_ckpt_ultra):
         model = YOLO(latest_ckpt_ultra)
         model.add_callback("on_fit_epoch_end", on_fit_epoch_end)
         model.train(resume=True)
     else:
+        # Dataset/dataloader construction may consume global RNG state. Re-seed
+        # immediately before fresh model construction so paired arms start from
+        # byte-identical weights, independently of their materialized inputs.
+        set_global_seed(ctx.seed)
         model = YOLO(victim_cfg["init"])
+        fresh_init = _fresh_init_evidence(ctx, model, resume_enabled)
+        os.makedirs(ctx.paths.logs_dir, exist_ok=True)
+        atomic_write_json(
+            os.path.join(ctx.paths.logs_dir, "fresh_init.json"), fresh_init
+        )
+        status.setdefault("stage_state", {}).setdefault("train_victim", {}).update(
+            {"fresh_init": fresh_init}
+        )
+        save_status(ctx.paths.artifact_status_json, status)
+        if fresh_init["matches_expected_victim_init"] is False:
+            raise ValueError(
+                "Fresh victim init tensor hash differs from the paired C0 hash."
+            )
         model.add_callback("on_fit_epoch_end", on_fit_epoch_end)
         model.train(**train_args)
 
@@ -322,6 +402,7 @@ def run_train_victim(ctx: RunContext) -> None:
         "resume_enabled": resume_enabled,
         "sparse_train_audit": sparse_audit or {},
         "sparse_dataloader_probe": sparse_dataloader_probe or {},
+        "fresh_init": fresh_init,
     }
     mark_stage_completed(ctx.paths.artifact_status_json, status, "train_victim", stage_extra)
     atomic_write_json(os.path.join(ctx.paths.logs_dir, "train_stage_summary.json"), stage_extra)

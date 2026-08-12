@@ -43,7 +43,9 @@ def _hashes() -> dict:
     return {name: ("%x" % (index + 1)) * 64 for index, name in enumerate(HASH_KEYS)}
 
 
-def _write_bound_config(tmp_path, *, pilot_kind: str, arm_id: str) -> Path:
+def _write_bound_config(
+    tmp_path, *, pilot_kind: str, arm_id: str, victim_epochs: int = 20
+) -> Path:
     base = yaml.safe_load(FORMAL.read_text(encoding="utf-8"))
     config = _bound_config(
         base,
@@ -55,6 +57,7 @@ def _write_bound_config(tmp_path, *, pilot_kind: str, arm_id: str) -> Path:
         selection_path=str(tmp_path / "selection.json"),
         selection_hash="a" * 64,
         run_root=str(tmp_path / (pilot_kind + "-" + arm_id)),
+        victim_epochs=victim_epochs,
     )
     path = tmp_path / (pilot_kind + "-" + arm_id + ".yaml")
     path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
@@ -68,12 +71,19 @@ def _write_bound_config(tmp_path, *, pilot_kind: str, arm_id: str) -> Path:
         ("smoke", "M1", 1, 40, 1.0),
         ("e20", "C0", 20, 0, 0.0),
         ("e20", "M1", 20, 6095, 1.0),
+        ("e200", "C0", 200, 0, 0.0),
+        ("e200", "M1", 200, 6095, 1.0),
     ],
 )
 def test_bound_v0_pair_configs_validate_and_keep_arm_identity(
     tmp_path, pilot_kind, arm_id, epochs, count, ratio
 ) -> None:
-    path = _write_bound_config(tmp_path, pilot_kind=pilot_kind, arm_id=arm_id)
+    path = _write_bound_config(
+        tmp_path,
+        pilot_kind=pilot_kind,
+        arm_id=arm_id,
+        victim_epochs=epochs if pilot_kind == "e200" else 20,
+    )
     config = load_config(str(path))
     assert config["victim"]["epochs"] == epochs
     assert config["experiment"]["expected_poisoned_count"] == count

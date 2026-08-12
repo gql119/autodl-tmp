@@ -446,9 +446,9 @@ def load_config(config_path: str) -> Dict[str, Any]:
                 raise ValueError("E2E V0 requires explicit person GT bbox support.")
             pilot_kind = str(cfg["experiment"].get("pilot_kind", ""))
             arm_id = str(cfg["experiment"].get("arm_id", ""))
-            if pilot_kind not in {"smoke", "e20"} or arm_id not in {"C0", "M1"}:
-                raise ValueError("E2E V0 requires pilot_kind smoke/e20 and arm C0/M1.")
-            expected_epochs = 1 if pilot_kind == "smoke" else 20
+            if pilot_kind not in {"smoke", "e20", "e200"} or arm_id not in {"C0", "M1"}:
+                raise ValueError("E2E V0 requires pilot_kind smoke/e20/e200 and arm C0/M1.")
+            expected_epochs = {"smoke": 1, "e20": 20, "e200": 200}[pilot_kind]
             if int(victim.get("epochs", -1)) != expected_epochs:
                 raise ValueError("E2E V0 victim epochs do not match the pilot kind.")
             expected_train_images = 200 if pilot_kind == "smoke" else 16551
@@ -477,7 +477,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
             elif selection_path or selection_hash:
                 raise ValueError("E2E V0 full-VOC pilot forbids a train selection manifest.")
             layout = str(cfg["data"].get("materialization_layout", "full_png_v1"))
-            if pilot_kind == "e20" and layout not in {
+            if pilot_kind in {"e20", "e200"} and layout not in {
                 "full_png_v1",
                 "sparse_mixed_list_v1",
             }:

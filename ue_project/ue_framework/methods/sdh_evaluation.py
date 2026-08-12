@@ -146,12 +146,17 @@ def build_sdh_e2e_v0_comparison(
 ) -> Dict[str, object]:
     clean_ap = _strict_named_ap50(clean, "C0")
     poison_ap = _strict_named_ap50(poisoned, "M1")
+    pilot_kind = str(clean.get("pilot_kind", ""))
+    expected_epochs_by_pilot = {"e20": 20, "e200": 200}
+    if pilot_kind not in expected_epochs_by_pilot:
+        raise ValueError("E2E V0 comparison requires matched e20 or e200 metrics.")
+    expected_epochs = expected_epochs_by_pilot[pilot_kind]
     required_identity = {
         "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
-        "pilot_kind": "e20",
+        "pilot_kind": pilot_kind,
         "seed": 0,
         "steps": 40,
-        "victim_epochs": 20,
+        "victim_epochs": expected_epochs,
         "evidence_scope": "end_to_end_feasibility_not_formal_method",
         "hiding_gate_passed": False,
     }
@@ -207,7 +212,7 @@ def build_sdh_e2e_v0_comparison(
         raise ValueError("E2E V0 M1 Linf is invalid or exceeds tolerance.")
     per_class = []
     if not any(clean_ap[class_name] > 0 for class_name in VOC20_CLASS_NAMES):
-        raise ValueError("C0 AP50 is all zero; the E20 comparison is uninterpretable.")
+        raise ValueError("C0 AP50 is all zero; the comparison is uninterpretable.")
     for class_id, class_name in enumerate(VOC20_CLASS_NAMES):
         drop = clean_ap[class_name] - poison_ap[class_name]
         per_class.append(
@@ -231,34 +236,55 @@ def build_sdh_e2e_v0_comparison(
     non_target_macro_drop = float(
         np.mean([row["drop_C0_minus_M1"] for row in non_target])
     )
-    non_target_le_015 = sum(
-        row["drop_C0_minus_M1"] <= 0.15 for row in non_target
+    non_target_le_010 = sum(
+        row["drop_C0_minus_M1"] <= 0.10 for row in non_target
     )
+    non_target_le_015 = sum(row["drop_C0_minus_M1"] <= 0.15 for row in non_target)
     non_target_gt_020 = sum(
         row["drop_C0_minus_M1"] > 0.20 for row in non_target
     )
-    success_checks = {
-        "person_drop_ge_0_10": person_drop >= 0.10,
-        "non_target_macro_drop_le_0_08": non_target_macro_drop <= 0.08,
-        "non_target_count_drop_le_0_15_ge_15": non_target_le_015 >= 15,
-        "poisoned_count_6095": True,
-        "linf_within_tolerance": True,
-    }
-    failure_checks = {
-        "person_drop_lt_0_03": person_drop < 0.03,
-        "non_target_macro_drop_gt_0_15": non_target_macro_drop > 0.15,
-        "non_target_count_drop_gt_0_20_ge_5": non_target_gt_020 >= 5,
-    }
+    if pilot_kind == "e200":
+        success_checks = {
+            "person_drop_ge_0_30": person_drop >= 0.30,
+            "non_target_macro_drop_le_0_05": non_target_macro_drop <= 0.05,
+            "non_target_count_drop_le_0_10_ge_16": non_target_le_010 >= 16,
+            "poisoned_count_6095": True,
+            "linf_within_tolerance": True,
+        }
+        failure_checks = {
+            "person_drop_lt_0_10": person_drop < 0.10,
+            "non_target_macro_drop_gt_0_15": non_target_macro_drop > 0.15,
+            "non_target_count_drop_gt_0_20_ge_5": non_target_gt_020 >= 5,
+        }
+        success_decision = "selective_full_horizon_success_single_seed"
+        failure_decision = "full_horizon_failure"
+        claim_status = "tentative_full_horizon_single_seed_e200"
+    else:
+        success_checks = {
+            "person_drop_ge_0_10": person_drop >= 0.10,
+            "non_target_macro_drop_le_0_08": non_target_macro_drop <= 0.08,
+            "non_target_count_drop_le_0_15_ge_15": non_target_le_015 >= 15,
+            "poisoned_count_6095": True,
+            "linf_within_tolerance": True,
+        }
+        failure_checks = {
+            "person_drop_lt_0_03": person_drop < 0.03,
+            "non_target_macro_drop_gt_0_15": non_target_macro_drop > 0.15,
+            "non_target_count_drop_gt_0_20_ge_5": non_target_gt_020 >= 5,
+        }
+        success_decision = "directional_feasibility_pass"
+        failure_decision = "directional_feasibility_fail"
+        claim_status = "directional_feasibility_single_seed_e20"
     if all(success_checks.values()):
-        decision = "directional_feasibility_pass"
+        decision = success_decision
     elif any(failure_checks.values()):
-        decision = "directional_feasibility_fail"
+        decision = failure_decision
     else:
         decision = "inconclusive_tradeoff"
     return {
         "schema": "tausb.sdh-e2e-v0-comparison.v1",
         "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
-        "claim_status": "directional_feasibility_single_seed_e20",
+        "claim_status": claim_status,
         "pilot_decision": decision,
         "mechanism_gate_passed": bool(clean["mechanism_gate_passed"]),
         "hiding_gate_passed": False,
@@ -268,6 +294,7 @@ def build_sdh_e2e_v0_comparison(
         "summary": {
             "person_drop": person_drop,
             "non_target_macro_drop": non_target_macro_drop,
+            "non_target_classes_drop_le_0_10": non_target_le_010,
             "non_target_classes_drop_le_0_15": non_target_le_015,
             "non_target_classes_drop_gt_0_20": non_target_gt_020,
             "success_checks": success_checks,

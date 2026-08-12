@@ -22,9 +22,18 @@ from ue_framework.sparse_dataset import (
 from ue_framework.tools.bind_tausb_sdh_e2e_v0 import _bound_config
 from ue_framework.tools.run_tausb_sdh_sparse_e20 import (
     DISK_RESERVE_BYTES,
+    _experiment_contract,
+    _config_path,
+    _run_root,
     c0_ap50_is_interpretable,
+    c0_full_horizon_sanity,
+    validate_cache_environment,
+    validate_fresh_init_pair,
+    write_terminal_evidence_manifest,
+    validate_storage_roots,
     validate_sparse_pair,
 )
+from ue_framework.tools.run_tausb_sdh_e2e_v0_oneboot import GuardFailure
 from ue_framework.stages.train_victim import _probe_sparse_dataloader
 
 
@@ -188,6 +197,122 @@ def test_c0_all_zero_ap50_stops_before_m1_training() -> None:
         c0_ap50_is_interpretable({})
 
 
+def test_storage_gate_requires_mounted_root_and_rejects_system_path(
+    tmp_path, monkeypatch
+) -> None:
+    data_root = tmp_path / "autodl-tmp"
+    data_root.mkdir()
+    checkout = data_root / "checkouts" / "run"
+    output = data_root / "runs" / "exp"
+    monkeypatch.setattr("os.path.ismount", lambda value: Path(value) == data_root)
+    report = validate_storage_roots(
+        data_root,
+        {"repository_root": checkout, "run_root": output},
+    )
+    assert report["required_storage_root"] == str(data_root.resolve())
+
+    with pytest.raises(GuardFailure, match="run_root_outside_required_storage_root"):
+        validate_storage_roots(
+            data_root,
+            {"repository_root": checkout, "run_root": tmp_path / "system-run"},
+        )
+
+
+def test_storage_gate_rejects_non_mountpoint(tmp_path, monkeypatch) -> None:
+    data_root = tmp_path / "autodl-tmp"
+    data_root.mkdir()
+    monkeypatch.setattr("os.path.ismount", lambda value: False)
+    with pytest.raises(GuardFailure, match="required_storage_root_not_mountpoint"):
+        validate_storage_roots(data_root, {"run_root": data_root / "runs"})
+
+
+def test_e200_contract_has_distinct_ids_paths_and_nine_hour_cap(tmp_path) -> None:
+    contract = _experiment_contract(200)
+    assert contract.spec_id == "TAUSB-SDH-E2E-V0-SPARSE-E200-v1"
+    assert contract.overall_wall_seconds == 9 * 60 * 60
+    assert contract.arm_train_eval_wall_seconds == int(3.5 * 60 * 60)
+    assert _config_path(tmp_path, "C0", 200).name == "e200-c0.yaml"
+    assert str(_run_root("/data/run", "M1", 200)).endswith("-E200-M1")
+    assert _experiment_contract(20).overall_wall_seconds == 2 * 60 * 60
+
+
+def test_e200_c0_sanity_and_fresh_init_pair_gates() -> None:
+    ap50 = {name: 0.55 for name in (
+        "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car",
+        "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike",
+        "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor",
+    )}
+    ap50["person"] = 0.65
+    assert c0_full_horizon_sanity({"ap50_by_class": ap50})["pass"] is True
+    ap50["person"] = 0.59
+    assert c0_full_horizon_sanity({"ap50_by_class": ap50})["pass"] is False
+
+    common = {
+        "resume_enabled": False,
+        "surrogate_checkpoint_used_for_victim_init": False,
+        "surrogate_checkpoint_sha256": "a" * 64,
+        "victim_init_tensor_sha256": "b" * 64,
+    }
+    gate = validate_fresh_init_pair(
+        {**common, "run_tag": "C0"},
+        {**common, "run_tag": "M1"},
+        "a" * 64,
+    )
+    assert gate["matched"] is True
+    with pytest.raises(ValueError, match="hashes differ"):
+        validate_fresh_init_pair(
+            {**common, "run_tag": "C0"},
+            {**common, "run_tag": "M1", "victim_init_tensor_sha256": "c" * 64},
+            "a" * 64,
+        )
+
+
+def test_cache_environment_must_match_explicit_data_disk_roots(tmp_path, monkeypatch) -> None:
+    cache_root = tmp_path / "cache"
+    tmp_root = tmp_path / "tmp"
+    expected = {
+        "TMPDIR": tmp_root,
+        "XDG_CACHE_HOME": cache_root / "xdg",
+        "TORCH_HOME": cache_root / "torch",
+        "YOLO_CONFIG_DIR": cache_root / "yolo",
+    }
+    for name, path in expected.items():
+        monkeypatch.setenv(name, str(path))
+    assert validate_cache_environment(cache_root, tmp_root)["TMPDIR"] == str(
+        tmp_root.resolve()
+    )
+    monkeypatch.setenv("TORCH_HOME", str(tmp_path / "wrong"))
+    with pytest.raises(GuardFailure, match="TORCH_HOME_not_bound"):
+        validate_cache_environment(cache_root, tmp_root)
+
+
+def test_terminal_manifest_retains_failure_logs_and_partial_metrics(tmp_path) -> None:
+    control = tmp_path / "control"
+    binding = tmp_path / "binding"
+    logs = tmp_path / "logs"
+    comparison = tmp_path / "comparison"
+    run_root = tmp_path / "run-E200-C0"
+    control.mkdir()
+    logs.mkdir()
+    (control / "controller_status.json").write_text(
+        '{"status":"failed"}', encoding="utf-8"
+    )
+    (logs / "c0_train_victim.log").write_text("timeout", encoding="utf-8")
+    artifact = run_root / "artifacts/tausb_sdh/steps40/seed0_C0/metrics"
+    artifact.mkdir(parents=True)
+    (artifact / "metrics.json").write_text('{"partial":true}', encoding="utf-8")
+    manifest = write_terminal_evidence_manifest(
+        control_root=control,
+        binding_root=binding,
+        log_root=logs,
+        comparison_root=comparison,
+        run_roots={"C0": run_root},
+    )
+    assert manifest["terminal_decision"] == "operational_failure_or_timeout"
+    assert manifest["file_count"] == 3
+    assert (control / "terminal_evidence_manifest.json").is_file()
+
+
 def test_e20_only_binder_does_not_build_or_write_smoke_selection(
     tmp_path, monkeypatch
 ) -> None:
@@ -228,3 +353,48 @@ def test_e20_only_binder_does_not_build_or_write_smoke_selection(
     assert not (output_dir / "smoke_train_selection.json").exists()
     report = json.loads((output_dir / "binding_report.json").read_text(encoding="utf-8"))
     assert report["binding_scope"] == "e20_only"
+
+
+def test_full_voc_e200_binder_writes_only_e200_configs(tmp_path, monkeypatch) -> None:
+    from ue_framework.tools import bind_tausb_sdh_e2e_v0 as binder
+
+    mechanism_root = tmp_path / "mechanism"
+    mechanism_config = tmp_path / "mechanism.yaml"
+    base_config = tmp_path / "base.yaml"
+    dataset_root = tmp_path / "voc"
+    output_dir = tmp_path / "binding"
+    mechanism_config.write_text("runtime: {}\n", encoding="utf-8")
+    base_config.write_text(FORMAL.read_text(encoding="utf-8"), encoding="utf-8")
+    fake_binding = {
+        "state": {"state_content_hash": "f" * 64, "mechanism_gate_passed": False},
+        "state_path": tmp_path / "p1.pt",
+        "metrics": {},
+        "hashes": {name: str(index + 1) * 64 for index, name in enumerate(HASH_KEYS)},
+    }
+    monkeypatch.setattr(binder, "_arguments", lambda: type("Args", (), {
+        "mechanism_root": str(mechanism_root),
+        "mechanism_config": str(mechanism_config),
+        "base_config": str(base_config),
+        "dataset_root": str(dataset_root),
+        "output_dir": str(output_dir),
+        "run_root_prefix": str(tmp_path / "runs"),
+        "e20_only": False,
+        "full_voc_only": True,
+        "victim_epochs": 200,
+    })())
+    monkeypatch.setattr(binder, "_validate_mechanism_binding", lambda *args: fake_binding)
+    monkeypatch.setattr(
+        binder,
+        "build_smoke_selection_manifest",
+        lambda *args: (_ for _ in ()).throw(AssertionError("smoke builder called")),
+    )
+    assert binder.main() == 0
+    for arm in ("c0", "m1"):
+        config = yaml.safe_load(
+            (output_dir / ("e200-%s.yaml" % arm)).read_text(encoding="utf-8")
+        )
+        assert config["experiment"]["pilot_kind"] == "e200"
+        assert config["victim"]["epochs"] == 200
+    assert not (output_dir / "smoke_train_selection.json").exists()
+    report = json.loads((output_dir / "binding_report.json").read_text(encoding="utf-8"))
+    assert report["binding_scope"] == "e200_only"
