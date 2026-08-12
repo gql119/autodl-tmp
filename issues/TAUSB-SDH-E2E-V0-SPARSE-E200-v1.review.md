@@ -48,3 +48,14 @@ The local worktree contains unrelated user modifications and untracked research 
 - 2026-08-12: implemented pre-train fresh victim tensor hashes, C0/M1 hash pairing, C0 full-horizon sanity, data-disk/cache/tmp/system-disk gates, and an all-terminal-outcomes evidence manifest.
 - 2026-08-12: added the one-shot data-disk E200 wrapper with an early shutdown trap and evidence flush before shutdown.
 - 2026-08-12: local validation passed 106 tests, Python 3.8 AST, Git Bash syntax, a real VOC dataloader batch, and a real YOLOv8n init-hash probe. These are mechanical readiness evidence only, not E200 AP50 evidence.
+- 2026-08-12: hardened the runtime with visible-idle-GPU, fatal-log, outer-timeout finalization, exact surrogate hash, exact frozen-SDH hash and exact P1 hash gates; the final focused/regression suite passed 117 tests.
+- 2026-08-12: ordinary-pushed execution commit `36f74cab2222f41cb1f206b42db3118237f18a52`; the remote branch resolved to the same SHA.
+- 2026-08-12: `PRERUN-REVIEW-01` concluded `pass / allow_run` for only `SPARSE-E200-S0-R1`. The exact data-disk paths, 9-hour wrapper, tmux session and validation gaps are frozen in the pre-run packet and run contract.
+
+## Current workflow state
+
+- Implementation, local validation, exact Git snapshot and pre-run review are complete.
+- Execution commit: `36f74cab2222f41cb1f206b42db3118237f18a52`.
+- Review metadata commit: `808f1f5974ec47cb228f38cb9b25ab12944a6242` (before this state update).
+- Remote row `REMOTE-SPARSE-E200-01` remains `not_started`; no E200 GPU result is being claimed.
+- Next action: after the user enables GPU mode, invoke only `pre_run/sparse_e200_tmux_launch_v1.sh`, verify first progress, then allow the wrapper to terminate and shut down on every terminal outcome.

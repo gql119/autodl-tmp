@@ -47,6 +47,7 @@ test ! -e "${LOG_ROOT}"
 test ! -e "${COMPARISON_ROOT}"
 test ! -e "${CACHE_ROOT}"
 test ! -e "${TMP_ROOT}"
+test ! -e "${OUTER_LOG}"
 ! tmux has-session -t "${SESSION}" 2>/dev/null
 
 git -C "${SOURCE_REPOSITORY}" fetch origin "${BRANCH}"
