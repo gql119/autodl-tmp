@@ -8,6 +8,7 @@ REQUIRED_STORAGE_ROOT="/root/autodl-tmp"
 CHECKOUT="/root/autodl-tmp/tausb-sdh/checkouts/${EXECUTION_COMMIT}"
 SESSION="tausb-sdh-e200-s0-r1"
 PYTHON_BIN="/root/miniconda3/bin/python"
+SKIP_GIT_FETCH="${SKIP_GIT_FETCH:-0}"
 MECHANISM_ROOT="/root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH"
 DATASET_ROOT="/root/autodl-tmp/ue_project/VOC_0712_Kaggle_Ready"
 BINDING_ROOT="/root/autodl-tmp/tausb-sdh/binding/TAUSB-SDH-E2E-V0-S0-E200-SPARSE-R1"
@@ -72,10 +73,17 @@ test ! -e "${OUTER_LOG}"
 test ! -e "${PRELAUNCH_FAILURE_LOG}"
 ! tmux has-session -t "${SESSION}" 2>/dev/null
 
-git -C "${SOURCE_REPOSITORY}" fetch origin "${BRANCH}"
 git -C "${SOURCE_REPOSITORY}" cat-file -e "${EXECUTION_COMMIT}^{commit}"
-git -C "${SOURCE_REPOSITORY}" merge-base --is-ancestor \
-  "${EXECUTION_COMMIT}" "origin/${BRANCH}"
+if [[ "${SKIP_GIT_FETCH}" == "1" ]]; then
+  echo "[SparseE200Launch] offline launch: using hash-verified cached commit ${EXECUTION_COMMIT}"
+elif [[ "${SKIP_GIT_FETCH}" == "0" ]]; then
+  git -C "${SOURCE_REPOSITORY}" fetch origin "${BRANCH}"
+  git -C "${SOURCE_REPOSITORY}" merge-base --is-ancestor \
+    "${EXECUTION_COMMIT}" "origin/${BRANCH}"
+else
+  echo "[SparseE200Launch] SKIP_GIT_FETCH must be 0 or 1" >&2
+  exit 20
+fi
 mkdir -p "$(dirname "${CHECKOUT}")" "$(dirname "${OUTER_LOG}")"
 git -C "${SOURCE_REPOSITORY}" worktree add --detach "${CHECKOUT}" "${EXECUTION_COMMIT}"
 test "$(git -C "${CHECKOUT}" rev-parse HEAD)" = "${EXECUTION_COMMIT}"
