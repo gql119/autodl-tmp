@@ -5,8 +5,8 @@ Scope: mechanical/no-card validation only; this is not E200 experimental evidenc
 
 ## Result
 
-- Focused and regression tests: `108 passed in 14.31s`.
-- Python 3.8 AST gate: 5 changed runtime modules passed.
+- Focused and regression tests: `117 passed in 21.80s`.
+- Python 3.8 AST gate: 6 changed runtime modules passed.
 - Git Bash syntax gate: `sparse_e200_controller_data_disk_v1.sh` passed `bash -n`.
 - Controller CLI exposes `--victim-epochs {20,200}`, `--cache-root`, and `--tmp-root`; default victim horizon remains 20.
 - Binder CLI preserves legacy `--e20-only` and exposes `--full-voc-only --victim-epochs {20,200}`.
@@ -35,6 +35,7 @@ Scope: mechanical/no-card validation only; this is not E200 experimental evidenc
 - Success, scientific failure, inconclusive, operational failure, and timeout retain a SHA256 terminal evidence manifest.
 - Scientific outcome and operational outcome are recorded separately when a run is incomplete.
 - The exact remote checkout must be fully clean, including no untracked runtime shadow files.
+- E200 fails closed unless both the frozen SDH state and P1 state SHA256 values exactly match the approved Spec, in addition to their existing internal-consistency checks.
 - Wrapper installs the shutdown trap before validating required inputs and flushes evidence before shutdown.
 
 ## Validation gaps reserved for remote pre-run review
