@@ -5,6 +5,9 @@
 - Spec: approved on 2026-08-17.
 - Branch: `codex/tausb-sdh-dgcaip-cgr-e20-v2`.
 - Active CSV row: `GIT-SNAPSHOT-01`.
+- Local code snapshot: `b682f9d428a426d0cca62f5a6a0fc599a0853b4e`.
+- Push state: blocked pending explicit authorization for the concrete GitHub
+  destination; no remote run has started.
 - Scientific state: implementation and local mechanical validation only; no D0,
   mechanism, victim training, or AP50 claim has been produced.
 
@@ -74,8 +77,16 @@ mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
 
 ## Pre-run decision
 
-Pending `PRERUN-REVIEW-01`; no remote run is authorized by implementation evidence
-alone.
+### PRERUN-REVIEW-01
+
+- Result: blocked
+- Decision: do_not_run
+- Gated run: `REMOTE-D0-01`
+- Code snapshot: `b682f9d428a426d0cca62f5a6a0fc599a0853b4e`
+- Blocker: the implementation had an internal 1200-second guard but no independent
+  outer timeout, tmux handoff, terminal evidence, or all-terminal shutdown wrapper.
+- Resolution: added a data-disk-only D0 controller and launch gate; a new exact
+  snapshot and `PRERUN-REVIEW-D0-02` are required before launch.
 
 ## Append-only execution log
 
@@ -84,3 +95,9 @@ alone.
   DG-CAIP weighting, fixed-budget CGR, D0/four-arm runner, configs, binder, and
   tests.
 - 2026-08-17: Local broad regression reached 166 passing tests; no GPU run started.
+- 2026-08-17: Created the scoped 21-file local commit `b682f9d`; ordinary push
+  was not attempted again after the external-write authorization gate rejected it.
+- 2026-08-17: User explicitly authorized the concrete destination; remote SHA was
+  verified as `b682f9d428a426d0cca62f5a6a0fc599a0853b4e`.
+- 2026-08-17: First pre-run review blocked D0 because an independent outer cost and
+  shutdown controller was missing; implemented the bounded two-script fix locally.
