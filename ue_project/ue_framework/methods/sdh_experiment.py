@@ -59,6 +59,7 @@ ARM_SWITCHES = {
 }
 
 E2E_V0_SPEC_ID = E2E_V0_PROTOCOL_ID
+DGCAIP_SPEC_ID = "TAUSB-SDH-DGCAIP-CGR-E20-v2"
 E2E_V0_R2_CHECKPOINT_SHA256 = (
     "a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36"
 )
@@ -365,7 +366,12 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
     spec_id = str(config["spec"].get("spec_id", ""))
     legacy_spec_id = "TAUSB-SDH-LFC-CICR-CGR-NLA-MAP50-v3"
     subband_spec_id = "TAUSB-SDH-HIDING-SB-v1"
-    if spec_id not in {legacy_spec_id, subband_spec_id, E2E_V0_SPEC_ID}:
+    if spec_id not in {
+        legacy_spec_id,
+        subband_spec_id,
+        E2E_V0_SPEC_ID,
+        DGCAIP_SPEC_ID,
+    }:
         raise ValueError("SDH experiment spec_id mismatch.")
     if int(config["spec"].get("seed", -1)) != 0:
         raise ValueError("SDH first experiment seed must be 0.")
@@ -408,7 +414,7 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         "source_checkpoint_sha256",
         "allow_failed_scientific_gates",
     )
-    if spec_id == E2E_V0_SPEC_ID:
+    if spec_id in {E2E_V0_SPEC_ID, DGCAIP_SPEC_ID}:
         if config["hiding"].get("allow_failed_scientific_gates") is not True:
             raise ValueError("E2E V0 requires allow_failed_scientific_gates=true.")
         if not str(config["hiding"].get("source_artifact_root", "")).strip():
@@ -454,6 +460,55 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         for key in keys:
             if not str(config[section].get(key, "")).strip():
                 raise ValueError("SDH config requires %s.%s." % (section, key))
+    if spec_id == DGCAIP_SPEC_ID:
+        dgcaip = config.get("dgcaip")
+        if not isinstance(dgcaip, Mapping):
+            raise ValueError("DG-CAIP Spec requires a dgcaip config section.")
+        if str(dgcaip.get("run_mode", "")) not in {"d0", "mechanism"}:
+            raise ValueError("DG-CAIP run_mode must be d0 or mechanism.")
+        frozen = {
+            "temperature": 2.0,
+            "protection_ratio": 0.25,
+            "classification_tolerance": 0.005,
+            "box_tolerance": 0.02,
+            "alignment_tolerance": 0.05,
+            "js_backtracking_epsilon": 1.0e-9,
+        }
+        for key, expected in frozen.items():
+            if float(dgcaip.get(key, float("nan"))) != expected:
+                raise ValueError("DG-CAIP %s must remain %s." % (key, expected))
+        if int(dgcaip.get("minimum_rank_instances", -1)) != 4:
+            raise ValueError("DG-CAIP minimum_rank_instances must remain 4.")
+        split_hash = str(dgcaip.get("expected_split_sha256", ""))
+        if len(split_hash) != 64 or set(split_hash) == {"0"}:
+            raise ValueError("DG-CAIP requires expected_split_sha256.")
+        if not str(dgcaip.get("source_p1_state", "")).strip():
+            raise ValueError("DG-CAIP requires source_p1_state.")
+        source_state_hash = str(dgcaip.get("source_p1_state_sha256", ""))
+        if len(source_state_hash) != 64 or set(source_state_hash) == {"0"}:
+            raise ValueError("DG-CAIP requires source_p1_state_sha256.")
+        if str(dgcaip["run_mode"]) == "mechanism":
+            if not str(dgcaip.get("d0_report", "")).strip():
+                raise ValueError("DG-CAIP mechanism requires a passed D0 report.")
+            d0_hash = str(dgcaip.get("d0_report_sha256", ""))
+            if len(d0_hash) != 64 or set(d0_hash) == {"0"}:
+                raise ValueError("DG-CAIP mechanism requires d0_report_sha256.")
+            if not str(dgcaip.get("source_p1_metrics", "")).strip():
+                raise ValueError("DG-CAIP mechanism requires source_p1_metrics.")
+            source_metrics_hash = str(
+                dgcaip.get("source_p1_metrics_sha256", "")
+            )
+            if len(source_metrics_hash) != 64 or set(source_metrics_hash) == {"0"}:
+                raise ValueError(
+                    "DG-CAIP mechanism requires source_p1_metrics_sha256."
+                )
+            replay_tolerances = {
+                "p1_replay_absolute_tolerance": 1.0e-6,
+                "p1_replay_relative_tolerance": 1.0e-4,
+            }
+            for key, expected in replay_tolerances.items():
+                if float(dgcaip.get(key, float("nan"))) != expected:
+                    raise ValueError("DG-CAIP %s must remain %s." % (key, expected))
 
 
 def _resolve(base: Path, value: str) -> Path:
@@ -729,7 +784,7 @@ def _load_hiding_checkpoint(
     device: torch.device,
 ) -> Tuple[SemanticHidingCarrier, torch.Tensor, Mapping[str, Any]]:
     spec_id = str(config["spec"].get("spec_id", ""))
-    feasibility_mode = spec_id == E2E_V0_SPEC_ID
+    feasibility_mode = spec_id in {E2E_V0_SPEC_ID, DGCAIP_SPEC_ID}
     root_value = (
         config["hiding"].get("source_artifact_root", "")
         if feasibility_mode
@@ -972,6 +1027,10 @@ def _summarize_arm(
 
 def run_mechanism_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict[str, Any]:
     validate_sdh_experiment_config(config)
+    if str(config["spec"].get("spec_id", "")) == DGCAIP_SPEC_ID:
+        from .dgcaip_experiment import run_dgcaip_pilot
+
+        return run_dgcaip_pilot(config, config_base=config_base)
     start = time.monotonic()
     max_seconds = float(config["mechanism"]["max_seconds"])
     device = torch.device(str(config["runtime"]["device"]))

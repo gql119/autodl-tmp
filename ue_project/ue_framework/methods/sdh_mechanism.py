@@ -15,6 +15,7 @@ from .alce_acgt import build_pag_gate
 from .bsc_rc_gr_probe import _assigned_gt_boxes
 from .detector_lfc import DetectorLFCExtractor, DetectorLFCFeatures
 from .detector_tower_hooks import YOLODetectTowerCapture
+from .dgcaip import DGCAIPResult, dgcaip_instance_preservation
 from .instance_cicr import (
     InstanceClassificationResiduals,
     instance_classification_residuals,
@@ -45,6 +46,7 @@ class SDHBatch:
 
 @dataclass(frozen=True)
 class SDHObservation:
+    image_ids: Tuple[str, ...]
     rendered: RenderedSemanticCarrier
     canonical_dlfc_features: DetectorLFCFeatures
     target_residuals: InstanceClassificationResiduals
@@ -52,6 +54,7 @@ class SDHObservation:
     reveal_loss: torch.Tensor
     rms_loss: torch.Tensor
     nla: NonTargetLogitAlignmentResult
+    dgcaip: Optional[DGCAIPResult]
     per_class_probability_drop: Dict[int, float]
     real_foreground_count: int
     target_positive_count: int
@@ -274,6 +277,11 @@ class SDHObservationEngine:
         pag_layer_ratios: Sequence[float] = (0.25, 0.25, 0.25),
         pag_min_pos: Sequence[int] = (1, 1, 1),
         box_teacher_weight: float = 1.0,
+        dgcaip_temperature: float = 2.0,
+        dgcaip_classification_tolerance: float = 0.005,
+        dgcaip_box_tolerance: float = 0.02,
+        dgcaip_alignment_tolerance: float = 0.05,
+        dgcaip_minimum_rank_instances: int = 4,
     ) -> None:
         self.model = model.eval()
         for parameter in self.model.parameters():
@@ -285,6 +293,13 @@ class SDHObservationEngine:
         self.pag_layer_ratios = tuple(float(value) for value in pag_layer_ratios)
         self.pag_min_pos = tuple(int(value) for value in pag_min_pos)
         self.box_teacher_weight = float(box_teacher_weight)
+        self.dgcaip_temperature = float(dgcaip_temperature)
+        self.dgcaip_classification_tolerance = float(
+            dgcaip_classification_tolerance
+        )
+        self.dgcaip_box_tolerance = float(dgcaip_box_tolerance)
+        self.dgcaip_alignment_tolerance = float(dgcaip_alignment_tolerance)
+        self.dgcaip_minimum_rank_instances = int(dgcaip_minimum_rank_instances)
         self.capture = YOLODetectTowerCapture(
             self.model, expected_num_classes=self.num_classes
         )
@@ -315,7 +330,11 @@ class SDHObservationEngine:
         secret: torch.Tensor,
         *,
         target_rms_ratio: float = 0.35,
+        dgcaip_mode: str = "off",
+        dgcaip_component_weights: Optional[Mapping[str, float]] = None,
     ) -> SDHObservation:
+        if dgcaip_mode not in {"off", "caip", "dist", "dgcaip"}:
+            raise ValueError("Unknown DG-CAIP observation mode.")
         rendered = render_person_box_carrier(
             batch.images, batch.boxes_by_image, carrier, secret
         )
@@ -405,6 +424,45 @@ class SDHObservationEngine:
             target_class_id=self.target_class_id,
             assignment_source="clean_real_tal",
         )
+        dgcaip = None
+        if dgcaip_mode != "off":
+            component_weights = {
+                "classification": 1.0,
+                "box": 1.0,
+                "alignment": 1.0,
+                "distribution": 1.0,
+            }
+            if dgcaip_component_weights is not None:
+                component_weights.update(
+                    {
+                        str(name): float(value)
+                        for name, value in dgcaip_component_weights.items()
+                    }
+                )
+            if dgcaip_mode == "caip":
+                component_weights["distribution"] = 0.0
+            dgcaip = dgcaip_instance_preservation(
+                clean_cache["pred_scores_logits"],
+                adv_cache["pred_scores_logits"],
+                clean_cache["pred_bboxes"],
+                adv_cache["pred_bboxes"],
+                labels,
+                foreground,
+                real_assign["target_gt_idx"],
+                clean_cache["gt_labels"],
+                clean_cache["gt_bboxes"],
+                clean_cache["mask_gt"],
+                target_class_id=self.target_class_id,
+                assignment_source="clean_real_tal",
+                component_weights=component_weights,
+                enable_geometry_risk=True,
+                enable_divergence_hardness=dgcaip_mode == "dgcaip",
+                temperature=self.dgcaip_temperature,
+                classification_tolerance=self.dgcaip_classification_tolerance,
+                box_tolerance=self.dgcaip_box_tolerance,
+                alignment_tolerance=self.dgcaip_alignment_tolerance,
+                minimum_rank_instances=self.dgcaip_minimum_rank_instances,
+            )
         probability_drop = {}
         for class_id in nla.active_classes:
             class_mask = foreground & (labels == class_id)
@@ -425,6 +483,7 @@ class SDHObservationEngine:
         target_rms = self.epsilon * float(target_rms_ratio)
         rms = (canonical.square().mean().sqrt() / target_rms - 1.0).square()
         return SDHObservation(
+            image_ids=batch.image_ids,
             rendered=rendered,
             canonical_dlfc_features=dlfc_features,
             target_residuals=target_residuals,
@@ -432,6 +491,7 @@ class SDHObservationEngine:
             reveal_loss=reveal,
             rms_loss=rms,
             nla=nla,
+            dgcaip=dgcaip,
             per_class_probability_drop=probability_drop,
             real_foreground_count=int(foreground.sum().item()),
             target_positive_count=int(pag_gate.sum().item()),

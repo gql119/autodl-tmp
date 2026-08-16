@@ -1,0 +1,927 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+import time
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
+
+import numpy as np
+import torch
+
+from ..data_utils import label_path_for_image, read_yolo_annotations
+from .constraint_gradient_router import (
+    backtrack_multi_parameter_constraints,
+    backtrack_multi_parameter_update,
+    route_budgeted_protection_gradients,
+    route_multi_parameter_gradients,
+)
+from .detector_lfc import DetectorLFCPrototypeBank
+from .dgcaip import DGCAIPResult, FrozenDGCAIPGradientCalibration
+from .dgcaip_diagnostics import build_dgcaip_locator_report
+from .instance_cicr import FrozenInstanceCICRBank
+from .non_target_logit_alignment import FrozenNLAGradientCalibration
+from .sdh_experiment import (
+    _batches,
+    _clone_detector_carrier,
+    _component_losses,
+    _copy_parameters_,
+    _file_sha256,
+    _flatten_autograd_norm,
+    _load_hiding_checkpoint,
+    _load_saved_p1_carrier,
+    _median,
+    _person_paths,
+    _resolve,
+    _split_hash,
+    _summarize_arm,
+    _time_guard,
+    _validate_e2e_v0_runtime_inputs,
+    _write_json,
+    deterministic_person_split,
+)
+from .sdh_mechanism import (
+    FrozenTargetGradientCalibration,
+    SDHObservation,
+    SDHObservationEngine,
+    adapter_parameters,
+    compose_sdh_target_objective,
+    load_sdh_batch,
+)
+
+
+DGCAIP_ARMS = {
+    "P1-R": "off",
+    "P2-CAIP": "caip",
+    "P3-DIST": "dist",
+    "P4-DGCAIP": "dgcaip",
+}
+
+P1_REPLAY_SCALARS = (
+    "nla_macro_loss",
+    "probability_drop_macro",
+    "route_loss",
+    "valid_instance_coverage",
+    "cicr_cosine_median",
+    "dlfc_cosine_median",
+    "backtrack_skip_ratio",
+)
+
+
+def _p1_replay_report(
+    observed: Mapping[str, Any],
+    reference_metrics: Mapping[str, Any],
+    *,
+    absolute_tolerance: float,
+    relative_tolerance: float,
+) -> Dict[str, Any]:
+    reference_arms = reference_metrics.get("arms", {})
+    if not isinstance(reference_arms, Mapping) or not isinstance(
+        reference_arms.get("P1"), Mapping
+    ):
+        raise ValueError("Historical P1 metrics do not contain arms.P1.")
+    reference = reference_arms["P1"]
+    comparisons: Dict[str, Dict[str, Any]] = {}
+
+    def compare(name: str, actual: Any, expected: Any) -> None:
+        actual_value = float(actual)
+        expected_value = float(expected)
+        limit = float(absolute_tolerance) + float(relative_tolerance) * abs(
+            expected_value
+        )
+        error = abs(actual_value - expected_value)
+        comparisons[name] = {
+            "observed": actual_value,
+            "reference": expected_value,
+            "absolute_error": error,
+            "limit": limit,
+            "pass": math.isfinite(actual_value)
+            and math.isfinite(expected_value)
+            and error <= limit,
+        }
+
+    for key in P1_REPLAY_SCALARS:
+        if key not in observed or key not in reference:
+            raise ValueError("P1 replay metric is missing: %s" % key)
+        compare(key, observed[key], reference[key])
+
+    observed_by_class = {
+        str(key): value
+        for key, value in observed.get("probability_drop_by_class", {}).items()
+    }
+    reference_by_class = {
+        str(key): value
+        for key, value in reference.get("probability_drop_by_class", {}).items()
+    }
+    if set(observed_by_class) != set(reference_by_class):
+        raise ValueError("P1 replay non-target class coverage changed.")
+    for class_id in sorted(reference_by_class, key=int):
+        compare(
+            "probability_drop_by_class.%s" % class_id,
+            observed_by_class[class_id],
+            reference_by_class[class_id],
+        )
+
+    observed_steps = observed.get("steps", [])
+    reference_steps = reference.get("steps", [])
+    if len(observed_steps) != len(reference_steps):
+        raise ValueError("P1 replay optimization-step count changed.")
+    structural_checks: Dict[str, bool] = {}
+    for index, (actual_step, expected_step) in enumerate(
+        zip(observed_steps, reference_steps)
+    ):
+        for key in (
+            "route_mode",
+            "accepted",
+            "backtrack_attempts",
+            "constraint_rank",
+            "null_dimension",
+        ):
+            check_name = "steps.%d.%s" % (index, key)
+            structural_checks[check_name] = actual_step.get(key) == expected_step.get(key)
+        for key in (
+            "attack_retention",
+            "max_projected_row_dot",
+            "max_final_row_dot",
+        ):
+            compare(
+                "steps.%d.%s" % (index, key),
+                actual_step[key],
+                expected_step[key],
+            )
+
+    return {
+        "absolute_tolerance": float(absolute_tolerance),
+        "relative_tolerance": float(relative_tolerance),
+        "numeric_comparisons": comparisons,
+        "structural_checks": structural_checks,
+        "pass": all(item["pass"] for item in comparisons.values())
+        and all(structural_checks.values()),
+    }
+
+
+def _parameter_sha256(parameters: Sequence[torch.Tensor]) -> str:
+    digest = hashlib.sha256()
+    for parameter in parameters:
+        array = (
+            parameter.detach().cpu().float().contiguous().numpy().astype("<f4", copy=False)
+        )
+        digest.update(array.tobytes(order="C"))
+    return digest.hexdigest()
+
+
+def _is_cooccurring(path: Path, label_dir: Path, target_class_id: int) -> bool:
+    annotations = read_yolo_annotations(
+        label_path_for_image(str(path), str(label_dir))
+    )
+    classes = {int(item["cls"]) for item in annotations}
+    return int(target_class_id) in classes and any(
+        class_id != int(target_class_id) for class_id in classes
+    )
+
+
+def _dgcaip_component_losses(result: DGCAIPResult) -> Dict[str, torch.Tensor]:
+    attributes = {
+        "classification": "classification_loss",
+        "box": "box_loss",
+        "alignment": "alignment_loss",
+        "distribution": "distribution_loss",
+    }
+    output = {}
+    for name, attribute in attributes.items():
+        per_class = []
+        for class_id in result.active_classes:
+            values = [
+                term.weight * getattr(term, attribute)
+                for term in result.instances
+                if term.class_id == class_id
+            ]
+            if values:
+                per_class.append(torch.stack(values).mean())
+        if per_class:
+            output[name] = torch.stack(per_class).mean()
+        else:
+            output[name] = result.loss * 0.0
+    return output
+
+
+def _combined_protection_losses(
+    observation: SDHObservation,
+) -> Tuple[Dict[str, torch.Tensor], torch.Tensor]:
+    if observation.dgcaip is None:
+        raise ValueError("Combined protection requires a DG-CAIP observation.")
+    class_ids = sorted(
+        set(observation.nla.per_class_loss).union(
+            observation.dgcaip.per_class_loss
+        )
+    )
+    zero = observation.nla.loss * 0.0 + observation.dgcaip.loss * 0.0
+    per_class = {}
+    for class_id in class_ids:
+        per_class[str(class_id)] = (
+            observation.nla.per_class_loss.get(class_id, zero)
+            + observation.dgcaip.per_class_loss.get(class_id, zero)
+        )
+    loss = torch.stack(tuple(per_class.values())).mean() if per_class else zero
+    return per_class, loss
+
+
+def _dgcaip_class_metrics(result: DGCAIPResult) -> Dict[str, float]:
+    metrics = {}
+    for class_id in result.active_classes:
+        terms = [term for term in result.instances if term.class_id == class_id]
+        for name, attribute in {
+            "probability": "classification_loss",
+            "iou": "box_loss",
+            "alignment": "alignment_loss",
+            "js": "distribution_loss",
+        }.items():
+            metrics[f"{class_id}:{name}"] = float(
+                torch.stack([getattr(term, attribute) for term in terms]).mean().detach()
+            )
+    return metrics
+
+
+def _constraint_limits(
+    result: DGCAIPResult,
+    *,
+    include_js: bool,
+    js_epsilon: float,
+) -> Dict[str, float]:
+    values = _dgcaip_class_metrics(result)
+    limits = {}
+    for key, value in values.items():
+        metric = key.rsplit(":", 1)[1]
+        if metric == "js":
+            if include_js:
+                limits[key] = value + float(js_epsilon)
+        else:
+            limits[key] = 0.0
+    return limits
+
+
+def _filter_metrics(values: Mapping[str, float], limits: Mapping[str, float]) -> Dict[str, float]:
+    if not set(limits).issubset(values):
+        missing = sorted(set(limits).difference(values))
+        raise ValueError("Candidate DG-CAIP metrics are missing: %s" % missing)
+    return {name: float(values[name]) for name in limits}
+
+
+def _instance_metric_map(
+    observations: Sequence[SDHObservation],
+) -> Dict[Tuple[str, int, int], Dict[str, float]]:
+    output = {}
+    for observation in observations:
+        if observation.dgcaip is None:
+            raise ValueError("DG-CAIP held-out summary requires instance metrics.")
+        for term in observation.dgcaip.instances:
+            key = (
+                observation.image_ids[term.batch_index],
+                term.gt_index,
+                term.class_id,
+            )
+            if key in output:
+                raise ValueError("Duplicate DG-CAIP held-out instance key.")
+            output[key] = {
+                "probability": float(term.classification_loss.detach()),
+                "iou": float(term.box_loss.detach()),
+                "alignment": float(term.alignment_loss.detach()),
+                "js": float(term.distribution_loss.detach()),
+                "geometry_risk": term.geometry_risk,
+            }
+    return output
+
+
+def _cohort_keys(
+    metrics: Mapping[Tuple[str, int, int], Mapping[str, float]],
+    *,
+    highest: bool,
+) -> Tuple[Tuple[str, int, int], ...]:
+    ordered = sorted(metrics, key=lambda key: metrics[key]["js"])
+    count = max(1, math.ceil(len(ordered) / 4.0))
+    selected = ordered[-count:] if highest else ordered[:count]
+    return tuple(selected)
+
+
+def _cohort_summary(
+    metrics: Mapping[Tuple[str, int, int], Mapping[str, float]],
+    keys: Sequence[Tuple[str, int, int]],
+) -> Dict[str, float]:
+    missing = [key for key in keys if key not in metrics]
+    if missing:
+        raise ValueError("Held-out DG-CAIP cohort changed across arms.")
+    return {
+        name: float(np.mean([metrics[key][name] for key in keys]))
+        for name in ("probability", "iou", "alignment", "js")
+    }
+
+
+def _relative_improvement(baseline: float, candidate: float) -> float:
+    if baseline <= 1.0e-12:
+        return 0.0 if candidate <= 1.0e-12 else -1.0
+    return (baseline - candidate) / baseline
+
+
+def _mean_damage(summary: Mapping[str, float]) -> float:
+    return float(np.mean([summary[name] for name in ("probability", "iou", "alignment")]))
+
+
+def _gradient_cosine(
+    first_loss: torch.Tensor,
+    second_loss: torch.Tensor,
+    parameters: Sequence[torch.Tensor],
+) -> float:
+    first = torch.autograd.grad(
+        first_loss, parameters, retain_graph=True, allow_unused=True
+    )
+    second = torch.autograd.grad(
+        second_loss, parameters, retain_graph=True, allow_unused=True
+    )
+    first_flat = torch.cat(
+        [
+            (torch.zeros_like(parameter) if gradient is None else gradient).reshape(-1)
+            for parameter, gradient in zip(parameters, first)
+        ]
+    )
+    second_flat = torch.cat(
+        [
+            (torch.zeros_like(parameter) if gradient is None else gradient).reshape(-1)
+            for parameter, gradient in zip(parameters, second)
+        ]
+    )
+    if float(first_flat.norm()) == 0.0 or float(second_flat.norm()) == 0.0:
+        return 0.0
+    return float(
+        torch.nn.functional.cosine_similarity(
+            first_flat.reshape(1, -1), second_flat.reshape(1, -1), dim=1
+        ).detach()
+    )
+
+
+def _prepare_experiment(
+    config: Mapping[str, Any],
+    *,
+    config_base: Path,
+) -> Tuple[Any, torch.Tensor, Mapping[str, Any], Path, Path, Mapping[str, List[Path]]]:
+    device = torch.device(str(config["runtime"]["device"]))
+    carrier, secret, hiding_state = _load_hiding_checkpoint(
+        config, config_base=config_base, device=device
+    )
+    dataset_root = _resolve(config_base, str(config["dataset"]["root"]))
+    image_dir = dataset_root / str(config["dataset"]["train_images"])
+    label_dir = dataset_root / str(config["dataset"]["train_labels"])
+    _validate_e2e_v0_runtime_inputs(
+        config,
+        config_base=config_base,
+        image_dir=image_dir,
+        label_dir=label_dir,
+        hiding_state=hiding_state,
+        primary_secret=secret,
+    )
+    paths = _person_paths(image_dir, label_dir, 14)
+    if len(paths) != int(config["dataset"]["expected_person_images"]):
+        raise ValueError("DG-CAIP person-image count does not match the frozen input.")
+    batch_size = int(config["mechanism"]["batch_size"])
+    split = deterministic_person_split(
+        paths,
+        label_dir=label_dir,
+        target_class_id=14,
+        calibration_count=int(config["mechanism"]["calibration_batches"]) * batch_size,
+        heldout_count=int(config["mechanism"]["heldout_batches"]) * batch_size,
+        seed=0,
+    )
+    if _split_hash(split) != hiding_state["split_hash"]:
+        raise ValueError("DG-CAIP split does not match the frozen hiding checkpoint.")
+    return carrier, secret, hiding_state, image_dir, label_dir, split
+
+
+def _load_engine(config: Mapping[str, Any], *, config_base: Path) -> SDHObservationEngine:
+    from ultralytics import YOLO
+
+    device = torch.device(str(config["runtime"]["device"]))
+    wrapper = YOLO(str(_resolve(config_base, str(config["model"]["surrogate_checkpoint"]))))
+    model = wrapper.model.to(device).eval()
+    dgcaip = config["dgcaip"]
+    return SDHObservationEngine(
+        model,
+        target_class_id=14,
+        num_classes=20,
+        epsilon=16.0 / 255.0,
+        assignment_topk=int(config["mechanism"]["assignment_topk"]),
+        pag_layer_ratios=config["mechanism"]["pag_layer_ratios"],
+        pag_min_pos=config["mechanism"]["pag_min_pos"],
+        box_teacher_weight=float(config["mechanism"]["box_teacher_weight"]),
+        dgcaip_temperature=float(dgcaip["temperature"]),
+        dgcaip_classification_tolerance=float(
+            dgcaip["classification_tolerance"]
+        ),
+        dgcaip_box_tolerance=float(dgcaip["box_tolerance"]),
+        dgcaip_alignment_tolerance=float(dgcaip["alignment_tolerance"]),
+        dgcaip_minimum_rank_instances=int(dgcaip["minimum_rank_instances"]),
+    )
+
+
+def run_dgcaip_pilot(
+    config: Mapping[str, Any],
+    *,
+    config_base: Path,
+) -> Dict[str, Any]:
+    start = time.monotonic()
+    max_seconds = float(config["mechanism"]["max_seconds"])
+    device = torch.device(str(config["runtime"]["device"]))
+    base_carrier, primary_secret, _, _, label_dir, split = _prepare_experiment(
+        config, config_base=config_base
+    )
+    dg_config = config["dgcaip"]
+    source_p1_path = _resolve(config_base, str(dg_config["source_p1_state"]))
+    if _file_sha256(source_p1_path) != str(dg_config["source_p1_state_sha256"]).lower():
+        raise ValueError("DG-CAIP source P1 state hash mismatch.")
+    engine = _load_engine(config, config_base=config_base)
+    batch_size = int(config["mechanism"]["batch_size"])
+    artifact_root = _resolve(config_base, str(config["runtime"]["artifact_root"]))
+    run_mode = str(dg_config["run_mode"])
+    output_root = artifact_root / run_mode
+    output_root.mkdir(parents=True, exist_ok=False)
+
+    def load(paths_batch: Sequence[Path]):
+        return load_sdh_batch(
+            paths_batch,
+            label_dir=label_dir,
+            image_size=640,
+            target_class_id=14,
+            device=device,
+        )
+
+    try:
+        if run_mode == "d0":
+            p1_carrier = _load_saved_p1_carrier(
+                source_p1_path,
+                base_carrier=base_carrier,
+                device=device,
+            )
+            cooccurring = [
+                path
+                for path in split["heldout"]
+                if _is_cooccurring(path, label_dir, 14)
+            ]
+            observations = []
+            with torch.no_grad():
+                for paths_batch in _batches(cooccurring, batch_size):
+                    _time_guard(start, max_seconds, "DG-CAIP D0")
+                    observations.append(
+                        engine.observe(
+                            load(paths_batch),
+                            p1_carrier,
+                            primary_secret,
+                            dgcaip_mode="dist",
+                        )
+                    )
+            locator = build_dgcaip_locator_report(
+                [
+                    observation.dgcaip
+                    for observation in observations
+                    if observation.dgcaip is not None
+                ]
+            )
+            result = {
+                "schema": "tausb.dgcaip-d0-run.v1",
+                "spec_id": config["spec"]["spec_id"],
+                "split_hash": _split_hash(split),
+                "source_p1_state_sha256": _file_sha256(source_p1_path),
+                "elapsed_seconds": time.monotonic() - start,
+                "locator": locator,
+                "decision": {"pass": locator["decision"] == "pass"},
+            }
+            _write_json(output_root / "d0_locator.json", result)
+            return result
+
+        d0_path = _resolve(config_base, str(dg_config["d0_report"]))
+        if _file_sha256(d0_path) != str(dg_config["d0_report_sha256"]).lower():
+            raise ValueError("DG-CAIP D0 report hash mismatch.")
+        d0_report = json.loads(d0_path.read_text(encoding="utf-8"))
+        if not bool(d0_report.get("decision", {}).get("pass")):
+            raise ValueError("DG-CAIP mechanism is blocked by the D0 gate.")
+        if d0_report.get("spec_id") != config["spec"]["spec_id"]:
+            raise ValueError("DG-CAIP D0 report SpecID mismatch.")
+        if d0_report.get("split_hash") != dg_config["expected_split_sha256"]:
+            raise ValueError("DG-CAIP D0 report split hash mismatch.")
+        if d0_report.get("source_p1_state_sha256") != str(
+            dg_config["source_p1_state_sha256"]
+        ).lower():
+            raise ValueError("DG-CAIP D0 report source P1 hash mismatch.")
+        source_p1_metrics_path = _resolve(
+            config_base, str(dg_config["source_p1_metrics"])
+        )
+        if _file_sha256(source_p1_metrics_path) != str(
+            dg_config["source_p1_metrics_sha256"]
+        ).lower():
+            raise ValueError("DG-CAIP source P1 metrics hash mismatch.")
+        source_p1_metrics = json.loads(
+            source_p1_metrics_path.read_text(encoding="utf-8")
+        )
+
+        calibration_batches = _batches(split["calibration"], batch_size)
+        heldout_batches = _batches(split["heldout"], batch_size)
+        initial_observations = []
+        with torch.no_grad():
+            for paths_batch in calibration_batches:
+                _time_guard(start, max_seconds, "DG-CAIP mechanism")
+                initial_observations.append(
+                    engine.observe(
+                        load(paths_batch),
+                        base_carrier,
+                        primary_secret,
+                        dgcaip_mode="dist",
+                    )
+                )
+        dlfc_bank = DetectorLFCPrototypeBank()
+        dlfc_bank.fit(
+            [item.canonical_dlfc_features for item in initial_observations],
+            split="calibration",
+        )
+        cicr_bank = FrozenInstanceCICRBank(energy_floor_multiplier=0.5)
+        cicr_bank.fit(
+            [item.target_residuals for item in initial_observations],
+            split="calibration",
+        )
+
+        calibration_carrier = _clone_detector_carrier(base_carrier, device)
+        omega = adapter_parameters(calibration_carrier)
+        target_norms: Dict[str, List[float]] = {
+            name: [] for name in ("easy", "reveal", "rms", "dlfc", "cicr", "floor")
+        }
+        dg_norms: Dict[str, List[float]] = {
+            name: []
+            for name in ("classification", "box", "alignment", "distribution")
+        }
+        warmup_observations = []
+        warmup_count = int(config["mechanism"]["weight_calibration_batches"])
+        for paths_batch in calibration_batches[:warmup_count]:
+            observation = engine.observe(
+                load(paths_batch),
+                calibration_carrier,
+                primary_secret,
+                dgcaip_mode="dist",
+            )
+            warmup_observations.append(observation)
+            components, _, _ = _component_losses(observation, dlfc_bank, cicr_bank)
+            for name, loss in components.items():
+                target_norms[name].append(
+                    _flatten_autograd_norm(loss, omega, retain_graph=True)
+                )
+            if observation.dgcaip is None:
+                raise RuntimeError("DG-CAIP warm-up observation is missing.")
+            dg_components = _dgcaip_component_losses(observation.dgcaip)
+            for name, loss in dg_components.items():
+                dg_norms[name].append(
+                    _flatten_autograd_norm(loss, omega, retain_graph=True)
+                )
+        target_calibration = FrozenTargetGradientCalibration()
+        target_weights = target_calibration.calibrate(target_norms, split="warmup")
+        dg_calibration = FrozenDGCAIPGradientCalibration()
+        dg_weights = dg_calibration.calibrate(dg_norms, split="warmup")
+
+        projected_norms = []
+        nla_norms = []
+        for observation in warmup_observations:
+            components, _, _ = _component_losses(observation, dlfc_bank, cicr_bank)
+            objective = compose_sdh_target_objective(
+                easy=components["easy"],
+                reveal=components["reveal"],
+                rms=components["rms"],
+                dlfc=components["dlfc"],
+                cicr=components["cicr"],
+                floor=components["floor"],
+                weights=target_weights,
+                enable_dlfc=True,
+                enable_cicr=True,
+            )
+            routed = route_multi_parameter_gradients(
+                parameters=omega,
+                target_loss=objective.loss,
+                per_class_nla_losses={
+                    str(key): value
+                    for key, value in observation.nla.per_class_loss.items()
+                },
+                nla_loss=observation.nla.loss,
+                nla_weight=0.0,
+            )
+            if routed.nla_norm > 0:
+                projected_norms.append(routed.projected_target_norm)
+                nla_norms.append(routed.nla_norm)
+        nla_calibration = FrozenNLAGradientCalibration(target_ratio=0.25)
+        lambda_nla = nla_calibration.calibrate(
+            projected_norms, nla_norms, split="warmup"
+        )
+
+        initial_heldout = []
+        with torch.no_grad():
+            for paths_batch in heldout_batches:
+                initial_heldout.append(
+                    engine.observe(
+                        load(paths_batch),
+                        base_carrier,
+                        primary_secret,
+                        dgcaip_mode="dist",
+                        dgcaip_component_weights=dg_weights,
+                    )
+                )
+        initial_summary, initial_deltas = _summarize_arm(
+            initial_heldout, dlfc_bank, cicr_bank
+        )
+        initial_metric_map = _instance_metric_map(initial_heldout)
+        q4_keys = _cohort_keys(initial_metric_map, highest=True)
+        q1_keys = _cohort_keys(initial_metric_map, highest=False)
+
+        arms = {}
+        arm_deltas = {}
+        arm_states = {}
+        arm_initial_hashes = {}
+        for arm_id, dg_mode in DGCAIP_ARMS.items():
+            carrier = _clone_detector_carrier(base_carrier, device)
+            parameters = adapter_parameters(carrier)
+            arm_initial_hashes[arm_id] = _parameter_sha256(parameters)
+            step_rows = []
+            gradient_cosines = []
+            backtrack_or_skip = 0
+            for step in range(int(config["mechanism"]["optimization_steps"])):
+                _time_guard(start, max_seconds, "DG-CAIP mechanism")
+                paths_batch = calibration_batches[step % len(calibration_batches)]
+                batch = load(paths_batch)
+                observation = engine.observe(
+                    batch,
+                    carrier,
+                    primary_secret,
+                    dgcaip_mode=dg_mode,
+                    dgcaip_component_weights=dg_weights,
+                )
+                components, _, _ = _component_losses(observation, dlfc_bank, cicr_bank)
+                objective = compose_sdh_target_objective(
+                    easy=components["easy"],
+                    reveal=components["reveal"],
+                    rms=components["rms"],
+                    dlfc=components["dlfc"],
+                    cicr=components["cicr"],
+                    floor=components["floor"],
+                    weights=target_weights,
+                    enable_dlfc=True,
+                    enable_cicr=True,
+                )
+                gradient_cosines.append(
+                    _gradient_cosine(components["dlfc"], components["cicr"], parameters)
+                )
+                originals = tuple(
+                    parameter.detach().clone() for parameter in parameters
+                )
+                if arm_id == "P1-R":
+                    routed = route_multi_parameter_gradients(
+                        parameters=parameters,
+                        target_loss=objective.loss,
+                        per_class_nla_losses={
+                            str(key): value
+                            for key, value in observation.nla.per_class_loss.items()
+                        },
+                        nla_loss=observation.nla.loss,
+                        nla_weight=lambda_nla,
+                    )
+
+                    def evaluate_p1(candidate):
+                        _copy_parameters_(parameters, candidate)
+                        try:
+                            with torch.no_grad():
+                                current = engine.observe(
+                                    batch, carrier, primary_secret
+                                )
+                            return {
+                                str(key): value
+                                for key, value in current.per_class_probability_drop.items()
+                            }
+                        finally:
+                            _copy_parameters_(parameters, originals)
+
+                    backtracked = backtrack_multi_parameter_update(
+                        parameters=parameters,
+                        flattened_gradient=routed.gradient,
+                        step_size=float(config["mechanism"]["learning_rate"]),
+                        evaluate_probability_drops=evaluate_p1,
+                        tolerance=0.005,
+                        max_backtracks=5,
+                    )
+                    protection_ratio = (
+                        float(routed.nla_norm * lambda_nla / max(routed.projected_target_norm, 1.0e-12))
+                    )
+                else:
+                    per_class_protection, protection_loss = _combined_protection_losses(
+                        observation
+                    )
+                    routed = route_budgeted_protection_gradients(
+                        parameters=parameters,
+                        target_loss=objective.loss,
+                        per_class_protection_losses=per_class_protection,
+                        protection_loss=protection_loss,
+                        protection_ratio=float(dg_config["protection_ratio"]),
+                    )
+                    if observation.dgcaip is None:
+                        raise RuntimeError("DG-CAIP arm observation is missing.")
+                    include_js = dg_mode in {"dist", "dgcaip"}
+                    limits = _constraint_limits(
+                        observation.dgcaip,
+                        include_js=include_js,
+                        js_epsilon=float(dg_config["js_backtracking_epsilon"]),
+                    )
+
+                    def evaluate_dgcaip(candidate):
+                        _copy_parameters_(parameters, candidate)
+                        try:
+                            with torch.no_grad():
+                                current = engine.observe(
+                                    batch,
+                                    carrier,
+                                    primary_secret,
+                                    dgcaip_mode=dg_mode,
+                                    dgcaip_component_weights=dg_weights,
+                                )
+                            if current.dgcaip is None:
+                                raise RuntimeError("DG-CAIP candidate metrics are missing.")
+                            return _filter_metrics(
+                                _dgcaip_class_metrics(current.dgcaip), limits
+                            )
+                        finally:
+                            _copy_parameters_(parameters, originals)
+
+                    if limits:
+                        backtracked = backtrack_multi_parameter_constraints(
+                            parameters=parameters,
+                            flattened_gradient=routed.gradient,
+                            step_size=float(config["mechanism"]["learning_rate"]),
+                            evaluate_constraints=evaluate_dgcaip,
+                            limits=limits,
+                            max_backtracks=5,
+                        )
+                    else:
+                        backtracked = backtrack_multi_parameter_update(
+                            parameters=parameters,
+                            flattened_gradient=routed.gradient,
+                            step_size=float(config["mechanism"]["learning_rate"]),
+                            evaluate_probability_drops=lambda _: {},
+                            tolerance=0.005,
+                            max_backtracks=5,
+                        )
+                    protection_ratio = routed.explicit_protection_norm_ratio
+                if backtracked.attempts > 1 or not backtracked.accepted:
+                    backtrack_or_skip += 1
+                if backtracked.accepted:
+                    _copy_parameters_(parameters, backtracked.candidate)
+                step_rows.append(
+                    {
+                        "step": step,
+                        "route_mode": routed.mode,
+                        "constraint_rank": routed.rank,
+                        "null_dimension": routed.null_dimension,
+                        "attack_retention": routed.attack_retention,
+                        "max_projected_row_dot": routed.max_projected_row_dot,
+                        "max_final_row_dot": routed.max_final_row_dot,
+                        "explicit_protection_norm_ratio": protection_ratio,
+                        "backtrack_attempts": backtracked.attempts,
+                        "accepted": backtracked.accepted,
+                    }
+                )
+
+            heldout_observations = []
+            with torch.no_grad():
+                for paths_batch in heldout_batches:
+                    heldout_observations.append(
+                        engine.observe(
+                            load(paths_batch),
+                            carrier,
+                            primary_secret,
+                            dgcaip_mode="dist",
+                            dgcaip_component_weights=dg_weights,
+                        )
+                    )
+            summary, deltas = _summarize_arm(
+                heldout_observations, dlfc_bank, cicr_bank
+            )
+            metric_map = _instance_metric_map(heldout_observations)
+            summary.update(
+                {
+                    "fixed_q4": _cohort_summary(metric_map, q4_keys),
+                    "fixed_q1": _cohort_summary(metric_map, q1_keys),
+                    "gradient_dlfc_cicr_cosine_median": _median(gradient_cosines),
+                    "backtrack_skip_ratio": backtrack_or_skip
+                    / float(config["mechanism"]["optimization_steps"]),
+                    "steps": step_rows,
+                }
+            )
+            arms[arm_id] = summary
+            arm_deltas[arm_id] = deltas
+            arm_states[arm_id] = {
+                key: value.detach().cpu().clone()
+                for key, value in carrier.state_dict().items()
+            }
+
+        if len(set(arm_initial_hashes.values())) != 1:
+            raise ValueError("DG-CAIP arms do not share the same adapter initialization.")
+
+        p1 = arms["P1-R"]
+        p2 = arms["P2-CAIP"]
+        p3 = arms["P3-DIST"]
+        p4 = arms["P4-DGCAIP"]
+        p4_steps = p4["steps"]
+        q4_improvements = {
+            name: _relative_improvement(p2["fixed_q4"][name], p4["fixed_q4"][name])
+            for name in ("probability", "iou", "alignment", "js")
+        }
+        q1_nonworse = all(
+            p4["fixed_q1"][name] <= 1.10 * p2["fixed_q1"][name] + 1.0e-12
+            for name in ("probability", "iou", "alignment")
+        )
+        p4_retention = _median(item["attack_retention"] for item in p4_steps)
+        p1_retention = _median(item["attack_retention"] for item in p1["steps"])
+        pattern_p1 = float(
+            (arm_deltas["P1-R"] - initial_deltas).square().mean().sqrt()
+        )
+        pattern_p4 = float(
+            (arm_deltas["P4-DGCAIP"] - initial_deltas).square().mean().sqrt()
+        )
+        p3_damage = _mean_damage(p3["fixed_q4"])
+        p4_damage = _mean_damage(p4["fixed_q4"])
+        p1_replay = _p1_replay_report(
+            p1,
+            source_p1_metrics,
+            absolute_tolerance=float(dg_config["p1_replay_absolute_tolerance"]),
+            relative_tolerance=float(dg_config["p1_replay_relative_tolerance"]),
+        )
+        checks = {
+            "p1_replay": bool(p1_replay["pass"]),
+            "q4_three_of_four_improve_20pct": sum(
+                value >= 0.20 for value in q4_improvements.values()
+            ) >= 3,
+            "ranking_gain_over_uniform_dist": _relative_improvement(
+                p3_damage, p4_damage
+            ) >= 0.10,
+            "q1_nonworse": q1_nonworse,
+            "attack_retention": p4_retention >= 0.70
+            and p4_retention >= p1_retention - 0.05,
+            "cicr_preserved": p4["cicr_cosine_median"]
+            >= p1["cicr_cosine_median"] - 0.02,
+            "pattern_preserved": pattern_p4 >= 0.80 * pattern_p1,
+            "orthogonality": max(
+                (float(item["max_projected_row_dot"]) for item in p4_steps),
+                default=0.0,
+            ) <= 1.0e-5,
+            "null_dimension": min(
+                (int(item["null_dimension"]) for item in p4_steps), default=0
+            ) > 0,
+            "protection_budget": all(
+                0.20 <= float(item["explicit_protection_norm_ratio"]) <= 0.30
+                for item in p4_steps
+                if item["route_mode"] != "projected_target"
+            ),
+            "backtrack_skip": p4["backtrack_skip_ratio"] < 0.50,
+        }
+        decision = {
+            "checks": checks,
+            "pass": all(checks.values()),
+            "q4_improvements": q4_improvements,
+            "p4_vs_p3_q4_damage_improvement": _relative_improvement(
+                p3_damage, p4_damage
+            ),
+        }
+        result = {
+            "schema": "tausb.dgcaip-mechanism.v1",
+            "spec_id": config["spec"]["spec_id"],
+            "split_hash": _split_hash(split),
+            "source_p1_state_sha256": _file_sha256(source_p1_path),
+            "source_p1_metrics_sha256": _file_sha256(source_p1_metrics_path),
+            "d0_report_sha256": _file_sha256(d0_path),
+            "target_weight_calibration": target_calibration.state_dict(),
+            "nla_calibration": nla_calibration.state_dict(),
+            "dgcaip_calibration": dg_calibration.state_dict(),
+            "arm_initial_adapter_sha256": arm_initial_hashes,
+            "shared_initial_adapter_sha256": next(iter(arm_initial_hashes.values())),
+            "initial": initial_summary,
+            "arms": arms,
+            "p1_replay": p1_replay,
+            "decision": decision,
+            "elapsed_seconds": time.monotonic() - start,
+        }
+        metrics_path = output_root / "mechanism_metrics.json"
+        _write_json(metrics_path, result)
+        if decision["pass"]:
+            torch.save(
+                {
+                    "schema": "tausb.dgcaip-state.v1",
+                    "arm_id": "P4-DGCAIP",
+                    "carrier_state": arm_states["P4-DGCAIP"],
+                    "source_p1_state_sha256": _file_sha256(source_p1_path),
+                    "d0_report_sha256": _file_sha256(d0_path),
+                    "mechanism_metrics_sha256": _file_sha256(metrics_path),
+                    "dgcaip_calibration": dg_calibration.state_dict(),
+                },
+                output_root / "p4_dgcaip_state.pt",
+            )
+        return result
+    finally:
+        engine.close()

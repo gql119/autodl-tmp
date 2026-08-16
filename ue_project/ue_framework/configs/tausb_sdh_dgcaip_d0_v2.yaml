@@ -1,0 +1,75 @@
+spec:
+  spec_id: TAUSB-SDH-DGCAIP-CGR-E20-v2
+  exp_id: TAUSB-SDH-DGCAIP-S0-E20
+  seed: 0
+
+dataset:
+  root: /root/autodl-tmp/ue_project/VOC_0712_Kaggle_Ready
+  train_images: images/train
+  train_labels: labels/train
+  target_class_id: 14
+  expected_train_images: 16551
+  expected_person_images: 6095
+  train_image_manifest_sha256: 4954727df8686532a788668fd815092112ac3e3ee1414eba83b616e683708fbd
+  train_label_manifest_sha256: 3cd05ad1ab6a546bf2afd5e63cb6c3ff6667064d80af129dd819325625b9d848
+
+model:
+  surrogate_checkpoint: /root/autodl-tmp/ue_project/checkpoints/voc20_surrogate.pt
+  surrogate_checkpoint_sha256: 8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89
+  num_classes: 20
+  image_size: 640
+
+secrets:
+  manifest: ../research_workspace/sources/secret_assets/manifest.json
+  manifest_sha256: a25277499e07310e68a39277461f176dd0d8666e69a4b890328d7b913601ac3e
+  primary_id: bg-building-sky-09
+  primary_source_sha256: 66bd89ebef12b21d578341e945d56ed315372b213e52c2cc07d2110543cc6a48
+  primary_tensor_sha256: cb4b9bba70701c118cc869738ca2713a049ec23b86e89238f32353b06bd4adaf
+
+hiding:
+  steps: 120
+  batch_size: 8
+  learning_rate: 0.0002
+  cover_weight: 0.01
+  max_seconds: 1200
+  hf_subband_scale: 1.0
+  rms_cv_gate_enabled: true
+  source_artifact_root: /root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-r2
+  source_metrics_sha256: c7d1b120ffbadeb7385be41669dda704b00a2cee60940e3c3d97112e24e59246
+  source_checkpoint_sha256: a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36
+  allow_failed_scientific_gates: true
+
+mechanism:
+  epsilon: 0.06274509803921569
+  batch_size: 4
+  calibration_batches: 16
+  heldout_batches: 24
+  weight_calibration_batches: 4
+  optimization_steps: 8
+  learning_rate: 0.0005
+  assignment_topk: 100
+  pag_layer_ratios: [0.25, 0.25, 0.25]
+  pag_min_pos: [1, 1, 1]
+  box_teacher_weight: 1.0
+  probability_drop_tolerance: 0.005
+  max_backtracks: 5
+  max_seconds: 1200
+  eot_enabled: false
+  jnd_enabled: false
+
+dgcaip:
+  run_mode: d0
+  temperature: 2.0
+  protection_ratio: 0.25
+  classification_tolerance: 0.005
+  box_tolerance: 0.02
+  alignment_tolerance: 0.05
+  js_backtracking_epsilon: 1.0e-9
+  minimum_rank_instances: 4
+  expected_split_sha256: 9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280
+  source_p1_state: /root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH/mechanism/p1_state.pt
+  source_p1_state_sha256: 2e102026a9356116de38acb1f5056bf5728afcd453e3447b516d4222f4d70b81
+
+runtime:
+  artifact_root: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-R1-D0
+  device: cuda:0
