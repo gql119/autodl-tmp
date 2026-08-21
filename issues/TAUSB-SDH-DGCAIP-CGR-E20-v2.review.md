@@ -4,7 +4,7 @@
 
 - Spec: approved on 2026-08-17.
 - Branch: `codex/tausb-sdh-dgcaip-cgr-e20-v2`.
-- Active CSV row: `GIT-SNAPSHOT-MECHANISM-01` (local scoped snapshot pending).
+- Active CSV row: `GIT-SNAPSHOT-MECHANISM-CONTROLLER-01`.
 - Reviewed and pushed snapshot:
   `81bf37e5b19b318ffbfee18edbbf2071e69702dc`.
 - GitHub remote branch SHA was independently verified as the same full commit.
@@ -171,6 +171,33 @@ mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
 - Binding retained the frozen split, P1 state, and P1 metrics hashes; no loss
   weight or threshold was tuned from D0. Focused binding/DG-CAIP tests: 28/28.
 
+### PRERUN-MECHANISM-02
+
+- Result: blocked
+- Decision: do_not_run
+- Reviewed snapshot: `d81902bae3641a63d9b58664fe6b41fd061d690d`
+- The bound config, D0/P1/split hashes, four-arm data flow, and mechanism metric
+  sink were correct.
+- Blocker: the exact commit contained only D0-specific controller/launcher
+  scripts. They assert `run_mode=d0` and do not provide a reviewed mechanism
+  tmux command, unique-path preflight, outer timeout, status/terminal evidence,
+  or all-terminal shutdown path.
+- GPU job started: false.
+- Exact review packet:
+  `research_workspace/experiments/TAUSB-SDH-DGCAIP-S0-E20/pre_run/prerun_mechanism_review_v2.md`.
+
+### Mechanism controller fix
+
+- Added a mechanism-only controller and tmux launcher without changing research
+  losses, thresholds, splits, hashes, or arm definitions.
+- The scripts pin the bound config SHA256, require the D0/P1 state/P1 metrics
+  files, keep all growing paths on `/root/autodl-tmp`, reject existing formal
+  paths/session/logs, enforce an outer 1200-second timeout, write controller and
+  wrapper terminal evidence, and request shutdown on every terminal path.
+- Local Git Bash `bash -n` passed for both scripts. Focused tests remain 28/28.
+- The AutoDL no-card instance went offline before redundant remote `bash -n`;
+  this is a validation gap for the next exact-snapshot review, not a GPU run.
+
 ## Append-only execution log
 
 - 2026-08-17: User approved the v2 Spec.
@@ -220,3 +247,19 @@ mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
 - 2026-08-21: Bound the canonical D0 locator hash and remote path into the exact
   mechanism config without metric tuning; 28 focused tests passed. A new scoped
   local Git snapshot is next and requires separate authorization before push.
+- 2026-08-21: Created the 12-file scoped local snapshot
+  `d81902bae3641a63d9b58664fe6b41fd061d690d`. It contains only the bound config,
+  binding report, D0 minimal evidence/references, pre-run report, and this task's
+  CSV/review. No data, weights, or unrelated dirty files were included. Ordinary
+  push has not been attempted and requires explicit authorization for this SHA.
+- 2026-08-21: User authorized the exact SHA and Codex completed an ordinary
+  non-force push to `codex/tausb-sdh-dgcaip-cgr-e20-v2`. The remote branch SHA
+  was independently verified as
+  `d81902bae3641a63d9b58664fe6b41fd061d690d`; uncommitted worktree files were
+  not included. The next gate is `PRERUN-MECHANISM-02`.
+- 2026-08-21: `PRERUN-MECHANISM-02` blocked the GPU run because the exact
+  snapshot had no mechanism-specific outer controller/launcher. No GPU command
+  was started.
+- 2026-08-21: Added the two minimal mechanism control scripts. Local Bash syntax
+  passed for both and the 28 focused tests stayed green; research parameters were
+  unchanged. A new scoped local snapshot is required before re-review.
