@@ -4,7 +4,7 @@
 
 - Spec: approved on 2026-08-17.
 - Branch: `codex/tausb-sdh-dgcaip-cgr-e20-v2`.
-- Active CSV row: `GIT-SNAPSHOT-MECHANISM-CONTROLLER-01`.
+- Active CSV row: `GIT-SNAPSHOT-MECHANISM-HASH-01`.
 - Reviewed and pushed snapshot:
   `81bf37e5b19b318ffbfee18edbbf2071e69702dc`.
 - GitHub remote branch SHA was independently verified as the same full commit.
@@ -198,6 +198,32 @@ mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
 - The AutoDL no-card instance went offline before redundant remote `bash -n`;
   this is a validation gap for the next exact-snapshot review, not a GPU run.
 
+### PRERUN-MECHANISM-03
+
+- Result: blocked
+- Decision: do_not_run
+- Reviewed snapshot: `96fc0f7017f043eadf38e8fd26c988c2445e4435`
+- Exact detached checkout was clean; both committed shell scripts passed remote
+  `bash -n`; all formal mechanism paths and the tmux session were absent.
+- D0, P1 state, P1 metrics, surrogate, hiding checkpoint, VOC manifests/counts,
+  secret manifest, and split hashes all matched.
+- Blocker: Git normalized the generated YAML to LF in the commit. The launcher
+  pinned the Windows working-tree CRLF SHA256 `aef8b3c0...`, while the exact
+  Linux checkout bytes are
+  `a5de2322f40c090103895d869d5aeb528379ced58be285017d51a615a592119d`.
+  The formal launcher would fail closed before tmux handoff.
+- GPU job started: false.
+- Exact review packet:
+  `research_workspace/experiments/TAUSB-SDH-DGCAIP-S0-E20/pre_run/prerun_mechanism_review_v3.md`.
+
+### Canonical config-hash fix
+
+- Replaced only the launcher hash constant with the exact LF-normalized Linux
+  checkout SHA256 and documented its byte-level meaning.
+- The bound YAML, research parameters, losses, thresholds, splits, and gates did
+  not change.
+- Local and remote Bash syntax checks passed after the fix.
+
 ## Append-only execution log
 
 - 2026-08-17: User approved the v2 Spec.
@@ -263,3 +289,19 @@ mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
 - 2026-08-21: Added the two minimal mechanism control scripts. Local Bash syntax
   passed for both and the 28 focused tests stayed green; research parameters were
   unchanged. A new scoped local snapshot is required before re-review.
+- 2026-08-21: Created the five-file scoped local controller snapshot
+  `96fc0f7017f043eadf38e8fd26c988c2445e4435`. Its parent is the verified remote
+  mechanism-binding commit `d81902b`; no unrelated dirty file was included.
+  Ordinary push has not been attempted and requires explicit authorization for
+  the new full SHA.
+- 2026-08-21: User authorized and Codex completed the ordinary non-force push of
+  `96fc0f7017f043eadf38e8fd26c988c2445e4435`. The GitHub branch SHA was
+  independently verified as identical, and no uncommitted worktree content was
+  included. `PRERUN-MECHANISM-03` now awaits an online no-card instance for the
+  exact-checkout Bash, input-hash, path-collision, and command-binding checks.
+- 2026-08-21: Exact Linux preflight found all scientific inputs and runtime
+  bindings correct but blocked launch on a Windows-CRLF versus committed-LF
+  config SHA mismatch. No GPU process was started.
+- 2026-08-21: Corrected the launcher to the canonical exact-checkout SHA256;
+  local and remote Bash syntax checks passed. A new scoped snapshot and exact
+  review are required before GPU launch.
