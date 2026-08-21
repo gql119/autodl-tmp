@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "manifest_profile": "tausb.dgcaip-d0-minimal-multiroot.v1",
+  "exp_id": "TAUSB-SDH-DGCAIP-S0-E20",
+  "spec_id": "TAUSB-SDH-DGCAIP-CGR-E20-v2",
+  "run_id": "DGCAIP-S0-R1-D0",
+  "branch": "codex/tausb-sdh-dgcaip-cgr-e20-v2",
+  "pre_run_code_commit": "81bf37e5b19b318ffbfee18edbbf2071e69702dc",
+  "seed": 0,
+  "local_destination": "research_workspace/experiments/TAUSB-SDH-DGCAIP-S0-E20/remote_artifacts/DGCAIP-S0-R1-D0",
+  "authentication": "Use the configured SSH alias autodl-tausb; no password or private key is persisted.",
+  "items": [
+    {
+      "source_absolute_path": "/root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-R1-D0/d0/d0_locator.json",
+      "relative_path": "d0/d0_locator.json",
+      "required": true,
+      "reason": "canonical D0 locator statistics and gate decision",
+      "size_policy": "small"
+    },
+    {
+      "source_absolute_path": "/root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-R1-D0/status_mechanism.json",
+      "relative_path": "status_mechanism.json",
+      "required": true,
+      "reason": "D0 mechanism terminal state",
+      "size_policy": "small"
+    },
+    {
+      "source_absolute_path": "/root/autodl-tmp/tausb-dgcaip-control/TAUSB-SDH-DGCAIP-S0-R1-D0/controller_status.json",
+      "relative_path": "control/controller_status.json",
+      "required": true,
+      "reason": "controller terminal status and exact execution commit",
+      "size_policy": "small"
+    },
+    {
+      "source_absolute_path": "/root/autodl-tmp/tausb-dgcaip-control/TAUSB-SDH-DGCAIP-S0-R1-D0/wrapper_terminal.json",
+      "relative_path": "control/wrapper_terminal.json",
+      "required": true,
+      "reason": "wrapper exit code and shutdown request evidence",
+      "size_policy": "small"
+    },
+    {
+      "source_absolute_path": "/root/autodl-tmp/tausb-dgcaip-logs/TAUSB-SDH-DGCAIP-S0-R1-D0.log",
+      "relative_path": "logs/TAUSB-SDH-DGCAIP-S0-R1-D0.log",
+      "required": true,
+      "reason": "runtime TAL probe and automatic shutdown log",
+      "size_policy": "small"
+    }
+  ],
+  "post_transfer_checks": [
+    "all five required exact paths are present",
+    "SHA256 and byte size are recorded for every pulled file",
+    "JSON gate, terminal status, commit, split hash, and P1 hash agree",
+    "fatal scan is empty before remote_state becomes artifacts_pulled"
+  ]
+}

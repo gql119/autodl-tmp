@@ -1,0 +1,14 @@
+Creating new Ultralytics Settings v0.0.6 file ✅ 
+View Ultralytics Settings with 'yolo settings' or at '/root/autodl-tmp/tausb-dgcaip-cache/TAUSB-SDH-DGCAIP-S0-R1-D0/yolo/Ultralytics/settings.json'
+Update Settings with 'yolo settings key=value', i.e. 'yolo settings runs_dir=path/to/dir'. For help see https://docs.ultralytics.com/quickstart/#ultralytics-settings.
+
+======================================================================
+🎯 [STRICT AL-SVC PROBE] Intercepted Real TAL Assigner Outputs
+======================================================================
+  - target_labels  : shape=(4, 8400), dtype=torch.int64, min=5.00, max=14.00
+  - target_scores  : shape=(4, 8400, 20), dtype=torch.float32, min=0.00, max=0.99
+  - fg_mask        : shape=(4, 8400), dtype=torch.bool, min=0.00, max=1.00
+  - target_gt_idx  : shape=(4, 8400), dtype=torch.int64, min=0.00, max=14.00
+======================================================================
+
+[DGCAIP-D0] controller_exit=0; requesting AutoDL shutdown

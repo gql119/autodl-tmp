@@ -4,13 +4,14 @@
 
 - Spec: approved on 2026-08-17.
 - Branch: `codex/tausb-sdh-dgcaip-cgr-e20-v2`.
-- Active CSV row: `GIT-SNAPSHOT-D0-METRIC-01`.
-- Last pushed snapshot: `503e09fbe707feef50206d9e53cdde9e553453a6`.
-- Local worktree contains the reviewed raw-damage metric correction and
-  data-disk cache hardening; a new exact commit is pending.
-- Remote state: no D0 or GPU run has started.
-- Scientific state: implementation and local mechanical validation only; no D0,
-  mechanism, victim training, or AP50 claim has been produced.
+- Active CSV row: `GIT-SNAPSHOT-MECHANISM-01` (local scoped snapshot pending).
+- Reviewed and pushed snapshot:
+  `81bf37e5b19b318ffbfee18edbbf2071e69702dc`.
+- GitHub remote branch SHA was independently verified as the same full commit.
+- Remote state: D0 completed successfully, automatically requested shutdown, and
+  its five-file minimal evidence set has been pulled and hash-verified.
+- Scientific state: the diagnostic-only D0 locator gate passed. No mechanism-arm,
+  victim-training, or AP50 improvement claim has been produced.
 
 ## Objective
 
@@ -52,6 +53,22 @@ the replay tolerance is frozen at absolute `1e-6` plus relative `1e-4`.
 
 These checks are mechanical evidence only. They do not establish locator quality,
 mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
+
+## Remote no-card preflight (2026-08-21)
+
+- AutoDL data disk `/root/autodl-tmp` is mounted.
+- Runtime imports passed with Python 3.8.10, PyTorch 2.0.0+cu118,
+  Ultralytics 8.4.33, and PyYAML 6.0.
+- `torch.cuda.is_available()` is false, as expected in no-card mode; no D0 or
+  training command was run.
+- Surrogate, historical P1 state, and hiding checkpoint SHA256 values match the
+  frozen config.
+- VOC train input contains 16,551 images and 16,551 labels.
+- Free space: 17 GB on the data disk and 21 GB on the system overlay.
+- The source worktree is intentionally not used as the execution checkout. Its
+  current old branch lacks the secret manifest, while the reviewed commit tree
+  contains the manifest and assets; the launcher will create a clean detached
+  checkout from the exact pushed commit.
 
 ## Active risks and gates
 
@@ -113,6 +130,47 @@ mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
 - GPU job started: false
 - Required next gate: new exact commit followed by `PRERUN-REVIEW-D0-03`.
 
+### PRERUN-REVIEW-D0-03
+
+- Result: pass
+- Decision: allow_run
+- Gated run: `REMOTE-D0-01`
+- Code snapshot: `81bf37e5b19b318ffbfee18edbbf2071e69702dc`
+- GitHub branch binding: verified
+- Local validation: 41 focused and 170 broad related tests passed
+- Remote exact-checkout validation: passed with Python 3.8 config/CLI imports,
+  raw-damage/zero-hinge locator probe, finite poison-only backward, input hashes,
+  split hash, Bash syntax, and non-overwrite checks.
+- Remote `pytest` is not installed; the local 170-test regression was therefore
+  not duplicated remotely. This is an environment gap, not a failed test.
+- Exact review packet:
+  `research_workspace/experiments/TAUSB-SDH-DGCAIP-S0-E20/pre_run/prerun_d0_review_v3.md`.
+- Blockers: none once the user explicitly enables GPU mode.
+
+## D0 result and mechanism binding (2026-08-21)
+
+- Controller status: `completed`, exit code `0`, exact execution commit
+  `81bf37e5b19b318ffbfee18edbbf2071e69702dc`.
+- Wrapper status: exit code `0`, automatic shutdown requested.
+- Fatal scan: no Traceback, CUDA OOM, NaN/Inf, fatal, or error match.
+- Eligible/covered non-target instances: `97/97`; finite coverage `1.0000`
+  (gate `>=0.95`).
+- Spearman between divergence and composite damage: `0.7295524`
+  (gate `>=0.35`).
+- Q4/Q1 composite-damage ratio: `4.0649343` (gate `>=1.5`).
+- D0 decision: `pass`. This supports locator quality only and is not AP50 or
+  fresh-victim evidence.
+- Canonical pulled locator SHA256:
+  `911896f16514639b3b5190d86155f6a48c7711ec1e206828b8e98674114d7539`.
+- Five required files were pulled; remote/local hashes matched 5/5 and
+  `missing_required=[]`.
+- Bound mechanism config:
+  `ue_project/ue_framework/configs/tausb_sdh_dgcaip_mechanism_v2.yaml`.
+- Bound config SHA256:
+  `aef8b3c04b58066adb79dcf239e2b9f124f6c50c3b7d8e3b324d9c25bb322a3e`.
+- Binding retained the frozen split, P1 state, and P1 metrics hashes; no loss
+  weight or threshold was tuned from D0. Focused binding/DG-CAIP tests: 28/28.
+
 ## Append-only execution log
 
 - 2026-08-17: User approved the v2 Spec.
@@ -132,3 +190,33 @@ mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
   no remote run was started.
 - 2026-08-21: Implemented the metric separation and cache-path hardening locally;
   focused tests passed 41/41 and the broad related regression passed 170/170.
+- 2026-08-21: Created local exact snapshot
+  `81bf37e5b19b318ffbfee18edbbf2071e69702dc` with nine scoped files; push is
+  pending explicit authorization for this new SHA.
+- 2026-08-21: Completed read-only AutoDL no-card input/runtime/disk preflight;
+  no artifact directory or remote run was created.
+- 2026-08-21: User authorized and Codex completed an ordinary non-force push of
+  `81bf37e5b19b318ffbfee18edbbf2071e69702dc`; GitHub remote SHA matched exactly.
+- 2026-08-21: Two post-push SSH attempts returned `Connection refused`;
+  `PRERUN-REVIEW-D0-03` remained in progress pending an online no-card instance.
+- 2026-08-21: After no-card restart, fetched the exact commit into an isolated
+  detached checkout and completed Python 3.8 manual sink, full runtime-input,
+  split/hash, Bash, path-collision, and storage checks. Pre-run review v3 passed;
+  no D0 or GPU process was started.
+- 2026-08-21: User enabled GPU mode. The GPU prelaunch gate passed on an RTX
+  4090D with free formal paths, and the exact `81bf37e5` launcher handed D0 off
+  to tmux session `tausb-dgcaip-d0-s0-r1`.
+- 2026-08-21: The first and second post-launch SSH checks both returned
+  `Connection refused`, consistent with the controller's automatic terminal
+  shutdown. Completion versus fast failure is not yet claimed; do not restart.
+  Re-enable no-card mode and pull controller status, outer log, terminal record,
+  and any D0 locator artifact first.
+- 2026-08-21: After no-card restart, terminal evidence proved D0 completed with
+  controller/wrapper exit code 0 and requested automatic shutdown. The fatal
+  scan was empty.
+- 2026-08-21: Pulled five exact D0 evidence files; all remote/local SHA256 values
+  matched and no required item was missing. D0 passed all three preregistered
+  locator gates (Spearman 0.7296, Q4/Q1 4.0649, coverage 100%).
+- 2026-08-21: Bound the canonical D0 locator hash and remote path into the exact
+  mechanism config without metric tuning; 28 focused tests passed. A new scoped
+  local Git snapshot is next and requires separate authorization before push.

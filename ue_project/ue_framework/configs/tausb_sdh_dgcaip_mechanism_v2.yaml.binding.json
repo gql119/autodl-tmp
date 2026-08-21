@@ -1,0 +1,12 @@
+{
+  "d0_report": "F:\\autodl-tmp - \u526f\u672c - \u526f\u672c\\research_workspace\\experiments\\TAUSB-SDH-DGCAIP-S0-E20\\remote_artifacts\\DGCAIP-S0-R1-D0\\d0\\d0_locator.json",
+  "d0_report_sha256": "911896f16514639b3b5190d86155f6a48c7711ec1e206828b8e98674114d7539",
+  "output": "F:\\autodl-tmp - \u526f\u672c - \u526f\u672c\\ue_project\\ue_framework\\configs\\tausb_sdh_dgcaip_mechanism_v2.yaml",
+  "output_sha256": "aef8b3c04b58066adb79dcf239e2b9f124f6c50c3b7d8e3b324d9c25bb322a3e",
+  "schema": "tausb.dgcaip-mechanism-binding.v1",
+  "source_p1_metrics_sha256": "fa0b99cb3df0ad834ab20373a877022a640d5ab67bb53099de229bf949c77358",
+  "source_p1_state_sha256": "2e102026a9356116de38acb1f5056bf5728afcd453e3447b516d4222f4d70b81",
+  "spec_id": "TAUSB-SDH-DGCAIP-CGR-E20-v2",
+  "template": "F:\\autodl-tmp - \u526f\u672c - \u526f\u672c\\ue_project\\ue_framework\\configs\\tausb_sdh_dgcaip_mechanism_v2.template.yaml",
+  "template_sha256": "b2858fcb51b03c85afd5a9f5e4d42add71d33ada6073b80348597eb63d263599"
+}

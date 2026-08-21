@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "manifest_profile": "tausb.dgcaip-d0-minimal-multiroot.v1",
+  "exp_id": "TAUSB-SDH-DGCAIP-S0-E20",
+  "spec_id": "TAUSB-SDH-DGCAIP-CGR-E20-v2",
+  "run_id": "DGCAIP-S0-R1-D0",
+  "remote_state": "artifacts_pulled",
+  "selected_files": 5,
+  "transferred": [
+    "control/controller_status.json",
+    "control/wrapper_terminal.json",
+    "d0/d0_locator.json",
+    "logs/TAUSB-SDH-DGCAIP-S0-R1-D0.log",
+    "status_mechanism.json"
+  ],
+  "existing_skipped": [],
+  "failed": [],
+  "verification": {
+    "present": [
+      {
+        "relative_path": "control/controller_status.json",
+        "bytes": 140,
+        "sha256": "4254c3f2cbb25b082129c5d3eecdd1dea9d72624295aa346b7161a1cc172527b",
+        "remote_sha256_match": true
+      },
+      {
+        "relative_path": "control/wrapper_terminal.json",
+        "bytes": 89,
+        "sha256": "c4ce66bad69671d4f2c034ee099cf660056734d45aad7420cffed4dc8b51fb8c",
+        "remote_sha256_match": true
+      },
+      {
+        "relative_path": "d0/d0_locator.json",
+        "bytes": 4703,
+        "sha256": "911896f16514639b3b5190d86155f6a48c7711ec1e206828b8e98674114d7539",
+        "remote_sha256_match": true
+      },
+      {
+        "relative_path": "logs/TAUSB-SDH-DGCAIP-S0-R1-D0.log",
+        "bytes": 1015,
+        "sha256": "2cf8b35091ef7f4743ee7aa26a917682f8e98175317c2bde890fa6c6230320b3",
+        "remote_sha256_match": true
+      },
+      {
+        "relative_path": "status_mechanism.json",
+        "bytes": 145,
+        "sha256": "d29f80102f773a77fd89289a16e17ec05cb654f146811436c21a1f29472730ff",
+        "remote_sha256_match": true
+      }
+    ],
+    "missing_required": [],
+    "fatal_scan_matches": [],
+    "controller_completed": true,
+    "wrapper_exit_code": 0,
+    "shutdown_requested": true,
+    "execution_commit_match": true,
+    "d0_gate_pass": true,
+    "split_hash_match": true,
+    "source_p1_state_sha256_match": true
+  },
+  "credentials_persisted": false
+}
