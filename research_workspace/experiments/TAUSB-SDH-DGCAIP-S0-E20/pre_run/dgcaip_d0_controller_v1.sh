@@ -9,8 +9,12 @@ shutdown_once() {
   trap - EXIT INT TERM
   if mountpoint -q "${REQUIRED_STORAGE_ROOT:-/missing}"; then
     mkdir -p "${CONTROL_ROOT:-${REQUIRED_STORAGE_ROOT}/tausb-dgcaip-control/fallback}"
+    local terminal_path="${CONTROL_ROOT:-${REQUIRED_STORAGE_ROOT}/tausb-dgcaip-control/fallback}/wrapper_terminal.json"
+    if [[ -e "${terminal_path}" ]]; then
+      terminal_path="$(mktemp "${CONTROL_ROOT:-${REQUIRED_STORAGE_ROOT}/tausb-dgcaip-control/fallback}/wrapper_terminal.XXXXXX.json")"
+    fi
     printf '{"schema":"tausb.dgcaip-d0-wrapper-terminal.v1","exit_code":%d,"shutdown_requested":true}\n' "${rc}" \
-      > "${CONTROL_ROOT:-${REQUIRED_STORAGE_ROOT}/tausb-dgcaip-control/fallback}/wrapper_terminal.json"
+      > "${terminal_path}"
   fi
   echo "[DGCAIP-D0] controller_exit=${rc}; requesting AutoDL shutdown"
   sync || true
@@ -59,11 +63,15 @@ test ! -e "${ARTIFACT_ROOT}"
 test ! -e "${CONTROL_ROOT}"
 
 mkdir -p "${CONTROL_ROOT}" "${CACHE_ROOT}/xdg" "${CACHE_ROOT}/torch" \
-  "${CACHE_ROOT}/yolo" "${TMP_ROOT}"
+  "${CACHE_ROOT}/yolo" "${CACHE_ROOT}/cuda" "${CACHE_ROOT}/matplotlib" \
+  "${CACHE_ROOT}/huggingface" "${TMP_ROOT}"
 export TMPDIR="${TMP_ROOT}"
 export XDG_CACHE_HOME="${CACHE_ROOT}/xdg"
 export TORCH_HOME="${CACHE_ROOT}/torch"
 export YOLO_CONFIG_DIR="${CACHE_ROOT}/yolo"
+export CUDA_CACHE_PATH="${CACHE_ROOT}/cuda"
+export MPLCONFIGDIR="${CACHE_ROOT}/matplotlib"
+export HF_HOME="${CACHE_ROOT}/huggingface"
 
 printf '{"schema":"tausb.dgcaip-d0-controller.v1","status":"running","execution_commit":"%s"}\n' \
   "${EXPECTED_COMMIT}" > "${CONTROL_ROOT}/controller_status.json"

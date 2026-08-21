@@ -284,9 +284,9 @@ def _instance_metric_map(
             if key in output:
                 raise ValueError("Duplicate DG-CAIP held-out instance key.")
             output[key] = {
-                "probability": float(term.classification_loss.detach()),
-                "iou": float(term.box_loss.detach()),
-                "alignment": float(term.alignment_loss.detach()),
+                "probability": float(term.classification_damage.detach()),
+                "iou": float(term.box_damage.detach()),
+                "alignment": float(term.alignment_damage.detach()),
                 "js": float(term.distribution_loss.detach()),
                 "geometry_risk": term.geometry_risk,
             }

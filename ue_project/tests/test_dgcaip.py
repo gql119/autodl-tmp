@@ -75,6 +75,9 @@ def test_joint_instance_loss_is_finite_and_backpropagates_only_to_poison() -> No
     assert result.active_classes == (1,)
     assert result.coverage == 1.0
     term = result.instances[0]
+    assert term.classification_damage.item() > term.classification_loss.item()
+    assert term.box_damage.item() > term.box_loss.item()
+    assert term.alignment_damage.item() > term.alignment_loss.item()
     assert term.classification_loss.item() > 0
     assert term.box_loss.item() > 0
     assert term.alignment_loss.item() > 0

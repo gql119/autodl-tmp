@@ -58,9 +58,9 @@ def build_dgcaip_locator_report(
     damage = torch.tensor(
         [
             [
-                float(term.classification_loss.detach()),
-                float(term.box_loss.detach()),
-                float(term.alignment_loss.detach()),
+                float(term.classification_damage.detach()),
+                float(term.box_damage.detach()),
+                float(term.alignment_damage.detach()),
             ]
             for term in instances
         ],

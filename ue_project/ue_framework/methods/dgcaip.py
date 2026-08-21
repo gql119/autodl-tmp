@@ -31,6 +31,9 @@ class DGCAIPInstanceTerm:
     geometry_risk: float
     divergence_rank: float
     weight: float
+    classification_damage: torch.Tensor
+    box_damage: torch.Tensor
+    alignment_damage: torch.Tensor
     classification_loss: torch.Tensor
     box_loss: torch.Tensor
     alignment_loss: torch.Tensor
@@ -291,10 +294,10 @@ def dgcaip_instance_preservation(
         )
         clean_assigned = clean_logits[batch_index, positive_mask, class_id].detach()
         poison_assigned = poison_logits[batch_index, positive_mask, class_id]
+        classification_drop = clean_assigned.sigmoid() - poison_assigned.sigmoid()
+        classification_damage = F.relu(classification_drop).mean()
         classification_loss = F.relu(
-            clean_assigned.sigmoid()
-            - poison_assigned.sigmoid()
-            - float(classification_tolerance)
+            classification_drop - float(classification_tolerance)
         ).mean()
         gt_box = gt_bboxes[batch_index, gt_index].to(device=poison_boxes.device)
         clean_iou = _aligned_iou(
@@ -303,15 +306,17 @@ def dgcaip_instance_preservation(
         poison_iou = _aligned_iou(
             poison_boxes[batch_index, positive_mask], gt_box
         )
-        box_loss = F.relu(
-            clean_iou - poison_iou - float(box_tolerance)
-        ).mean()
+        box_drop = clean_iou - poison_iou
+        box_damage = F.relu(box_drop).mean()
+        box_loss = F.relu(box_drop - float(box_tolerance)).mean()
         clean_alignment = clean_assigned.sigmoid().pow(0.5) * clean_iou.pow(6.0)
         poison_alignment = poison_assigned.sigmoid().pow(0.5) * poison_iou.pow(6.0)
+        alignment_drop = (clean_alignment - poison_alignment) / clean_alignment.clamp_min(
+            1.0e-6
+        )
+        alignment_damage = F.relu(alignment_drop).mean()
         alignment_loss = F.relu(
-            (clean_alignment - poison_alignment)
-            / clean_alignment.clamp_min(1.0e-6)
-            - float(alignment_tolerance)
+            alignment_drop - float(alignment_tolerance)
         ).mean()
         valid_person = mask_gt_2d[batch_index] & (
             gt_labels_2d[batch_index] == int(target_class_id)
@@ -327,6 +332,9 @@ def dgcaip_instance_preservation(
         geometry_risks.append(geometry_risk)
         component_terms.append(
             (
+                classification_damage,
+                box_damage,
+                alignment_damage,
                 classification_loss,
                 box_loss,
                 alignment_loss,
@@ -353,8 +361,16 @@ def dgcaip_instance_preservation(
 
     terms = []
     per_class_values: Dict[int, list[torch.Tensor]] = {}
-    for index, (record, losses) in enumerate(zip(collection.instances, component_terms)):
-        classification_loss, box_loss, alignment_loss, distribution_loss = losses
+    for index, (record, values) in enumerate(zip(collection.instances, component_terms)):
+        (
+            classification_damage,
+            box_damage,
+            alignment_damage,
+            classification_loss,
+            box_loss,
+            alignment_loss,
+            distribution_loss,
+        ) = values
         combined = weight_result.weights[index] * (
             weights_by_component["classification"] * classification_loss
             + weights_by_component["box"] * box_loss
@@ -371,6 +387,9 @@ def dgcaip_instance_preservation(
                 geometry_risk=float(geometry_risks[index]),
                 divergence_rank=float(weight_result.percentile_ranks[index].cpu()),
                 weight=float(weight_result.weights[index].cpu()),
+                classification_damage=classification_damage,
+                box_damage=box_damage,
+                alignment_damage=alignment_damage,
                 classification_loss=classification_loss,
                 box_loss=box_loss,
                 alignment_loss=alignment_loss,

@@ -4,10 +4,11 @@
 
 - Spec: approved on 2026-08-17.
 - Branch: `codex/tausb-sdh-dgcaip-cgr-e20-v2`.
-- Active CSV row: `GIT-SNAPSHOT-01`.
-- Local code snapshot: `b682f9d428a426d0cca62f5a6a0fc599a0853b4e`.
-- Push state: blocked pending explicit authorization for the concrete GitHub
-  destination; no remote run has started.
+- Active CSV row: `GIT-SNAPSHOT-D0-METRIC-01`.
+- Last pushed snapshot: `503e09fbe707feef50206d9e53cdde9e553453a6`.
+- Local worktree contains the reviewed raw-damage metric correction and
+  data-disk cache hardening; a new exact commit is pending.
+- Remote state: no D0 or GPU run has started.
 - Scientific state: implementation and local mechanical validation only; no D0,
   mechanism, victim training, or AP50 claim has been produced.
 
@@ -35,7 +36,11 @@ the replay tolerance is frozen at absolute `1e-6` plus relative `1e-4`.
 
 ## Local evidence
 
-- Broad SDH/DG-CAIP regression: `166 passed`.
+- DG-CAIP focused regression after the raw-damage correction: `41 passed`.
+- Broad SDH/DG-CAIP/NLA/CGR regression after the correction: `170 passed`.
+- Python AST/in-memory compile for the six changed Python files: passed.
+- D0 config contract (`VOC20`, target id `14`, `run_mode=d0`, no EOT): passed.
+- Both D0 controller scripts passed Git Bash `bash -n`.
 - Python 3.8 AST plus in-memory compile: 9 implementation files passed.
 - Runnable D0 config validation: passed.
 - Mechanism template fail-closed and D0 binder tests: passed.
@@ -88,6 +93,26 @@ mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
 - Resolution: added a data-disk-only D0 controller and launch gate; a new exact
   snapshot and `PRERUN-REVIEW-D0-02` are required before launch.
 
+### PRERUN-REVIEW-D0-02
+
+- Result: blocked
+- Decision: do_not_run
+- Gated run: `REMOTE-D0-01`
+- Code snapshot: `503e09fbe707feef50206d9e53cdde9e553453a6`
+- Blocker: the D0 locator and held-out Q1-Q4 summaries consumed the
+  post-tolerance hinge losses (`0.005 / 0.02 / 0.05`) instead of the approved
+  raw positive probability, IoU, and relative TAL-alignment damage. This could
+  create artificial zeros and invalidate Spearman and quartile gates.
+- Resolution implemented locally: raw positive damage is now carried separately
+  for diagnostics, while optimization and nonlinear backtracking retain the
+  tolerance-aware hinge losses. A regression test keeps hinge losses at zero
+  while raw damage varies and verifies that the locator still ranks the damage.
+- Additional hardening: CUDA, Matplotlib, Hugging Face, Torch, YOLO, XDG, and
+  temporary caches are all routed to the AutoDL data disk; terminal evidence no
+  longer overwrites an existing wrapper record.
+- GPU job started: false
+- Required next gate: new exact commit followed by `PRERUN-REVIEW-D0-03`.
+
 ## Append-only execution log
 
 - 2026-08-17: User approved the v2 Spec.
@@ -101,3 +126,9 @@ mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
   verified as `b682f9d428a426d0cca62f5a6a0fc599a0853b4e`.
 - 2026-08-17: First pre-run review blocked D0 because an independent outer cost and
   shutdown controller was missing; implemented the bounded two-script fix locally.
+- 2026-08-17: Pushed and verified the controller snapshot
+  `503e09fbe707feef50206d9e53cdde9e553453a6` by ordinary non-force push.
+- 2026-08-21: Independent D0 review found the raw-damage/hinge metric mismatch;
+  no remote run was started.
+- 2026-08-21: Implemented the metric separation and cache-path hardening locally;
+  focused tests passed 41/41 and the broad related regression passed 170/170.
