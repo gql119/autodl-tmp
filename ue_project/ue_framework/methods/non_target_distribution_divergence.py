@@ -17,6 +17,21 @@ def _bernoulli_kl(probability: torch.Tensor, reference: torch.Tensor) -> torch.T
     ) * torch.log((1.0 - probability) / (1.0 - reference))
 
 
+def _clamp_nonnegative_roundoff(
+    values: torch.Tensor,
+    *,
+    name: str,
+) -> torch.Tensor:
+    """Clamp only machine-precision violations of an analytical lower bound."""
+
+    if not torch.isfinite(values).all():
+        raise ValueError(f"Non-finite {name}.")
+    tolerance = 8.0 * torch.finfo(values.dtype).eps
+    if bool((values.detach() < -tolerance).any()):
+        raise ValueError(f"Materially negative {name}.")
+    return values.clamp_min(0.0)
+
+
 def non_target_bernoulli_divergence(
     clean_logits: torch.Tensor,
     poison_logits: torch.Tensor,
@@ -70,10 +85,14 @@ def non_target_bernoulli_divergence(
     clean_to_poison = _bernoulli_kl(
         clean_non_target, poison_non_target
     ).mean(dim=-1)
-    if not torch.isfinite(js_per_anchor).all() or not torch.isfinite(
-        clean_to_poison
-    ).all():
-        raise ValueError("Non-finite Bernoulli divergence.")
+    js_per_anchor = _clamp_nonnegative_roundoff(
+        js_per_anchor,
+        name="Bernoulli JS divergence",
+    )
+    clean_to_poison = _clamp_nonnegative_roundoff(
+        clean_to_poison,
+        name="Bernoulli KL divergence",
+    )
     return NonTargetDistributionDivergence(
         js_per_anchor=js_per_anchor,
         clean_to_poison_kl_per_anchor=clean_to_poison,

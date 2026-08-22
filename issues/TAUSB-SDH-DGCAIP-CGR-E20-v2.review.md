@@ -4,12 +4,13 @@
 
 - Spec: approved on 2026-08-17.
 - Branch: `codex/tausb-sdh-dgcaip-cgr-e20-v2`.
-- Active CSV row: `GIT-SNAPSHOT-MECHANISM-HASH-01`.
+- Active CSV row: `GIT-SNAPSHOT-DGCAIP-ROUNDING-01`.
 - Reviewed and pushed snapshot:
-  `81bf37e5b19b318ffbfee18edbbf2071e69702dc`.
+  `6c98dc35c6ff94ca4519feb6aa497bf3986e6922`.
 - GitHub remote branch SHA was independently verified as the same full commit.
-- Remote state: D0 completed successfully, automatically requested shutdown, and
-  its five-file minimal evidence set has been pulled and hash-verified.
+- Remote state: D0 passed. The R1 mechanism run terminated on a finite float32
+  negative-roundoff guard; its five-file failure evidence set was pulled and
+  hash-verified, and the instance requested shutdown.
 - Scientific state: the diagnostic-only D0 locator gate passed. No mechanism-arm,
   victim-training, or AP50 improvement claim has been produced.
 
@@ -224,6 +225,20 @@ mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
   not change.
 - Local and remote Bash syntax checks passed after the fix.
 
+### PRERUN-MECHANISM-04
+
+- Result: pass
+- Decision: allow_run
+- Reviewed snapshot: `6c98dc35c6ff94ca4519feb6aa497bf3986e6922`
+- GitHub and the clean AutoDL detached checkout resolve to the exact same SHA.
+- Both controller scripts pass `bash -n`; the LF-normalized config SHA is
+  `a5de2322f40c090103895d869d5aeb528379ced58be285017d51a615a592119d`.
+- VOC counts/manifests and all D0/P1/model/hiding/secret bindings match; D0 and
+  P1 metrics are finite, and D0 passed.
+- All formal output paths and the tmux session are absent. No GPU job started.
+- Exact review packet:
+  `research_workspace/experiments/TAUSB-SDH-DGCAIP-S0-E20/pre_run/prerun_mechanism_review_v4.md`.
+
 ## Append-only execution log
 
 - 2026-08-17: User approved the v2 Spec.
@@ -305,3 +320,32 @@ mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
 - 2026-08-21: Corrected the launcher to the canonical exact-checkout SHA256;
   local and remote Bash syntax checks passed. A new scoped snapshot and exact
   review are required before GPU launch.
+- 2026-08-21: Created the four-file scoped canonical-hash snapshot
+  `6c98dc35c6ff94ca4519feb6aa497bf3986e6922`, whose parent is the verified remote
+  controller commit `96fc0f7`. The commit changes no research parameter and
+  includes no unrelated dirty file. Ordinary push has not been attempted and
+  requires explicit authorization for this exact full SHA.
+- 2026-08-22: User authorized and Codex completed the ordinary non-force push of
+  `6c98dc35c6ff94ca4519feb6aa497bf3986e6922`; the GitHub branch SHA was
+  independently verified as identical.
+- 2026-08-22: `PRERUN-MECHANISM-04` passed on a clean AutoDL exact checkout. All
+  scientific inputs, config, control paths, syntax, finite checks, and
+  non-overwrite gates passed. The bounded GPU mechanism run is now allowed but
+  has not started.
+- 2026-08-22: After the review records were validated, Codex requested shutdown
+  of the no-card instance as explicitly instructed; a follow-up SSH probe was
+  refused, confirming the instance was no longer reachable.
+
+- 2026-08-22: Launched the reviewed R1 mechanism snapshot in tmux. Clean TAL
+  interception succeeded, then the controller terminated with exit 1 at the
+  DGCAIP divergence non-negativity guard and requested automatic shutdown.
+- 2026-08-23: Pulled and SHA256-verified all five allowlisted failure files into
+  `remote_artifacts/DGCAIP-S0-R1-MECHANISM-FAIL1`; R1 remains preserved and
+  must not be retried or overwritten.
+- 2026-08-23: Deterministic CPU reproduction proved float32 cancellation in the
+  direct Bernoulli formulas: pre-fix JS min was `-2.226734174826106e-08`, all
+  values were finite, and the magnitude was below one float32 epsilon.
+- 2026-08-23: Applied the source-level roundoff clamp with an `8*dtype epsilon`
+  fail-closed boundary. Twenty-one focused and 65 related tests passed; the full
+  `(64,8400,20)` reproduction now has zero negative JS/KL entries and finite
+  gradients. The launcher now targets unique R2 session and output paths.

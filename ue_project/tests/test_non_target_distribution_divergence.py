@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from ue_framework.methods.non_target_distribution_divergence import (
+    _clamp_nonnegative_roundoff,
     non_target_bernoulli_divergence,
 )
 
@@ -28,6 +29,32 @@ def test_identical_logits_have_zero_divergence_and_finite_backward() -> None:
     result.js_per_anchor.mean().backward()
     assert poison.grad is not None
     assert torch.isfinite(poison.grad).all()
+
+
+def test_nearly_identical_float32_logits_clamp_negative_roundoff() -> None:
+    torch.manual_seed(0)
+    clean = torch.randn((2, 32, 20))
+    poison = (clean + 1.0e-4 * torch.randn_like(clean)).requires_grad_(True)
+    result = non_target_bernoulli_divergence(
+        clean,
+        poison,
+        target_class_id=14,
+    )
+    assert torch.isfinite(result.js_per_anchor).all()
+    assert torch.isfinite(result.clean_to_poison_kl_per_anchor).all()
+    assert bool((result.js_per_anchor >= 0).all())
+    assert bool((result.clean_to_poison_kl_per_anchor >= 0).all())
+    result.js_per_anchor.mean().backward()
+    assert poison.grad is not None
+    assert torch.isfinite(poison.grad).all()
+
+
+def test_materially_negative_divergence_still_fails_closed() -> None:
+    with pytest.raises(ValueError, match="Materially negative"):
+        _clamp_nonnegative_roundoff(
+            torch.tensor([-1.0e-3]),
+            name="test divergence",
+        )
 
 
 def test_js_is_symmetric_bounded_and_one_way_kl_is_diagnostic() -> None:
