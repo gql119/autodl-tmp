@@ -4,10 +4,13 @@
 
 - Spec: approved on 2026-08-17.
 - Branch: `codex/tausb-sdh-dgcaip-cgr-e20-v2`.
-- Active CSV row: `GIT-SNAPSHOT-DGCAIP-ROUNDING-01`.
+- Active CSV row: `GIT-SNAPSHOT-R2-BINDING-01`.
 - Reviewed and pushed snapshot:
-  `6c98dc35c6ff94ca4519feb6aa497bf3986e6922`.
+  `84536f9ea486b0e67355ab74619188ce22229bf2`.
 - GitHub remote branch SHA was independently verified as the same full commit.
+- `PRERUN-MECHANISM-05` blocked only on an R2 launcher versus R1 config
+  artifact-root mismatch; all other exact-checkout checks passed.
+- The two-line runtime binding fix is locally validated and awaits a scoped snapshot.
 - Remote state: D0 passed. The R1 mechanism run terminated on a finite float32
   negative-roundoff guard; its five-file failure evidence set was pulled and
   hash-verified, and the instance requested shutdown.
@@ -349,3 +352,19 @@ mechanism benefit, target-class unlearnability, or non-target AP50 preservation.
   fail-closed boundary. Twenty-one focused and 65 related tests passed; the full
   `(64,8400,20)` reproduction now has zero negative JS/KL entries and finite
   gradients. The launcher now targets unique R2 session and output paths.
+
+- 2026-08-23: Created the five-file scoped local repair snapshot
+  `84536f9ea486b0e67355ab74619188ce22229bf2`, parent `6c98dc3`. It contains only
+  the divergence implementation, regression test, R2 launcher, CSV, and review;
+  ordinary non-force push requires explicit authorization for this exact SHA.
+
+- 2026-08-23: User authorized and Codex completed the ordinary non-force push of
+  `84536f9ea486b0e67355ab74619188ce22229bf2`; the GitHub branch SHA was
+  independently verified as identical.
+- 2026-08-23: AutoDL no-card `PRERUN-MECHANISM-05` used a clean exact checkout.
+  Source, numerical probe, Bash, inputs, disk, and R2 path-absence checks passed,
+  but launch was blocked because the config still named the preserved R1 root.
+- 2026-08-23: Corrected only `runtime.artifact_root` to R2 and synchronized the
+  launcher to normalized config SHA `9c63aa769b89685b5491eea4005552593f4f670427ce7d2f963a19dc00933d22`.
+  Both Bash checks, config/root/hash assertions, and 23 focused tests passed; no
+  scientific parameter changed and no GPU job started.

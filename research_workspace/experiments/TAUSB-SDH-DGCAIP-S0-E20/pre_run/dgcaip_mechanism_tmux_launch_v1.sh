@@ -10,7 +10,7 @@ CHECKOUT="/root/autodl-tmp/tausb-dgcaip/checkouts/${EXECUTION_COMMIT}-mechanism"
 SESSION="tausb-dgcaip-mechanism-s0-r2"
 PYTHON_BIN="/root/miniconda3/bin/python"
 # SHA256 of the LF-normalized config bytes in the reviewed Linux checkout.
-EXPECTED_CONFIG_SHA256="a5de2322f40c090103895d869d5aeb528379ced58be285017d51a615a592119d"
+EXPECTED_CONFIG_SHA256="9c63aa769b89685b5491eea4005552593f4f670427ce7d2f963a19dc00933d22"
 ARTIFACT_ROOT="/root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-R2-MECHANISM"
 CONTROL_ROOT="/root/autodl-tmp/tausb-dgcaip-control/TAUSB-SDH-DGCAIP-S0-R2-MECHANISM"
 CACHE_ROOT="/root/autodl-tmp/tausb-dgcaip-cache/TAUSB-SDH-DGCAIP-S0-R2-MECHANISM"

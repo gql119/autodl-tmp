@@ -76,5 +76,5 @@ dgcaip:
   d0_report: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-R1-D0/d0/d0_locator.json
   d0_report_sha256: 911896f16514639b3b5190d86155f6a48c7711ec1e206828b8e98674114d7539
 runtime:
-  artifact_root: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-R1-MECHANISM
+  artifact_root: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-R2-MECHANISM
   device: cuda:0
