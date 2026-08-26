@@ -15,7 +15,8 @@ shutdown_once() {
     if [[ -e "${terminal_path}" ]]; then
       terminal_path="$(mktemp "${CONTROL_ROOT:-${REQUIRED_STORAGE_ROOT}/tausb-dgcaip-control/fallback}/wrapper_terminal.XXXXXX.json")"
     fi
-    printf '{"schema":"tausb.dgcaip-r3-wrapper-terminal.v1","exit_code":%d,"shutdown_requested":true}\n' "${rc}" +      > "${terminal_path}"
+    printf '{"schema":"tausb.dgcaip-r3-wrapper-terminal.v1","exit_code":%d,"shutdown_requested":true}\n' \
+      "${rc}" > "${terminal_path}"
   fi
   echo "[DGCAIP-R3] controller_exit=${rc}; requesting AutoDL shutdown"
   sync || true
@@ -49,7 +50,9 @@ CONTROL_ROOT="$(realpath -m "${CONTROL_ROOT}")"
 CACHE_ROOT="$(realpath -m "${CACHE_ROOT}")"
 TMP_ROOT="$(realpath -m "${TMP_ROOT}")"
 
-for growing_path in +  "${REPOSITORY_ROOT}" "${ARTIFACT_ROOT}" "${CONTROL_ROOT}" +  "${CACHE_ROOT}" "${TMP_ROOT}"; do
+for growing_path in \
+  "${REPOSITORY_ROOT}" "${ARTIFACT_ROOT}" "${CONTROL_ROOT}" \
+  "${CACHE_ROOT}" "${TMP_ROOT}"; do
   case "${growing_path}" in
     "${REQUIRED_STORAGE_ROOT}"|"${REQUIRED_STORAGE_ROOT}"/*) ;;
     *) echo "[DGCAIP-R3] path outside data disk: ${growing_path}" >&2; exit 20 ;;
@@ -63,7 +66,9 @@ test "$(sha256sum "${CONFIG_PATH}" | awk '{print $1}')" = "${EXPECTED_CONFIG_SHA
 test ! -e "${ARTIFACT_ROOT}"
 test ! -e "${CONTROL_ROOT}"
 
-mkdir -p "${CONTROL_ROOT}" "${CACHE_ROOT}/xdg" "${CACHE_ROOT}/torch" +  "${CACHE_ROOT}/yolo" "${CACHE_ROOT}/cuda" "${CACHE_ROOT}/matplotlib" +  "${CACHE_ROOT}/huggingface" "${TMP_ROOT}"
+mkdir -p "${CONTROL_ROOT}" "${CACHE_ROOT}/xdg" "${CACHE_ROOT}/torch" \
+  "${CACHE_ROOT}/yolo" "${CACHE_ROOT}/cuda" "${CACHE_ROOT}/matplotlib" \
+  "${CACHE_ROOT}/huggingface" "${TMP_ROOT}"
 export TMPDIR="${TMP_ROOT}"
 export XDG_CACHE_HOME="${CACHE_ROOT}/xdg"
 export TORCH_HOME="${CACHE_ROOT}/torch"
@@ -72,7 +77,9 @@ export CUDA_CACHE_PATH="${CACHE_ROOT}/cuda"
 export MPLCONFIGDIR="${CACHE_ROOT}/matplotlib"
 export HF_HOME="${CACHE_ROOT}/huggingface"
 
-printf '{"schema":"tausb.dgcaip-r3-controller.v1","status":"running","execution_commit":"%s","config_sha256":"%s","hard_cap_seconds":600}\n' +  "${EXPECTED_COMMIT}" "${EXPECTED_CONFIG_SHA256}" +  > "${CONTROL_ROOT}/controller_status.json"
+printf '{"schema":"tausb.dgcaip-r3-controller.v1","status":"running","execution_commit":"%s","config_sha256":"%s","hard_cap_seconds":600}\n' \
+  "${EXPECTED_COMMIT}" "${EXPECTED_CONFIG_SHA256}" \
+  > "${CONTROL_ROOT}/controller_status.json"
 
 cd "${REPOSITORY_ROOT}/ue_project"
 "${PYTHON_BIN}" - "${CONFIG_PATH}" "${ARTIFACT_ROOT}" <<'PY'
@@ -112,7 +119,10 @@ if [[ "${remaining}" -le 0 ]]; then
 fi
 
 set +e
-timeout --signal=TERM --kill-after=30s "${remaining}s" +  "${PYTHON_BIN}" -u -m ue_framework.tools.run_tausb_sdh +    --config "${CONFIG_PATH}" +    --stage mechanism
+timeout --signal=TERM --kill-after=30s "${remaining}s" \
+  "${PYTHON_BIN}" -u -m ue_framework.tools.run_tausb_sdh \
+    --config "${CONFIG_PATH}" \
+    --stage mechanism
 run_rc=$?
 set -e
 
@@ -120,5 +130,7 @@ status="completed"
 if [[ "${run_rc}" -ne 0 ]]; then
   status="failed"
 fi
-printf '{"schema":"tausb.dgcaip-r3-controller.v1","status":"%s","exit_code":%d,"execution_commit":"%s","config_sha256":"%s","hard_cap_seconds":600}\n' +  "${status}" "${run_rc}" "${EXPECTED_COMMIT}" "${EXPECTED_CONFIG_SHA256}" +  > "${CONTROL_ROOT}/controller_status.json"
+printf '{"schema":"tausb.dgcaip-r3-controller.v1","status":"%s","exit_code":%d,"execution_commit":"%s","config_sha256":"%s","hard_cap_seconds":600}\n' \
+  "${status}" "${run_rc}" "${EXPECTED_COMMIT}" "${EXPECTED_CONFIG_SHA256}" \
+  > "${CONTROL_ROOT}/controller_status.json"
 exit "${run_rc}"

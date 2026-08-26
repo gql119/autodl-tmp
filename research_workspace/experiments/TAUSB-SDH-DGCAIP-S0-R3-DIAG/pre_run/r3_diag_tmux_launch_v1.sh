@@ -72,7 +72,8 @@ test ! -e "${PRELAUNCH_FAILURE_LOG}"
 
 git -C "${SOURCE_REPOSITORY}" fetch origin "${BRANCH}"
 git -C "${SOURCE_REPOSITORY}" cat-file -e "${EXECUTION_COMMIT}^{commit}"
-git -C "${SOURCE_REPOSITORY}" merge-base --is-ancestor +  "${EXECUTION_COMMIT}" "origin/${BRANCH}"
+git -C "${SOURCE_REPOSITORY}" merge-base --is-ancestor \
+  "${EXECUTION_COMMIT}" "origin/${BRANCH}"
 mkdir -p "$(dirname "${CHECKOUT}")" "$(dirname "${OUTER_LOG}")"
 git -C "${SOURCE_REPOSITORY}" worktree add --detach "${CHECKOUT}" "${EXECUTION_COMMIT}"
 test "$(git -C "${CHECKOUT}" rev-parse HEAD)" = "${EXECUTION_COMMIT}"
@@ -84,7 +85,12 @@ test -f "${WRAPPER}"
 test -f "${CONFIG_PATH}"
 test "$(sha256sum "${CONFIG_PATH}" | awk '{print $1}')" = "${EXPECTED_CONFIG_SHA256}"
 
-printf -v TMUX_COMMAND +  'env PYTHON_BIN=%q REPOSITORY_ROOT=%q REQUIRED_STORAGE_ROOT=%q EXPECTED_COMMIT=%q EXPECTED_CONFIG_SHA256=%q CONFIG_PATH=%q ARTIFACT_ROOT=%q CONTROL_ROOT=%q CACHE_ROOT=%q TMP_ROOT=%q /bin/bash %q > %q 2>&1' +  "${PYTHON_BIN}" "${CHECKOUT}" "${REQUIRED_STORAGE_ROOT}" +  "${EXECUTION_COMMIT}" "${EXPECTED_CONFIG_SHA256}" "${CONFIG_PATH}" +  "${ARTIFACT_ROOT}" "${CONTROL_ROOT}" "${CACHE_ROOT}" "${TMP_ROOT}" +  "${WRAPPER}" "${OUTER_LOG}"
+printf -v TMUX_COMMAND \
+  'env PYTHON_BIN=%q REPOSITORY_ROOT=%q REQUIRED_STORAGE_ROOT=%q EXPECTED_COMMIT=%q EXPECTED_CONFIG_SHA256=%q CONFIG_PATH=%q ARTIFACT_ROOT=%q CONTROL_ROOT=%q CACHE_ROOT=%q TMP_ROOT=%q /bin/bash %q > %q 2>&1' \
+  "${PYTHON_BIN}" "${CHECKOUT}" "${REQUIRED_STORAGE_ROOT}" \
+  "${EXECUTION_COMMIT}" "${EXPECTED_CONFIG_SHA256}" "${CONFIG_PATH}" \
+  "${ARTIFACT_ROOT}" "${CONTROL_ROOT}" "${CACHE_ROOT}" "${TMP_ROOT}" \
+  "${WRAPPER}" "${OUTER_LOG}"
 
 tmux new-session -d -s "${SESSION}" "${TMUX_COMMAND}"
 trap - ERR EXIT INT TERM
