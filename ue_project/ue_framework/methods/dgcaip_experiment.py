@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 import time
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
@@ -20,6 +21,10 @@ from .constraint_gradient_router import (
 from .detector_lfc import DetectorLFCPrototypeBank
 from .dgcaip import DGCAIPResult, FrozenDGCAIPGradientCalibration
 from .dgcaip_diagnostics import build_dgcaip_locator_report
+from .dgcaip_r3_diagnostics import (
+    build_rejection_attribution,
+    build_same_process_replay,
+)
 from .instance_cicr import FrozenInstanceCICRBank
 from .non_target_logit_alignment import FrozenNLAGradientCalibration
 from .sdh_experiment import (
@@ -55,6 +60,12 @@ DGCAIP_ARMS = {
     "P1-R": "off",
     "P2-CAIP": "caip",
     "P3-DIST": "dist",
+    "P4-DGCAIP": "dgcaip",
+}
+R3_DIAGNOSTIC_ARMS = {
+    "P1-A": "off",
+    "P1-B": "off",
+    "P2-CAIP": "caip",
     "P4-DGCAIP": "dgcaip",
 }
 
@@ -169,6 +180,26 @@ def _parameter_sha256(parameters: Sequence[torch.Tensor]) -> str:
         )
         digest.update(array.tobytes(order="C"))
     return digest.hexdigest()
+
+
+def _batch_sha256(paths: Sequence[Path], label_dir: Path) -> str:
+    digest = hashlib.sha256()
+    for path in paths:
+        label_path = Path(label_path_for_image(str(path), str(label_dir)))
+        digest.update(path.name.encode("utf-8"))
+        digest.update(_file_sha256(path).encode("ascii"))
+        digest.update(label_path.name.encode("utf-8"))
+        digest.update(_file_sha256(label_path).encode("ascii"))
+    return digest.hexdigest()
+
+
+def _vector_cosine(left: torch.Tensor, right: torch.Tensor) -> float:
+    left = left.detach().float().reshape(-1)
+    right = right.detach().float().reshape(-1)
+    denominator = float(left.norm() * right.norm())
+    if denominator <= 1.0e-12:
+        return 1.0 if float(left.norm() + right.norm()) <= 1.0e-12 else 0.0
+    return float(torch.dot(left, right) / denominator)
 
 
 def _is_cooccurring(path: Path, label_dir: Path, target_class_id: int) -> bool:
@@ -434,6 +465,9 @@ def run_dgcaip_pilot(
         config, config_base=config_base
     )
     dg_config = config["dgcaip"]
+    r3_diagnostics = dg_config.get("r3_diagnostics", {})
+    r3_enabled = bool(r3_diagnostics.get("enabled", False))
+    arm_modes = R3_DIAGNOSTIC_ARMS if r3_enabled else DGCAIP_ARMS
     source_p1_path = _resolve(config_base, str(dg_config["source_p1_state"]))
     if _file_sha256(source_p1_path) != str(dg_config["source_p1_state_sha256"]).lower():
         raise ValueError("DG-CAIP source P1 state hash mismatch.")
@@ -638,10 +672,15 @@ def run_dgcaip_pilot(
         arm_deltas = {}
         arm_states = {}
         arm_initial_hashes = {}
-        for arm_id, dg_mode in DGCAIP_ARMS.items():
+        arm_final_hashes = {}
+        arm_batch_hashes = {}
+        arm_route_gradients = {}
+        for arm_id, dg_mode in arm_modes.items():
             carrier = _clone_detector_carrier(base_carrier, device)
             parameters = adapter_parameters(carrier)
             arm_initial_hashes[arm_id] = _parameter_sha256(parameters)
+            arm_batch_hashes[arm_id] = []
+            arm_route_gradients[arm_id] = []
             step_rows = []
             gradient_cosines = []
             backtrack_or_skip = 0
@@ -649,6 +688,13 @@ def run_dgcaip_pilot(
                 _time_guard(start, max_seconds, "DG-CAIP mechanism")
                 paths_batch = calibration_batches[step % len(calibration_batches)]
                 batch = load(paths_batch)
+                batch_sha256 = (
+                    _batch_sha256(paths_batch, label_dir)
+                    if r3_enabled
+                    else None
+                )
+                if r3_enabled:
+                    arm_batch_hashes[arm_id].append(str(batch_sha256))
                 observation = engine.observe(
                     batch,
                     carrier,
@@ -674,7 +720,7 @@ def run_dgcaip_pilot(
                 originals = tuple(
                     parameter.detach().clone() for parameter in parameters
                 )
-                if arm_id == "P1-R":
+                if dg_mode == "off":
                     routed = route_multi_parameter_gradients(
                         parameters=parameters,
                         target_loss=objective.loss,
@@ -758,6 +804,7 @@ def run_dgcaip_pilot(
                             evaluate_constraints=evaluate_dgcaip,
                             limits=limits,
                             max_backtracks=5,
+                            record_trace=r3_enabled,
                         )
                     else:
                         backtracked = backtrack_multi_parameter_update(
@@ -769,24 +816,65 @@ def run_dgcaip_pilot(
                             max_backtracks=5,
                         )
                     protection_ratio = routed.explicit_protection_norm_ratio
+                if r3_enabled:
+                    arm_route_gradients[arm_id].append(
+                        routed.gradient.detach().cpu().clone()
+                    )
                 if backtracked.attempts > 1 or not backtracked.accepted:
                     backtrack_or_skip += 1
                 if backtracked.accepted:
                     _copy_parameters_(parameters, backtracked.candidate)
-                step_rows.append(
-                    {
-                        "step": step,
-                        "route_mode": routed.mode,
-                        "constraint_rank": routed.rank,
-                        "null_dimension": routed.null_dimension,
-                        "attack_retention": routed.attack_retention,
-                        "max_projected_row_dot": routed.max_projected_row_dot,
-                        "max_final_row_dot": routed.max_final_row_dot,
-                        "explicit_protection_norm_ratio": protection_ratio,
-                        "backtrack_attempts": backtracked.attempts,
-                        "accepted": backtracked.accepted,
-                    }
-                )
+                step_row = {
+                    "step": step,
+                    "route_mode": routed.mode,
+                    "constraint_rank": routed.rank,
+                    "null_dimension": routed.null_dimension,
+                    "attack_retention": routed.attack_retention,
+                    "max_projected_row_dot": routed.max_projected_row_dot,
+                    "max_final_row_dot": routed.max_final_row_dot,
+                    "explicit_protection_norm_ratio": protection_ratio,
+                    "backtrack_attempts": backtracked.attempts,
+                    "accepted": backtracked.accepted,
+                }
+                if r3_enabled:
+                    serialized_trace = [
+                        asdict(item) for item in backtracked.trace
+                    ]
+                    if dg_mode != "off" and not serialized_trace:
+                        serialized_trace = [
+                            {
+                                "attempt": 0,
+                                "step_size": float(backtracked.step_size),
+                                "finite": True,
+                                "constraints": [],
+                                "group_max_margin": {
+                                    "probability": None,
+                                    "iou": None,
+                                    "alignment": None,
+                                    "js": None,
+                                },
+                                "group_violation_count": {
+                                    "probability": 0,
+                                    "iou": 0,
+                                    "alignment": 0,
+                                    "js": 0,
+                                },
+                                "accepted": bool(backtracked.accepted),
+                                "reason": str(backtracked.status),
+                            }
+                        ]
+                    step_row.update(
+                        {
+                            "batch_sha256": batch_sha256,
+                            "routed_gradient_sha256": _parameter_sha256(
+                                (routed.gradient,)
+                            ),
+                            "target_gradient_norm": routed.target_norm,
+                            "final_gradient_norm": routed.combined_norm,
+                            "backtracking_trace": serialized_trace,
+                        }
+                    )
+                step_rows.append(step_row)
 
             heldout_observations = []
             with torch.no_grad():
@@ -820,9 +908,112 @@ def run_dgcaip_pilot(
                 key: value.detach().cpu().clone()
                 for key, value in carrier.state_dict().items()
             }
+            if r3_enabled:
+                arm_final_hashes[arm_id] = _parameter_sha256(parameters)
 
         if len(set(arm_initial_hashes.values())) != 1:
             raise ValueError("DG-CAIP arms do not share the same adapter initialization.")
+
+        if r3_enabled:
+            expected_arms = {"P1-A", "P1-B", "P2-CAIP", "P4-DGCAIP"}
+            if set(arms) != expected_arms:
+                raise ValueError("R3-DIAG arm set changed.")
+            route_cosines = [
+                _vector_cosine(p2_gradient, p4_gradient)
+                for p2_gradient, p4_gradient in zip(
+                    arm_route_gradients["P2-CAIP"],
+                    arm_route_gradients["P4-DGCAIP"],
+                )
+            ]
+            h1 = build_rejection_attribution(
+                p2_steps=arms["P2-CAIP"]["steps"],
+                p4_steps=arms["P4-DGCAIP"]["steps"],
+                routed_gradient_cosines=route_cosines,
+            )
+            same_process_numeric = _p1_replay_report(
+                arms["P1-B"],
+                {"arms": {"P1": arms["P1-A"]}},
+                absolute_tolerance=float(
+                    dg_config["p1_replay_absolute_tolerance"]
+                ),
+                relative_tolerance=float(
+                    dg_config["p1_replay_relative_tolerance"]
+                ),
+            )
+            h2 = build_same_process_replay(
+                p1_a_initial_sha256=arm_initial_hashes["P1-A"],
+                p1_b_initial_sha256=arm_initial_hashes["P1-B"],
+                p1_a_batch_sha256=arm_batch_hashes["P1-A"],
+                p1_b_batch_sha256=arm_batch_hashes["P1-B"],
+                replay_report=same_process_numeric,
+            )
+            shared_batches = len(
+                {tuple(values) for values in arm_batch_hashes.values()}
+            ) == 1
+            checks = {
+                "trace_complete": bool(h1["trace_complete"]),
+                "active_trace_decisions_match": bool(
+                    h1["active_trace_decisions_match"]
+                ),
+                "shared_initial_adapter": len(
+                    set(arm_initial_hashes.values())
+                ) == 1,
+                "shared_batch_sequence": shared_batches,
+                "p1_replay_inputs_match": bool(
+                    h2["initial_adapter_match"]
+                    and h2["batch_sequence_match"]
+                ),
+                "h1_label_emitted": h1["label"]
+                in {
+                    "caip_common_infeasibility",
+                    "js_incremental_blocker",
+                    "ranking_route_shift",
+                    "inconclusive_mixed",
+                },
+                "h2_label_emitted": h2["label"]
+                in {
+                    "within_process_replay_pass",
+                    "within_process_nondeterminism",
+                    "replay_invalid_input_mismatch",
+                },
+            }
+            result = {
+                "schema": "tausb.dgcaip-r3-diagnostic.v1",
+                "spec_id": config["spec"]["spec_id"],
+                "split_hash": _split_hash(split),
+                "source_p1_state_sha256": _file_sha256(source_p1_path),
+                "source_p1_metrics_sha256": _file_sha256(
+                    source_p1_metrics_path
+                ),
+                "d0_report_sha256": _file_sha256(d0_path),
+                "target_weight_calibration": target_calibration.state_dict(),
+                "nla_calibration": nla_calibration.state_dict(),
+                "dgcaip_calibration": dg_calibration.state_dict(),
+                "arm_initial_adapter_sha256": arm_initial_hashes,
+                "arm_final_adapter_sha256": arm_final_hashes,
+                "arm_batch_sha256": arm_batch_hashes,
+                "initial": initial_summary,
+                "arms": arms,
+                "h1": h1,
+                "h2": h2,
+                "decision": {
+                    "checks": checks,
+                    "pass": all(checks.values()),
+                },
+                "elapsed_seconds": time.monotonic() - start,
+            }
+            _write_json(
+                output_root / "backtracking_trace.json",
+                {
+                    "schema": "tausb.dgcaip-r3-backtracking-trace.v1",
+                    "P2-CAIP": arms["P2-CAIP"]["steps"],
+                    "P4-DGCAIP": arms["P4-DGCAIP"]["steps"],
+                },
+            )
+            _write_json(output_root / "p1_same_process_replay.json", h2)
+            _write_json(output_root / "rejection_attribution.json", h1)
+            _write_json(output_root / "mechanism_metrics.json", result)
+            return result
 
         p1 = arms["P1-R"]
         p2 = arms["P2-CAIP"]

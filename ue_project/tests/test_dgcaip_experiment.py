@@ -9,14 +9,16 @@ import pytest
 import torch
 import yaml
 
-from ue_framework.methods import dgcaip_experiment
+from ue_framework.methods import dgcaip_experiment, sdh_experiment
 from ue_framework.methods.dgcaip import DGCAIPInstanceTerm, DGCAIPResult
 from ue_framework.methods.dgcaip_experiment import (
     DGCAIP_ARMS,
+    R3_DIAGNOSTIC_ARMS,
     _constraint_limits,
     _p1_replay_report,
 )
 from ue_framework.methods.sdh_experiment import (
+    DGCAIP_R3_DIAG_SPEC_ID,
     DGCAIP_SPEC_ID,
     validate_sdh_experiment_config,
 )
@@ -27,6 +29,12 @@ E2E = (
     / "ue_framework"
     / "configs"
     / "tausb_sdh_e2e_v0_mechanism.yaml"
+)
+R3 = (
+    Path(__file__).parents[1]
+    / "ue_framework"
+    / "configs"
+    / "tausb_sdh_dgcaip_r3_diag_v1.yaml"
 )
 
 
@@ -102,6 +110,56 @@ def test_mechanism_mode_requires_hashed_passed_d0_artifact() -> None:
     config["dgcaip"]["p1_replay_absolute_tolerance"] = 1.0e-6
     config["dgcaip"]["p1_replay_relative_tolerance"] = 1.0e-4
     validate_sdh_experiment_config(config)
+
+
+def test_r3_diagnostic_config_is_exact_and_fail_closed() -> None:
+    config = yaml.safe_load(R3.read_text(encoding="utf-8"))
+    validate_sdh_experiment_config(config)
+    assert config["spec"]["spec_id"] == DGCAIP_R3_DIAG_SPEC_ID
+    assert config["dgcaip"]["run_mode"] == "r3_diag"
+    assert config["dgcaip"]["r3_diagnostics"]["enabled"] is True
+    assert config["mechanism"]["max_seconds"] == 600
+    assert config["mechanism"]["optimization_steps"] == 8
+    assert R3_DIAGNOSTIC_ARMS == {
+        "P1-A": "off",
+        "P1-B": "off",
+        "P2-CAIP": "caip",
+        "P4-DGCAIP": "dgcaip",
+    }
+    assert "P3-DIST" not in R3_DIAGNOSTIC_ARMS
+    assert config["runtime"]["artifact_root"].endswith(
+        "TAUSB-SDH-DGCAIP-S0-R3-DIAG"
+    )
+
+    disabled = copy.deepcopy(config)
+    disabled["dgcaip"]["r3_diagnostics"]["enabled"] = False
+    with pytest.raises(ValueError, match="enabled=true"):
+        validate_sdh_experiment_config(disabled)
+
+    wrong_cap = copy.deepcopy(config)
+    wrong_cap["mechanism"]["max_seconds"] = 601
+    with pytest.raises(ValueError, match="600 seconds"):
+        validate_sdh_experiment_config(wrong_cap)
+
+
+def test_r3_config_routes_to_dgcaip_pilot(monkeypatch) -> None:
+    config = yaml.safe_load(R3.read_text(encoding="utf-8"))
+    captured = {}
+
+    def fake_run(bound, *, config_base):
+        captured["spec_id"] = bound["spec"]["spec_id"]
+        captured["config_base"] = config_base
+        return {"schema": "test"}
+
+    monkeypatch.setattr(dgcaip_experiment, "run_dgcaip_pilot", fake_run)
+    result = sdh_experiment.run_mechanism_pilot(
+        config, config_base=Path("/tmp/project")
+    )
+    assert result == {"schema": "test"}
+    assert captured == {
+        "spec_id": DGCAIP_R3_DIAG_SPEC_ID,
+        "config_base": Path("/tmp/project"),
+    }
 
 
 @pytest.mark.parametrize(

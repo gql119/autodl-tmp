@@ -87,6 +87,69 @@ def test_heterogeneous_backtracking_accepts_after_step_reduction() -> None:
     assert result.accepted is True
     assert result.attempts == 4
     assert result.step_size == pytest.approx(0.005)
+    assert result.trace == ()
+
+
+def test_heterogeneous_backtracking_trace_is_observational_only() -> None:
+    omega = torch.tensor([0.0], requires_grad=True)
+
+    def evaluate(candidate):
+        value = float(candidate[0].abs().item())
+        return {
+            "class1:probability": value,
+            "class1:iou": value / 2.0,
+            "class1:alignment": value / 4.0,
+            "class1:js": value / 8.0,
+        }
+
+    kwargs = {
+        "parameters": (omega,),
+        "flattened_gradient": torch.tensor([-1.0]),
+        "step_size": 0.04,
+        "evaluate_constraints": evaluate,
+        "limits": {
+            "class1:probability": 0.005,
+            "class1:iou": 0.02,
+            "class1:alignment": 0.05,
+            "class1:js": 0.01,
+        },
+    }
+    untraced = backtrack_multi_parameter_constraints(**kwargs)
+    traced = backtrack_multi_parameter_constraints(
+        **kwargs,
+        record_trace=True,
+    )
+    assert traced.candidate[0].tolist() == pytest.approx(
+        untraced.candidate[0].tolist()
+    )
+    assert traced.accepted == untraced.accepted
+    assert traced.attempts == untraced.attempts
+    assert traced.step_size == untraced.step_size
+    assert traced.values == untraced.values
+    assert traced.status == untraced.status
+    assert untraced.trace == ()
+    assert traced.accepted is True
+    assert traced.attempts == 4
+    assert traced.step_size == pytest.approx(0.005)
+    assert len(traced.trace) == traced.attempts
+    assert [item.attempt for item in traced.trace] == [0, 1, 2, 3]
+    assert traced.trace[-1].accepted is True
+    assert traced.trace[-1].reason == "accepted"
+    assert traced.trace[-1].group_violation_count == {
+        "probability": 0,
+        "iou": 0,
+        "alignment": 0,
+        "js": 0,
+    }
+    first_probability = next(
+        row
+        for row in traced.trace[0].constraints
+        if row.name == "class1:probability"
+    )
+    assert first_probability.value == pytest.approx(0.04)
+    assert first_probability.limit == pytest.approx(0.005)
+    assert first_probability.margin == pytest.approx(0.035)
+    assert first_probability.violated is True
 
 
 def test_heterogeneous_backtracking_skips_after_exactly_five_reductions() -> None:
@@ -102,3 +165,26 @@ def test_heterogeneous_backtracking_skips_after_exactly_five_reductions() -> Non
     assert result.attempts == 6
     assert result.status == "skip"
     assert result.candidate[0].item() == 0.0
+
+
+def test_heterogeneous_backtracking_trace_records_terminal_rejection() -> None:
+    omega = torch.tensor([0.0], requires_grad=True)
+    result = backtrack_multi_parameter_constraints(
+        parameters=(omega,),
+        flattened_gradient=torch.tensor([1.0]),
+        step_size=1.0,
+        evaluate_constraints=lambda _: {"class1:js": 1.0},
+        limits={"class1:js": 0.0},
+        record_trace=True,
+    )
+    assert result.accepted is False
+    assert len(result.trace) == 6
+    assert result.trace[-1].step_size == pytest.approx(1.0 / 32.0)
+    assert result.trace[-1].group_max_margin == {
+        "probability": None,
+        "iou": None,
+        "alignment": None,
+        "js": pytest.approx(1.0),
+    }
+    assert result.trace[-1].group_violation_count["js"] == 1
+    assert result.trace[-1].reason == "constraint_limit_exceeded"

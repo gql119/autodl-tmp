@@ -60,6 +60,8 @@ ARM_SWITCHES = {
 
 E2E_V0_SPEC_ID = E2E_V0_PROTOCOL_ID
 DGCAIP_SPEC_ID = "TAUSB-SDH-DGCAIP-CGR-E20-v2"
+DGCAIP_R3_DIAG_SPEC_ID = "TAUSB-SDH-DGCAIP-R3-DIAG-v1"
+DGCAIP_SPEC_IDS = {DGCAIP_SPEC_ID, DGCAIP_R3_DIAG_SPEC_ID}
 E2E_V0_R2_CHECKPOINT_SHA256 = (
     "a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36"
 )
@@ -370,7 +372,7 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         legacy_spec_id,
         subband_spec_id,
         E2E_V0_SPEC_ID,
-        DGCAIP_SPEC_ID,
+        *DGCAIP_SPEC_IDS,
     }:
         raise ValueError("SDH experiment spec_id mismatch.")
     if int(config["spec"].get("seed", -1)) != 0:
@@ -414,7 +416,7 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         "source_checkpoint_sha256",
         "allow_failed_scientific_gates",
     )
-    if spec_id in {E2E_V0_SPEC_ID, DGCAIP_SPEC_ID}:
+    if spec_id == E2E_V0_SPEC_ID or spec_id in DGCAIP_SPEC_IDS:
         if config["hiding"].get("allow_failed_scientific_gates") is not True:
             raise ValueError("E2E V0 requires allow_failed_scientific_gates=true.")
         if not str(config["hiding"].get("source_artifact_root", "")).strip():
@@ -460,12 +462,20 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         for key in keys:
             if not str(config[section].get(key, "")).strip():
                 raise ValueError("SDH config requires %s.%s." % (section, key))
-    if spec_id == DGCAIP_SPEC_ID:
+    if spec_id in DGCAIP_SPEC_IDS:
         dgcaip = config.get("dgcaip")
         if not isinstance(dgcaip, Mapping):
             raise ValueError("DG-CAIP Spec requires a dgcaip config section.")
-        if str(dgcaip.get("run_mode", "")) not in {"d0", "mechanism"}:
-            raise ValueError("DG-CAIP run_mode must be d0 or mechanism.")
+        run_mode = str(dgcaip.get("run_mode", ""))
+        expected_run_modes = (
+            {"r3_diag"}
+            if spec_id == DGCAIP_R3_DIAG_SPEC_ID
+            else {"d0", "mechanism"}
+        )
+        if run_mode not in expected_run_modes:
+            raise ValueError(
+                "DG-CAIP run_mode is invalid for the selected Spec."
+            )
         frozen = {
             "temperature": 2.0,
             "protection_ratio": 0.25,
@@ -487,7 +497,7 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         source_state_hash = str(dgcaip.get("source_p1_state_sha256", ""))
         if len(source_state_hash) != 64 or set(source_state_hash) == {"0"}:
             raise ValueError("DG-CAIP requires source_p1_state_sha256.")
-        if str(dgcaip["run_mode"]) == "mechanism":
+        if run_mode in {"mechanism", "r3_diag"}:
             if not str(dgcaip.get("d0_report", "")).strip():
                 raise ValueError("DG-CAIP mechanism requires a passed D0 report.")
             d0_hash = str(dgcaip.get("d0_report_sha256", ""))
@@ -509,6 +519,18 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
             for key, expected in replay_tolerances.items():
                 if float(dgcaip.get(key, float("nan"))) != expected:
                     raise ValueError("DG-CAIP %s must remain %s." % (key, expected))
+        if spec_id == DGCAIP_R3_DIAG_SPEC_ID:
+            diagnostics = dgcaip.get("r3_diagnostics")
+            if not isinstance(diagnostics, Mapping) or diagnostics.get("enabled") is not True:
+                raise ValueError("R3-DIAG requires r3_diagnostics.enabled=true.")
+            if int(config["mechanism"].get("batch_size", -1)) != 4:
+                raise ValueError("R3-DIAG freezes mechanism batch_size=4.")
+            if int(config["mechanism"].get("calibration_batches", -1)) != 16:
+                raise ValueError("R3-DIAG freezes 16 calibration batches.")
+            if int(config["mechanism"].get("heldout_batches", -1)) != 24:
+                raise ValueError("R3-DIAG freezes 24 held-out batches.")
+            if float(config["mechanism"].get("max_seconds", -1)) != 600.0:
+                raise ValueError("R3-DIAG hard cap must remain 600 seconds.")
 
 
 def _resolve(base: Path, value: str) -> Path:
@@ -784,7 +806,7 @@ def _load_hiding_checkpoint(
     device: torch.device,
 ) -> Tuple[SemanticHidingCarrier, torch.Tensor, Mapping[str, Any]]:
     spec_id = str(config["spec"].get("spec_id", ""))
-    feasibility_mode = spec_id in {E2E_V0_SPEC_ID, DGCAIP_SPEC_ID}
+    feasibility_mode = spec_id == E2E_V0_SPEC_ID or spec_id in DGCAIP_SPEC_IDS
     root_value = (
         config["hiding"].get("source_artifact_root", "")
         if feasibility_mode
@@ -1027,7 +1049,7 @@ def _summarize_arm(
 
 def run_mechanism_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict[str, Any]:
     validate_sdh_experiment_config(config)
-    if str(config["spec"].get("spec_id", "")) == DGCAIP_SPEC_ID:
+    if str(config["spec"].get("spec_id", "")) in DGCAIP_SPEC_IDS:
         from .dgcaip_experiment import run_dgcaip_pilot
 
         return run_dgcaip_pilot(config, config_base=config_base)

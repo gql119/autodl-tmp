@@ -70,6 +70,29 @@ class MultiParameterBacktrackingResult:
     step_size: float
     values: Dict[str, float]
     status: str
+    trace: Tuple["ConstraintAttemptTrace", ...] = ()
+
+
+@dataclass(frozen=True)
+class ConstraintValueTrace:
+    name: str
+    family: str
+    value: float
+    limit: float
+    margin: float
+    violated: bool
+
+
+@dataclass(frozen=True)
+class ConstraintAttemptTrace:
+    attempt: int
+    step_size: float
+    finite: bool
+    constraints: Tuple[ConstraintValueTrace, ...]
+    group_max_margin: Dict[str, float | None]
+    group_violation_count: Dict[str, int]
+    accepted: bool
+    reason: str
 
 
 @dataclass(frozen=True)
@@ -445,6 +468,7 @@ def backtrack_multi_parameter_constraints(
     limits: Mapping[str, float],
     max_backtracks: int = 5,
     epsilon: float = 1.0e-9,
+    record_trace: bool = False,
 ) -> MultiParameterBacktrackingResult:
     """Backtrack a multi-parameter update against heterogeneous limits."""
 
@@ -459,6 +483,7 @@ def backtrack_multi_parameter_constraints(
     originals = tuple(parameter.detach().clone() for parameter in omega)
     current_step = float(step_size)
     last_values: Dict[str, float] = {}
+    trace = []
     for attempt in range(max_backtracks + 1):
         candidate = tuple(
             original - current_step * gradient.detach()
@@ -470,6 +495,47 @@ def backtrack_multi_parameter_constraints(
         if not all(torch.isfinite(torch.tensor(value)) for value in evaluated.values()):
             raise ValueError("Constraint evaluator returned non-finite values.")
         last_values = {str(name): float(value) for name, value in evaluated.items()}
+        if record_trace:
+            constraint_rows = tuple(
+                ConstraintValueTrace(
+                    name=str(name),
+                    family=str(name).rsplit(":", 1)[-1],
+                    value=last_values[name],
+                    limit=float(limits[name]),
+                    margin=last_values[name] - float(limits[name]),
+                    violated=last_values[name] > float(limits[name]) + epsilon,
+                )
+                for name in sorted(limits)
+            )
+            group_max_margin: Dict[str, float | None] = {}
+            group_violation_count: Dict[str, int] = {}
+            for family in ("probability", "iou", "alignment", "js"):
+                family_rows = [
+                    row for row in constraint_rows if row.family == family
+                ]
+                group_max_margin[family] = (
+                    max(row.margin for row in family_rows) if family_rows else None
+                )
+                group_violation_count[family] = sum(
+                    row.violated for row in family_rows
+                )
+            trace_accepted = all(not row.violated for row in constraint_rows)
+            trace.append(
+                ConstraintAttemptTrace(
+                    attempt=attempt,
+                    step_size=current_step,
+                    finite=True,
+                    constraints=constraint_rows,
+                    group_max_margin=group_max_margin,
+                    group_violation_count=group_violation_count,
+                    accepted=trace_accepted,
+                    reason=(
+                        "accepted"
+                        if trace_accepted
+                        else "constraint_limit_exceeded"
+                    ),
+                )
+            )
         if all(
             last_values[name] <= float(limits[name]) + epsilon
             for name in limits
@@ -481,6 +547,7 @@ def backtrack_multi_parameter_constraints(
                 step_size=current_step,
                 values=last_values,
                 status="accepted",
+                trace=tuple(trace),
             )
         current_step *= 0.5
     return MultiParameterBacktrackingResult(
@@ -490,6 +557,7 @@ def backtrack_multi_parameter_constraints(
         step_size=0.0,
         values=last_values,
         status="skip",
+        trace=tuple(trace),
     )
 
 
