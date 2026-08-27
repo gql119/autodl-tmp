@@ -1,0 +1,9 @@
+{
+  "stage": "mechanism",
+  "status": "failed",
+  "started_unix": 1787810391.9391465,
+  "ended_unix": 1787810394.7476661,
+  "error_type": "ValueError",
+  "error": "DG-CAIP D0 report SpecID mismatch.",
+  "traceback": "Traceback (most recent call last):\n  File \"/root/autodl-tmp/tausb-dgcaip/checkouts/8a54f74e094c7a15fe4bc487b29ea8712bfe426e-r3-diag/ue_project/ue_framework/tools/run_tausb_sdh.py\", line 41, in main\n    result = run_mechanism_pilot(config, config_base=project_root)\n  File \"/root/autodl-tmp/tausb-dgcaip/checkouts/8a54f74e094c7a15fe4bc487b29ea8712bfe426e-r3-diag/ue_project/ue_framework/methods/sdh_experiment.py\", line 1055, in run_mechanism_pilot\n    return run_dgcaip_pilot(config, config_base=config_base)\n  File \"/root/autodl-tmp/tausb-dgcaip/checkouts/8a54f74e094c7a15fe4bc487b29ea8712bfe426e-r3-diag/ue_project/ue_framework/methods/dgcaip_experiment.py\", line 540, in run_dgcaip_pilot\n    raise ValueError(\"DG-CAIP D0 report SpecID mismatch.\")\nValueError: DG-CAIP D0 report SpecID mismatch.\n"
+}

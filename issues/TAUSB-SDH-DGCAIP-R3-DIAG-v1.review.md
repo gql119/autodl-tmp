@@ -105,3 +105,64 @@ exit=0 (line-ending notices only)
 - No GPU mechanism run has occurred.
 - H1 and H2 do not yet have experimental labels.
 - `PRERUN-REVIEW-01` remains mandatory before requesting GPU.
+
+## Pre-run review update — 2026-08-27
+
+- Independent static review found stray `+` arguments in the controller and
+  launcher. They were valid Bash tokens but would have broken the remote
+  command flow at runtime.
+- The scripts were repaired surgically and committed as
+  `8a54f74e094c7a15fe4bc487b29ea8712bfe426e`.
+- `02d1069cf551880f641758a5f9d794ad6b397871` is superseded and must not be
+  executed.
+- Repaired scripts pass Bash syntax, an explicit stray-plus-token scan, config
+  SHA256 binding, and `git diff --check`.
+- The prior 41-test method result remains applicable because this repair changes
+  only the two shell wrappers; the current bundled local Python lacks pytest, so
+  no second pytest run is claimed.
+- GitHub push was explicitly authorized and verified: the remote branch points
+  exactly to `8a54f74e094c7a15fe4bc487b29ea8712bfe426e`.
+- The AutoDL no-card audit then attempted SSH on the current endpoint
+  `connect.cqa1.seetacloud.com:45487`; the connection was refused before any
+  remote command ran.
+- Overall `pre_run_result` therefore remains `blocked` only on remote
+  reachability and the pending no-card input/path audit. No GPU run is
+  authorized at this state.
+
+## No-card gate closure — 2026-08-27
+
+- The instance became reachable with the dedicated AutoDL key on port 45487.
+- The authorized R3 branch was fetched only to its remote-tracking ref; the
+  dirty historical main worktree remained on HEAD `98e2120` and was not
+  switched or modified.
+- Exact commit and config blob SHA256 matched.
+- Frozen input hashes matched for the surrogate, P1 state/metrics, hiding
+  checkpoint/metrics, and D0 locator.
+- The dataset audit reproduced 16,551 images, 16,551 labels, 6,095 person
+  images, and both frozen manifest hashes.
+- All R3 paths were absent, no tmux session existed, and no GPU device was
+  present in no-card mode.
+- Data-disk free space was 7,116,300,288 bytes. The reviewed commit's complete
+  tracked worktree is 1,293,796,981 bytes and R3 produces diagnostic JSON only.
+- `PRERUN-REVIEW-01` is therefore `pass`. The next executable row is
+  `REMOTE-DIAG-01`, gated on explicit confirmation that GPU mode is enabled.
+
+## Terminal diagnostic review — 2026-08-27
+
+- The exact reviewed snapshot `8a54f74e094c7a15fe4bc487b29ea8712bfe426e`
+  ran once and terminated after 2.8085 seconds with controller exit code 1.
+- The fail-closed error was `DG-CAIP D0 report SpecID mismatch.` The controller
+  requested shutdown, and the instance shutdown was verified.
+- No NaN, Inf, CUDA OOM, idle timeout, or hard-cap event occurred. Execution
+  stopped before P1-A, P1-B, P2-CAIP, or P4-DGCAIP, so H1 and H2 are both
+  `not_evaluated`.
+- The D0 locator hash, decision, split hash, source P1 state hash, and source P1
+  metrics hash were valid. The confirmed failure was a provenance-role mismatch:
+  the frozen D0 report was produced by `TAUSB-SDH-DGCAIP-CGR-E20-v2`, while the
+  runtime incorrectly compared it with the downstream consumer SpecID
+  `TAUSB-SDH-DGCAIP-R3-DIAG-v1`.
+- Five minimal evidence files were pulled with exact remote/local SHA256 matches.
+  No dataset, model weight, checkout cache, or unrelated artifact was copied.
+- R3 is closed as `failed_invalid_pre_mechanism`. It supplies no AP50,
+  unlearnability, non-target preservation, or robustness claim, and a second GPU
+  run under the R3 Spec is forbidden.

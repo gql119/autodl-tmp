@@ -1,0 +1,12 @@
+Creating new Ultralytics Settings v0.0.6 file ✅ 
+View Ultralytics Settings with 'yolo settings' or at '/root/autodl-tmp/tausb-dgcaip-cache/TAUSB-SDH-DGCAIP-S0-R3-DIAG/yolo/Ultralytics/settings.json'
+Update Settings with 'yolo settings key=value', i.e. 'yolo settings runs_dir=path/to/dir'. For help see https://docs.ultralytics.com/quickstart/#ultralytics-settings.
+Traceback (most recent call last):
+  File "/root/autodl-tmp/tausb-dgcaip/checkouts/8a54f74e094c7a15fe4bc487b29ea8712bfe426e-r3-diag/ue_project/ue_framework/tools/run_tausb_sdh.py", line 41, in main
+    result = run_mechanism_pilot(config, config_base=project_root)
+  File "/root/autodl-tmp/tausb-dgcaip/checkouts/8a54f74e094c7a15fe4bc487b29ea8712bfe426e-r3-diag/ue_project/ue_framework/methods/sdh_experiment.py", line 1055, in run_mechanism_pilot
+    return run_dgcaip_pilot(config, config_base=config_base)
+  File "/root/autodl-tmp/tausb-dgcaip/checkouts/8a54f74e094c7a15fe4bc487b29ea8712bfe426e-r3-diag/ue_project/ue_framework/methods/dgcaip_experiment.py", line 540, in run_dgcaip_pilot
+    raise ValueError("DG-CAIP D0 report SpecID mismatch.")
+ValueError: DG-CAIP D0 report SpecID mismatch.
+[DGCAIP-R3] controller_exit=1; requesting AutoDL shutdown

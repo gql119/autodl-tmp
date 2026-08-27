@@ -1,0 +1,161 @@
+{
+  "decision": {
+    "pass": true
+  },
+  "elapsed_seconds": 7.289255745708942,
+  "locator": {
+    "checks": {
+      "coverage": true,
+      "q4_q1_ratio": true,
+      "spearman": true
+    },
+    "coverage": 1.0,
+    "covered_instance_count": 97,
+    "decision": "pass",
+    "eligible_instance_count": 97,
+    "failure_checks": {
+      "q4_q1_ratio": false,
+      "spearman": false
+    },
+    "finite": true,
+    "per_class": {
+      "0": {
+        "count": 1,
+        "mean": 5.091606025686701e-10,
+        "median": 5.091606025686701e-10,
+        "p90": 5.091606025686701e-10
+      },
+      "1": {
+        "count": 7,
+        "mean": 1.9271018995173757e-06,
+        "median": 1.728024479064061e-08,
+        "p90": 5.349779462449082e-06
+      },
+      "10": {
+        "count": 3,
+        "mean": 1.2734165532416835e-06,
+        "median": 1.3666175391335855e-06,
+        "p90": 2.2115647652753976e-06
+      },
+      "11": {
+        "count": 2,
+        "mean": 4.942730868151557e-06,
+        "median": 1.858290943346219e-08,
+        "p90": 8.882049235126032e-06
+      },
+      "12": {
+        "count": 11,
+        "mean": 5.490758005841847e-06,
+        "median": 1.0141219490833464e-06,
+        "p90": 1.7181915609398857e-05
+      },
+      "13": {
+        "count": 8,
+        "mean": 3.244324616232669e-06,
+        "median": 1.3835875734002911e-07,
+        "p90": 9.017657794174736e-06
+      },
+      "15": {
+        "count": 19,
+        "mean": 6.803724343639723e-08,
+        "median": 2.752777727987876e-10,
+        "p90": 1.0130872851732405e-07
+      },
+      "16": {
+        "count": 4,
+        "mean": 7.614245722709079e-06,
+        "median": 8.392452954808505e-09,
+        "p90": 2.0253278876225526e-05
+      },
+      "17": {
+        "count": 3,
+        "mean": 2.8560084526970303e-07,
+        "median": 7.063362517101268e-08,
+        "p90": 6.411446051401982e-07
+      },
+      "18": {
+        "count": 3,
+        "mean": 1.973021911035507e-07,
+        "median": 2.0244645781986037e-07,
+        "p90": 3.4984315959718516e-07
+      },
+      "19": {
+        "count": 2,
+        "mean": 9.859869822825829e-06,
+        "median": 2.529217191238331e-08,
+        "p90": 1.7727531943556584e-05
+      },
+      "3": {
+        "count": 3,
+        "mean": 1.101984879644154e-07,
+        "median": 8.715869626030326e-08,
+        "p90": 2.0870759271929275e-07
+      },
+      "4": {
+        "count": 6,
+        "mean": 2.0834035818021826e-06,
+        "median": 1.4181112817368557e-07,
+        "p90": 5.684433688202262e-06
+      },
+      "5": {
+        "count": 13,
+        "mean": 9.251877397851673e-07,
+        "median": 1.4127378733519436e-07,
+        "p90": 3.0009272904862884e-06
+      },
+      "6": {
+        "count": 9,
+        "mean": 1.6758248792593985e-07,
+        "median": 3.4741887144917882e-09,
+        "p90": 5.475387524711551e-07
+      },
+      "8": {
+        "count": 3,
+        "mean": 1.1942280480070622e-06,
+        "median": 6.954680316084705e-07,
+        "p90": 2.033550879332324e-06
+      }
+    },
+    "q4_q1_composite_damage_ratio": 4.064934271598311,
+    "quartiles": {
+      "Q1": {
+        "alignment_damage_mean": 0.03543748304255132,
+        "box_damage_mean": 0.009535681610277607,
+        "classification_damage_mean": 4.68106277251934e-05,
+        "composite_damage_mean": -0.19405077805046964,
+        "count": 25,
+        "divergence_mean": 6.209139816150052e-10
+      },
+      "Q2": {
+        "alignment_damage_mean": 0.04669978535093833,
+        "box_damage_mean": 0.00860502870697625,
+        "classification_damage_mean": 0.0005521098897573277,
+        "composite_damage_mean": -0.1501739673089785,
+        "count": 24,
+        "divergence_mean": 3.251900312917222e-08
+      },
+      "Q3": {
+        "alignment_damage_mean": 0.04067420194041915,
+        "box_damage_mean": 0.006692822639403555,
+        "classification_damage_mean": 0.002266844890270884,
+        "composite_damage_mean": -0.11676383778308995,
+        "count": 24,
+        "divergence_mean": 3.953562428549162e-07
+      },
+      "Q4": {
+        "alignment_damage_mean": 0.07724600721849129,
+        "box_damage_mean": 0.016014906762090202,
+        "classification_damage_mean": 0.010945997969732465,
+        "composite_damage_mean": 0.46907403222797434,
+        "count": 24,
+        "divergence_mean": 7.75549431134929e-06
+      }
+    },
+    "schema": "tausb.dgcaip-locator.v1",
+    "spearman_divergence_composite_damage": 0.7295523879654955
+  },
+  "schema": "tausb.dgcaip-d0-run.v1",
+  "source_p1_state_sha256": "2e102026a9356116de38acb1f5056bf5728afcd453e3447b516d4222f4d70b81",
+  "spec_id": "TAUSB-SDH-DGCAIP-CGR-E20-v2",
+  "split_hash": "9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280"
+}

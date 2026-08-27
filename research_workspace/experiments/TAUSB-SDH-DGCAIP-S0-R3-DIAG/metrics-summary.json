@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-27",
+  "spec_id": "TAUSB-SDH-DGCAIP-R3-DIAG-v1",
+  "exp_id": "TAUSB-SDH-DGCAIP-S0-R3-DIAG",
+  "run_id": "TAUSB-SDH-DGCAIP-S0-R3-DIAG",
+  "branch": "codex/tausb-sdh-dgcaip-r3-diag-v1",
+  "execution_commit": "8a54f74e094c7a15fe4bc487b29ea8712bfe426e",
+  "config_sha256": "3d213af011234cdf08ef0b54d78c377db18ddaf83903d771057b84f418839613",
+  "terminal_class": "runtime_validation_error",
+  "controller_status": "failed",
+  "controller_exit_code": 1,
+  "shutdown_requested": true,
+  "runtime_seconds_before_failure": 2.8085196018218994,
+  "scientific_outcome": "not_evaluated_pre_mechanism_failure",
+  "failure": {
+    "error_type": "ValueError",
+    "error": "DG-CAIP D0 report SpecID mismatch.",
+    "failure_location": "ue_framework.methods.dgcaip_experiment.run_dgcaip_pilot",
+    "failure_line": 540,
+    "traceback_present": true,
+    "nan": false,
+    "inf": false,
+    "cuda_oom": false,
+    "hard_cap_reached": false,
+    "prelaunch_failure": false
+  },
+  "source_d0": {
+    "sha256": "911896f16514639b3b5190d86155f6a48c7711ec1e206828b8e98674114d7539",
+    "decision_pass": true,
+    "spec_id": "TAUSB-SDH-DGCAIP-CGR-E20-v2",
+    "split_hash": "9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280",
+    "source_p1_state_sha256": "2e102026a9356116de38acb1f5056bf5728afcd453e3447b516d4222f4d70b81"
+  },
+  "requested_r3_spec_id": "TAUSB-SDH-DGCAIP-R3-DIAG-v1",
+  "binding_diagnosis": {
+    "status": "confirmed",
+    "cause": "runtime compared the upstream D0 producer SpecID with the downstream R3 consumer SpecID",
+    "unaffected_checks": [
+      "D0 file SHA256",
+      "D0 decision pass",
+      "D0 split hash",
+      "D0 source P1 state hash"
+    ]
+  },
+  "diagnostic_outputs": {
+    "backtracking_trace": null,
+    "p1_same_process_replay": null,
+    "rejection_attribution": null,
+    "mechanism_metrics": null,
+    "H1_label": "not_evaluated",
+    "H2_label": "not_evaluated"
+  },
+  "forbidden_or_not_run": [
+    "P1-A/P1-B diagnostic execution",
+    "P2-CAIP diagnostic execution",
+    "P4-DGCAIP diagnostic execution",
+    "P3",
+    "victim training",
+    "AP50",
+    "E20",
+    "E200"
+  ],
+  "state_update": false,
+  "validation_gaps": [
+    "No H1 rejection-attribution label exists.",
+    "No H2 same-process replay label exists.",
+    "The run provides no evidence about target unlearnability or non-target preservation.",
+    "A second GPU run is forbidden under the current Spec."
+  ],
+  "evidence_manifest": "remote_artifacts/R3-DIAG/pull_manifest.json"
+}

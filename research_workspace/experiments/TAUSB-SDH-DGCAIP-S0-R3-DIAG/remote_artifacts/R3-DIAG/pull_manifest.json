@@ -1,0 +1,49 @@
+{
+  "schema": "tausb.minimal-evidence-manifest.v1",
+  "generated_at": "2026-08-27",
+  "spec_id": "TAUSB-SDH-DGCAIP-R3-DIAG-v1",
+  "exp_id": "TAUSB-SDH-DGCAIP-S0-R3-DIAG",
+  "execution_commit": "8a54f74e094c7a15fe4bc487b29ea8712bfe426e",
+  "remote_local_sha256_match": true,
+  "files": [
+    {
+      "name": "controller_status.json",
+      "bytes": 243,
+      "sha256": "6d82e4eaa060f8b9036ca00a1a6192584be6fb33988e4faba853f4febcc0b981",
+      "remote_path": "/root/autodl-tmp/tausb-dgcaip-control/TAUSB-SDH-DGCAIP-S0-R3-DIAG/controller_status.json"
+    },
+    {
+      "name": "run.log",
+      "bytes": 1223,
+      "sha256": "8496b687e31756f1ca3b4fcb6cad3b7824aa6074077614572f67ccb91e8e0b10",
+      "remote_path": "/root/autodl-tmp/tausb-dgcaip-logs/TAUSB-SDH-DGCAIP-S0-R3-DIAG.log"
+    },
+    {
+      "name": "source_d0_locator.json",
+      "bytes": 4703,
+      "sha256": "911896f16514639b3b5190d86155f6a48c7711ec1e206828b8e98674114d7539",
+      "remote_path": "/root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-R1-D0/d0/d0_locator.json",
+      "role": "frozen_input_provenance"
+    },
+    {
+      "name": "status_mechanism.json",
+      "bytes": 1033,
+      "sha256": "fb0b4085d8943b59144ef754d27de0c0a4ce202bf0cc889759fbb2308dd3f488",
+      "remote_path": "/root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-R3-DIAG/status_mechanism.json"
+    },
+    {
+      "name": "wrapper_terminal.json",
+      "bytes": 89,
+      "sha256": "10be7d350ede6529bee8e54ea1b4671a4a8104345e2091541a5c35d639d74ca3",
+      "remote_path": "/root/autodl-tmp/tausb-dgcaip-control/TAUSB-SDH-DGCAIP-S0-R3-DIAG/wrapper_terminal.json"
+    }
+  ],
+  "excluded": [
+    "dataset",
+    "weights",
+    "checkout",
+    "cache",
+    "temporary_files",
+    "unrelated_experiment_artifacts"
+  ]
+}
