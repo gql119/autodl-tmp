@@ -61,7 +61,9 @@ ARM_SWITCHES = {
 E2E_V0_SPEC_ID = E2E_V0_PROTOCOL_ID
 DGCAIP_SPEC_ID = "TAUSB-SDH-DGCAIP-CGR-E20-v2"
 DGCAIP_R3_DIAG_SPEC_ID = "TAUSB-SDH-DGCAIP-R3-DIAG-v1"
-DGCAIP_SPEC_IDS = {DGCAIP_SPEC_ID, DGCAIP_R3_DIAG_SPEC_ID}
+DGCAIP_R4_DIAG_SPEC_ID = "TAUSB-SDH-DGCAIP-R4-D0-BINDING-FIX-v1"
+DGCAIP_DIAG_SPEC_IDS = {DGCAIP_R3_DIAG_SPEC_ID, DGCAIP_R4_DIAG_SPEC_ID}
+DGCAIP_SPEC_IDS = {DGCAIP_SPEC_ID, *DGCAIP_DIAG_SPEC_IDS}
 E2E_V0_R2_CHECKPOINT_SHA256 = (
     "a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36"
 )
@@ -469,7 +471,7 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         run_mode = str(dgcaip.get("run_mode", ""))
         expected_run_modes = (
             {"r3_diag"}
-            if spec_id == DGCAIP_R3_DIAG_SPEC_ID
+            if spec_id in DGCAIP_DIAG_SPEC_IDS
             else {"d0", "mechanism"}
         )
         if run_mode not in expected_run_modes:
@@ -519,7 +521,12 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
             for key, expected in replay_tolerances.items():
                 if float(dgcaip.get(key, float("nan"))) != expected:
                     raise ValueError("DG-CAIP %s must remain %s." % (key, expected))
-        if spec_id == DGCAIP_R3_DIAG_SPEC_ID:
+        if spec_id == DGCAIP_R4_DIAG_SPEC_ID:
+            if str(dgcaip.get("expected_d0_spec_id", "")) != DGCAIP_SPEC_ID:
+                raise ValueError(
+                    "R4-DIAG requires expected_d0_spec_id=" + DGCAIP_SPEC_ID + "."
+                )
+        if spec_id in DGCAIP_DIAG_SPEC_IDS:
             diagnostics = dgcaip.get("r3_diagnostics")
             if not isinstance(diagnostics, Mapping) or diagnostics.get("enabled") is not True:
                 raise ValueError("R3-DIAG requires r3_diagnostics.enabled=true.")

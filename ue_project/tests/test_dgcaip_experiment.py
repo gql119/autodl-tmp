@@ -16,9 +16,11 @@ from ue_framework.methods.dgcaip_experiment import (
     R3_DIAGNOSTIC_ARMS,
     _constraint_limits,
     _p1_replay_report,
+    _validate_d0_report_binding,
 )
 from ue_framework.methods.sdh_experiment import (
     DGCAIP_R3_DIAG_SPEC_ID,
+    DGCAIP_R4_DIAG_SPEC_ID,
     DGCAIP_SPEC_ID,
     validate_sdh_experiment_config,
 )
@@ -35,6 +37,12 @@ R3 = (
     / "ue_framework"
     / "configs"
     / "tausb_sdh_dgcaip_r3_diag_v1.yaml"
+)
+R4 = (
+    Path(__file__).parents[1]
+    / "ue_framework"
+    / "configs"
+    / "tausb_sdh_dgcaip_r4_d0_binding_fix_v1.yaml"
 )
 
 
@@ -160,6 +168,58 @@ def test_r3_config_routes_to_dgcaip_pilot(monkeypatch) -> None:
         "spec_id": DGCAIP_R3_DIAG_SPEC_ID,
         "config_base": Path("/tmp/project"),
     }
+
+
+def test_r4_d0_producer_binding_is_explicit_and_fail_closed() -> None:
+    config = yaml.safe_load(R4.read_text(encoding="utf-8"))
+    validate_sdh_experiment_config(config)
+    assert config["spec"]["spec_id"] == DGCAIP_R4_DIAG_SPEC_ID
+    assert config["dgcaip"]["expected_d0_spec_id"] == DGCAIP_SPEC_ID
+    assert config["runtime"]["artifact_root"].endswith(
+        "TAUSB-SDH-DGCAIP-S0-R4-DIAG"
+    )
+
+    report = {
+        "decision": {"pass": True},
+        "spec_id": DGCAIP_SPEC_ID,
+        "split_hash": config["dgcaip"]["expected_split_sha256"],
+        "source_p1_state_sha256": config["dgcaip"]["source_p1_state_sha256"],
+    }
+    _validate_d0_report_binding(report, config, config["dgcaip"])
+
+    wrong_expected = copy.deepcopy(config)
+    wrong_expected["dgcaip"]["expected_d0_spec_id"] = DGCAIP_R3_DIAG_SPEC_ID
+    with pytest.raises(ValueError, match="expected_d0_spec_id"):
+        validate_sdh_experiment_config(wrong_expected)
+
+    wrong_report = copy.deepcopy(report)
+    wrong_report["spec_id"] = DGCAIP_R3_DIAG_SPEC_ID
+    with pytest.raises(ValueError, match="SpecID mismatch"):
+        _validate_d0_report_binding(wrong_report, config, config["dgcaip"])
+
+
+def test_d0_binding_legacy_fallback_and_existing_gates() -> None:
+    config = _config()
+    dgcaip = config["dgcaip"]
+    report = {
+        "decision": {"pass": True},
+        "spec_id": DGCAIP_SPEC_ID,
+        "split_hash": dgcaip["expected_split_sha256"],
+        "source_p1_state_sha256": dgcaip["source_p1_state_sha256"],
+    }
+    assert "expected_d0_spec_id" not in dgcaip
+    _validate_d0_report_binding(report, config, dgcaip)
+
+    mutations = {
+        "D0 gate": ("decision", {"pass": False}),
+        "split hash": ("split_hash", "e" * 64),
+        "source P1 hash": ("source_p1_state_sha256", "f" * 64),
+    }
+    for message, (key, value) in mutations.items():
+        mutated = copy.deepcopy(report)
+        mutated[key] = value
+        with pytest.raises(ValueError, match=message):
+            _validate_d0_report_binding(mutated, config, dgcaip)
 
 
 @pytest.mark.parametrize(

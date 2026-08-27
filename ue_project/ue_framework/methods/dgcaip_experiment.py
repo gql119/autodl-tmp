@@ -80,6 +80,26 @@ P1_REPLAY_SCALARS = (
 )
 
 
+def _validate_d0_report_binding(
+    d0_report: Mapping[str, Any],
+    config: Mapping[str, Any],
+    dg_config: Mapping[str, Any],
+) -> None:
+    if not bool(d0_report.get("decision", {}).get("pass")):
+        raise ValueError("DG-CAIP mechanism is blocked by the D0 gate.")
+    expected_spec_id = str(
+        dg_config.get("expected_d0_spec_id", config["spec"]["spec_id"])
+    )
+    if d0_report.get("spec_id") != expected_spec_id:
+        raise ValueError("DG-CAIP D0 report SpecID mismatch.")
+    if d0_report.get("split_hash") != dg_config["expected_split_sha256"]:
+        raise ValueError("DG-CAIP D0 report split hash mismatch.")
+    if d0_report.get("source_p1_state_sha256") != str(
+        dg_config["source_p1_state_sha256"]
+    ).lower():
+        raise ValueError("DG-CAIP D0 report source P1 hash mismatch.")
+
+
 def _p1_replay_report(
     observed: Mapping[str, Any],
     reference_metrics: Mapping[str, Any],
@@ -534,16 +554,7 @@ def run_dgcaip_pilot(
         if _file_sha256(d0_path) != str(dg_config["d0_report_sha256"]).lower():
             raise ValueError("DG-CAIP D0 report hash mismatch.")
         d0_report = json.loads(d0_path.read_text(encoding="utf-8"))
-        if not bool(d0_report.get("decision", {}).get("pass")):
-            raise ValueError("DG-CAIP mechanism is blocked by the D0 gate.")
-        if d0_report.get("spec_id") != config["spec"]["spec_id"]:
-            raise ValueError("DG-CAIP D0 report SpecID mismatch.")
-        if d0_report.get("split_hash") != dg_config["expected_split_sha256"]:
-            raise ValueError("DG-CAIP D0 report split hash mismatch.")
-        if d0_report.get("source_p1_state_sha256") != str(
-            dg_config["source_p1_state_sha256"]
-        ).lower():
-            raise ValueError("DG-CAIP D0 report source P1 hash mismatch.")
+        _validate_d0_report_binding(d0_report, config, dg_config)
         source_p1_metrics_path = _resolve(
             config_base, str(dg_config["source_p1_metrics"])
         )
