@@ -279,7 +279,7 @@ def test_route_trace_uses_small_row_gram_and_projector_action() -> None:
         captured["route.projector"]["removed_target_component"],
         result.target_gradient - result.projected_target_gradient,
     )
-    assert torch.equal(result.combined_gradient, plain.combined_gradient)
+    assert torch.equal(result.gradient, plain.gradient)
 
 
 def test_renderer_trace_is_default_off_and_observational() -> None:
