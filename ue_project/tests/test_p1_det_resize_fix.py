@@ -129,4 +129,6 @@ def test_single_boot_controller_has_cost_and_shutdown_gates():
     assert 'writeback.get("status") == "failed_invariant"' in controller
     assert "repair_pass" in controller
     assert "HARD_CAP_SECONDS=480" in launcher
+    assert "trap shutdown_on_launch_failure EXIT" in launcher
+    assert 'mkdir -p "$(dirname "${CONTROL_ROOT}")"' in launcher
     assert "tmux new-session -d" in launcher
