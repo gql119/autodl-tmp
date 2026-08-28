@@ -21,8 +21,9 @@ from .instance_cicr import FrozenInstanceCICRBank
 from .non_target_logit_alignment import FrozenNLAGradientCalibration
 from .p1_determinism_audit import (
     ABSOLUTE_TOLERANCE,
-    AUDIT_SPEC_ID,
+    AUDIT_SPEC_IDS,
     RELATIVE_TOLERANCE,
+    RESIZE_REPAIR_SPEC_ID,
     TensorTrace,
     backend_manifest,
     capture_engine_snapshot,
@@ -600,7 +601,8 @@ def run_p1_determinism_lane(
     if mode not in {"normal", "strict"}:
         raise ValueError("P1 determinism lane must be normal or strict.")
     validate_sdh_experiment_config(config)
-    if str(config["spec"]["spec_id"]) != AUDIT_SPEC_ID:
+    spec_id = str(config["spec"]["spec_id"])
+    if spec_id not in AUDIT_SPEC_IDS:
         raise ValueError("P1 determinism runner received the wrong SpecID.")
     _validate_bound_artifacts(config, config_base=config_base)
     if mode == "strict":
@@ -627,8 +629,10 @@ def run_p1_determinism_lane(
         rng_snapshot = capture_rng_snapshot()
         traces: Dict[str, Any] = {}
         pairs: Dict[str, Any] = {}
-        if mode == "normal":
+        configured_lanes = tuple(config["audit"][mode + "_lanes"])
+        if mode == "normal" and "shared" in configured_lanes:
             traces["shared"], pairs["shared"] = _run_shared_pair(context, config)
+        if mode == "normal" and "reset" in configured_lanes:
             traces["reset"], pairs["reset"] = _run_reset_pair(
                 context,
                 config,
@@ -636,18 +640,17 @@ def run_p1_determinism_lane(
                 engine_snapshot=engine_snapshot,
                 rng_snapshot=rng_snapshot,
             )
-        traces["fresh"], pairs["fresh"] = _run_fresh_pair(
-            context,
-            config,
-            config_base=config_base,
-            model_snapshot=model_snapshot,
-            engine_snapshot=engine_snapshot,
-            rng_snapshot=rng_snapshot,
-        )
+        if "fresh" in configured_lanes:
+            traces["fresh"], pairs["fresh"] = _run_fresh_pair(
+                context,
+                config,
+                config_base=config_base,
+                model_snapshot=model_snapshot,
+                engine_snapshot=engine_snapshot,
+                rng_snapshot=rng_snapshot,
+            )
         input_valid = all(bool(value.get("input_match")) for value in pairs.values())
-        state_pairs = [pairs["fresh"]]
-        if mode == "normal":
-            state_pairs.append(pairs["reset"])
+        state_pairs = [value for name, value in pairs.items() if name != "shared"]
         state_valid = all(
             bool(value.get("initial_state_match"))
             and bool(value.get("parameter_state_unchanged"))
@@ -655,7 +658,7 @@ def run_p1_determinism_lane(
         )
         result = {
             "schema": "tausb.p1-determinism-lane.v1",
-            "spec_id": AUDIT_SPEC_ID,
+            "spec_id": spec_id,
             "mode": mode,
             "backend": backend_manifest(),
             "split_hash": context["split_hash"],
@@ -676,12 +679,43 @@ def run_p1_determinism_lane(
         context["engine"].close()
 
 
+def _choose_resize_repair_replay_decision(
+    normal: Mapping[str, Any],
+    strict: Mapping[str, Any],
+) -> Dict[str, Any]:
+    input_valid = bool(normal.get("input_valid")) and bool(strict.get("input_valid", True))
+    state_valid = bool(normal.get("state_valid")) and bool(strict.get("state_valid", True))
+    strict_pair = strict.get("pairs", {}).get("fresh", {})
+    strict_exact = bool(strict_pair.get("valid")) and bool(
+        strict_pair.get("bitwise_pass")
+    )
+    if not input_valid or not state_valid:
+        label = "invalid_binding_or_input"
+    elif strict.get("operator_error"):
+        label = "new_cuda_nondeterministic_operator"
+    elif strict_exact:
+        label = "strict_replay_pass"
+    else:
+        label = "strict_replay_mismatch"
+    return {
+        "label": label,
+        "input_valid": input_valid,
+        "state_valid": state_valid,
+        "normal_reset_bitwise_pass": bool(
+            normal.get("pairs", {}).get("reset", {}).get("bitwise_pass")
+        ),
+        "strict_fresh_bitwise_pass": strict_exact,
+        "strict_operator_error": bool(strict.get("operator_error")),
+    }
+
+
 def summarize_p1_determinism_audit(
     config: Mapping[str, Any],
     *,
     config_base: Path,
 ) -> Dict[str, Any]:
     validate_sdh_experiment_config(config)
+    spec_id = str(config["spec"]["spec_id"])
     artifact_root = _resolve(config_base, str(config["runtime"]["artifact_root"]))
     normal_path = artifact_root / "p1_trace_normal.json"
     strict_path = artifact_root / "p1_trace_strict.json"
@@ -693,20 +727,28 @@ def summarize_p1_determinism_audit(
         strict = json.loads(strict_error_path.read_text(encoding="utf-8"))
     else:
         raise FileNotFoundError("Strict P1 audit evidence is missing.")
-    decision = choose_primary_label(normal, strict)
-    normal_shared_a = normal.get("traces", {}).get("shared", {}).get("A", {})
-    normal_shared_trace = normal_shared_a.get("trace", {})
+    decision = (
+        _choose_resize_repair_replay_decision(normal, strict)
+        if spec_id == RESIZE_REPAIR_SPEC_ID
+        else choose_primary_label(normal, strict)
+    )
+    normal_traces = normal.get("traces", {})
+    reference_lane = next(iter(normal_traces), None)
+    normal_reference_a = (
+        normal_traces.get(reference_lane, {}).get("A", {}) if reference_lane else {}
+    )
+    normal_reference_trace = normal_reference_a.get("trace", {})
     input_state_manifest = {
         "schema": "tausb.p1-determinism-input-state.v1",
-        "spec_id": AUDIT_SPEC_ID,
+        "spec_id": spec_id,
         "image_ids": normal.get("image_ids", []),
         "split_hash": normal.get("split_hash"),
         "input_tensors": {
             name: value
-            for name, value in normal_shared_trace.items()
+            for name, value in normal_reference_trace.items()
             if name.startswith("input.cpu/") or name.startswith("input.cuda/")
         },
-        "reference_state_pre": normal_shared_a.get("state_pre"),
+        "reference_state_pre": normal_reference_a.get("state_pre"),
         "normal_pair_state": {
             name: {
                 "input_match": value.get("input_match"),
@@ -728,7 +770,7 @@ def summarize_p1_determinism_audit(
     }
     first_divergence = {
         "schema": "tausb.p1-determinism-first-divergence.v1",
-        "spec_id": AUDIT_SPEC_ID,
+        "spec_id": spec_id,
         "normal": {
             name: {
                 "first_divergent_stage": value.get("first_divergent_stage"),
@@ -747,18 +789,19 @@ def summarize_p1_determinism_audit(
         },
         "strict_operator_error": strict.get("operator_error"),
     }
+    expected_normal_pairs = set(config["audit"]["normal_lanes"])
+    expected_strict_pairs = set(config["audit"]["strict_lanes"])
     mechanical_checks = {
-        "normal_pairs_complete": set(normal.get("pairs", {}))
-        == {"shared", "reset", "fresh"},
+        "normal_pairs_complete": set(normal.get("pairs", {})) == expected_normal_pairs,
         "strict_complete_or_operator_error": bool(strict.get("operator_error"))
-        or set(strict.get("pairs", {})) == {"fresh"},
+        or set(strict.get("pairs", {})) == expected_strict_pairs,
         "input_valid": bool(decision["input_valid"]),
         "state_valid": bool(decision["state_valid"]),
         "exactly_one_label": bool(decision["label"]),
     }
     result = {
         "schema": "tausb.p1-determinism-audit-summary.v1",
-        "spec_id": AUDIT_SPEC_ID,
+        "spec_id": spec_id,
         "normal_trace_sha256": _file_sha256(normal_path),
         "strict_evidence_sha256": _file_sha256(
             strict_path if strict_path.is_file() else strict_error_path

@@ -261,6 +261,67 @@ def _integer_box(
     return left, top, right, bottom
 
 
+def _linear_interpolation_matrix(
+    source_size: int,
+    target_size: int,
+    *,
+    reference: torch.Tensor,
+) -> torch.Tensor:
+    if source_size <= 0 or target_size <= 0:
+        raise ValueError("Resize dimensions must be positive.")
+    positions = (
+        (torch.arange(target_size, device=reference.device, dtype=torch.float64) + 0.5)
+        * (float(source_size) / float(target_size))
+        - 0.5
+    )
+    lower_unclamped = torch.floor(positions)
+    upper_weight = positions - lower_unclamped
+    lower_weight = 1.0 - upper_weight
+    lower = lower_unclamped.clamp(0, source_size - 1).to(torch.long)
+    upper = (lower_unclamped + 1.0).clamp(0, source_size - 1).to(torch.long)
+    source_indices = torch.arange(source_size, device=reference.device).unsqueeze(0)
+    matrix = (
+        (source_indices == lower.unsqueeze(1)) * lower_weight.unsqueeze(1)
+        + (source_indices == upper.unsqueeze(1)) * upper_weight.unsqueeze(1)
+    )
+    return matrix.to(dtype=reference.dtype)
+
+
+def deterministic_bilinear_resize_2d(
+    inputs: torch.Tensor,
+    size: Tuple[int, int],
+) -> torch.Tensor:
+    """Bilinear resize with a matmul-only gradient path.
+
+    The coordinate rule matches ``align_corners=False``. Fixed interpolation
+    weights keep CUDA autograd away from nondeterministic bilinear-upsample
+    backward kernels while preserving gradients with respect to ``inputs``.
+    """
+
+    if inputs.ndim != 4:
+        raise ValueError("deterministic_bilinear_resize_2d expects [B,C,H,W].")
+    if not inputs.is_floating_point():
+        raise ValueError("deterministic_bilinear_resize_2d expects floating input.")
+    target_height, target_width = (int(size[0]), int(size[1]))
+    if target_height <= 0 or target_width <= 0:
+        raise ValueError("Resize dimensions must be positive.")
+    source_height, source_width = inputs.shape[-2:]
+    if (source_height, source_width) == (target_height, target_width):
+        return inputs
+    height_matrix = _linear_interpolation_matrix(
+        source_height,
+        target_height,
+        reference=inputs,
+    )
+    width_matrix = _linear_interpolation_matrix(
+        source_width,
+        target_width,
+        reference=inputs,
+    )
+    resized_height = torch.matmul(height_matrix, inputs)
+    return torch.matmul(resized_height, width_matrix.transpose(0, 1))
+
+
 def render_person_box_carrier(
     images: torch.Tensor,
     boxes_by_image: Sequence[torch.Tensor],
@@ -291,18 +352,17 @@ def render_person_box_carrier(
                 continue
             left, top, right, bottom = coords
             crop = images[batch_index : batch_index + 1, :, top:bottom, left:right]
-            host = F.interpolate(
-                crop,
-                size=(carrier.input_size, carrier.input_size),
-                mode="bilinear",
-                align_corners=False,
-            )
+            with torch.no_grad():
+                host = F.interpolate(
+                    crop,
+                    size=(carrier.input_size, carrier.input_size),
+                    mode="bilinear",
+                    align_corners=False,
+                )
             output = carrier(host, secret)
-            patch = F.interpolate(
+            patch = deterministic_bilinear_resize_2d(
                 output.delta,
-                size=(bottom - top, right - left),
-                mode="bilinear",
-                align_corners=False,
+                (bottom - top, right - left),
             )
             accumulated[batch_index, :, top:bottom, left:right] += patch[0]
             counts[batch_index, :, top:bottom, left:right] += 1.0

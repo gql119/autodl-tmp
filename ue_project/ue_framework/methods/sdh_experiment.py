@@ -65,8 +65,12 @@ DGCAIP_R4_DIAG_SPEC_ID = "TAUSB-SDH-DGCAIP-R4-D0-BINDING-FIX-v1"
 DGCAIP_P1_DETERMINISM_AUDIT_SPEC_ID = (
     "TAUSB-SDH-DGCAIP-P1-DETERMINISM-AUDIT-v1"
 )
+DGCAIP_P1_DET_RESIZE_FIX_SPEC_ID = "TAUSB-SDH-DGCAIP-P1-DET-RESIZE-FIX-v1"
 DGCAIP_DIAG_SPEC_IDS = {DGCAIP_R3_DIAG_SPEC_ID, DGCAIP_R4_DIAG_SPEC_ID}
-DGCAIP_AUDIT_SPEC_IDS = {DGCAIP_P1_DETERMINISM_AUDIT_SPEC_ID}
+DGCAIP_AUDIT_SPEC_IDS = {
+    DGCAIP_P1_DETERMINISM_AUDIT_SPEC_ID,
+    DGCAIP_P1_DET_RESIZE_FIX_SPEC_ID,
+}
 DGCAIP_SPEC_IDS = {DGCAIP_SPEC_ID, *DGCAIP_DIAG_SPEC_IDS, *DGCAIP_AUDIT_SPEC_IDS}
 E2E_V0_R2_CHECKPOINT_SHA256 = (
     "a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36"
@@ -553,10 +557,11 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
             audit = config.get("audit")
             if not isinstance(audit, Mapping) or audit.get("enabled") is not True:
                 raise ValueError("P1 determinism audit requires audit.enabled=true.")
+            resize_repair = spec_id == DGCAIP_P1_DET_RESIZE_FIX_SPEC_ID
             frozen_audit = {
                 "first_batch_index": 0,
                 "paired_repeats": 2,
-                "total_hard_cap_seconds": 300,
+                "total_hard_cap_seconds": 480 if resize_repair else 300,
                 "max_artifact_bytes": 104857600,
             }
             for key, expected in frozen_audit.items():
@@ -564,11 +569,17 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
                     raise ValueError("P1 determinism audit freezes audit.%s=%s." % (key, expected))
             if audit.get("zero_parameter_updates") is not True:
                 raise ValueError("P1 determinism audit requires zero_parameter_updates=true.")
-            if str(audit.get("baseline_commit", "")) != (
-                "4eb064ade919fecec6d1466900442e9f9a9a2bf5"
-            ):
+            expected_baseline = (
+                "b2fa96f98ea88d6b347bbbf751768a06e983d47c"
+                if resize_repair
+                else "4eb064ade919fecec6d1466900442e9f9a9a2bf5"
+            )
+            if str(audit.get("baseline_commit", "")) != expected_baseline:
                 raise ValueError("P1 determinism audit baseline commit changed.")
-            if tuple(audit.get("normal_lanes", ())) != ("shared", "reset", "fresh"):
+            expected_normal_lanes = (
+                ("reset",) if resize_repair else ("shared", "reset", "fresh")
+            )
+            if tuple(audit.get("normal_lanes", ())) != expected_normal_lanes:
                 raise ValueError("P1 determinism audit normal lanes changed.")
             if tuple(audit.get("strict_lanes", ())) != ("fresh",):
                 raise ValueError("P1 determinism audit strict lanes changed.")
@@ -584,12 +595,15 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
                 raise ValueError("P1 determinism audit freezes 24 held-out batches.")
             if float(config["mechanism"].get("max_seconds", -1)) != 300.0:
                 raise ValueError("P1 determinism audit hard cap must remain 300 seconds.")
-            if str(config["spec"].get("exp_id", "")) != (
-                "TAUSB-SDH-DGCAIP-S0-P1-DET-AUDIT"
-            ):
+            expected_exp_id = (
+                "TAUSB-SDH-DGCAIP-S0-P1-DET-RESIZE-FIX"
+                if resize_repair
+                else "TAUSB-SDH-DGCAIP-S0-P1-DET-AUDIT"
+            )
+            if str(config["spec"].get("exp_id", "")) != expected_exp_id:
                 raise ValueError("P1 determinism audit ExpID changed.")
             if not str(config["runtime"].get("artifact_root", "")).endswith(
-                "/TAUSB-SDH-DGCAIP-S0-P1-DET-AUDIT"
+                "/" + expected_exp_id
             ):
                 raise ValueError("P1 determinism audit artifact root changed.")
 

@@ -1,10 +1,12 @@
 import pytest
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from ue_framework.methods.semantic_hiding_carrier import (
     FixedHaarDWT,
     SemanticHidingCarrier,
+    deterministic_bilinear_resize_2d,
     render_person_box_carrier,
 )
 
@@ -119,6 +121,77 @@ def test_freeze_boundary_leaves_only_adapter_trainable():
     assert all(not p.requires_grad for p in carrier.hiding_trunk.parameters())
     assert all(not p.requires_grad for p in carrier.reveal_decoder.parameters())
     assert all(p.requires_grad for p in carrier.adapter.parameters())
+
+
+@pytest.mark.parametrize(
+    ("source_size", "target_size"),
+    [
+        ((7, 11), (13, 5)),
+        ((13, 5), (7, 11)),
+        ((7, 11), (1, 19)),
+        ((7, 11), (19, 1)),
+        ((1, 11), (17, 3)),
+        ((9, 1), (3, 15)),
+        ((8, 8), (8, 8)),
+    ],
+)
+def test_deterministic_resize_matches_align_corners_false_bilinear_forward(
+    source_size, target_size
+):
+    torch.manual_seed(23)
+    inputs = torch.randn(2, 3, *source_size)
+    expected = F.interpolate(
+        inputs,
+        size=target_size,
+        mode="bilinear",
+        align_corners=False,
+    )
+    actual = deterministic_bilinear_resize_2d(inputs, target_size)
+    assert torch.allclose(actual, expected, atol=2e-6, rtol=1e-5)
+    assert float((actual - expected).abs().max()) <= 2e-6
+
+
+def test_deterministic_resize_matches_cpu_bilinear_input_gradient():
+    torch.manual_seed(29)
+    legacy_input = torch.randn(2, 3, 9, 13, requires_grad=True)
+    fixed_input = legacy_input.detach().clone().requires_grad_(True)
+    probe = torch.randn(2, 3, 17, 6)
+    legacy = F.interpolate(
+        legacy_input,
+        size=(17, 6),
+        mode="bilinear",
+        align_corners=False,
+    )
+    fixed = deterministic_bilinear_resize_2d(fixed_input, (17, 6))
+    legacy_gradient = torch.autograd.grad((legacy * probe).sum(), legacy_input)[0]
+    fixed_gradient = torch.autograd.grad((fixed * probe).sum(), fixed_input)[0]
+    assert torch.allclose(fixed_gradient, legacy_gradient, atol=2e-5, rtol=1e-4)
+
+
+def test_render_host_is_no_grad_but_patch_reaches_adapter():
+    carrier = _small_carrier()
+    carrier.freeze_for_detector_optimization()
+    images = torch.full((1, 3, 48, 56), 0.5, requires_grad=True)
+    boxes = (torch.tensor([[4.2, 5.1, 28.4, 34.6]]),)
+    secret = torch.rand(1, 3, 32, 32)
+    trace = {}
+
+    def capture(stage, tensors):
+        trace[stage] = tensors
+
+    rendered = render_person_box_carrier(
+        images,
+        boxes,
+        carrier,
+        secret,
+        trace_callback=capture,
+    )
+    assert trace["render"]["hosts"][0].requires_grad is False
+    assert trace["render"]["resized_patches"][0].requires_grad is True
+    rendered.perturbation.square().mean().backward()
+    gradients = [parameter.grad for parameter in carrier.adapter.parameters()]
+    assert all(gradient is not None and torch.isfinite(gradient).all() for gradient in gradients)
+    assert sum(float(gradient.abs().sum()) for gradient in gradients) > 0.0
 
 
 def test_bbox_render_has_exact_union_support_and_finite_adapter_backward():
