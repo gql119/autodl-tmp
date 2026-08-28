@@ -197,6 +197,7 @@ def route_multi_parameter_gradients(
     nla_weight: float,
     svd_relative_tolerance: float = 1.0e-4,
     epsilon: float = 1.0e-12,
+    trace_callback: Callable[[str, Mapping[str, torch.Tensor]], None] | None = None,
 ) -> MultiParameterGradientRouteResult:
     """Project the target component, then add explicit NLA descent.
 
@@ -247,6 +248,31 @@ def route_multi_parameter_gradients(
         max_projected_dot = 0.0
     nla_gradient = _multi_parameter_gradient(nla_loss, omega)
     combined = projected + float(nla_weight) * nla_gradient
+    if trace_callback is not None:
+        trace_callback(
+            "route.matrix",
+            {
+                "constraint_matrix": matrix,
+                "singular_values": singular_values,
+                "rank": target.new_tensor(rank, dtype=torch.long),
+            },
+        )
+        trace_callback(
+            "route.projector",
+            {
+                "row_gram": matrix @ matrix.T,
+                "projected_target_gradient": projected,
+                "removed_target_component": target - projected,
+            },
+        )
+        trace_callback(
+            "route.final",
+            {
+                "target_gradient": target,
+                "nla_gradient": nla_gradient,
+                "combined_gradient": combined,
+            },
+        )
     max_final_dot = (
         float((matrix @ combined).abs().max().detach()) if rows else 0.0
     )

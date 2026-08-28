@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Tuple
 
 import cv2
 import numpy as np
@@ -332,11 +332,16 @@ class SDHObservationEngine:
         target_rms_ratio: float = 0.35,
         dgcaip_mode: str = "off",
         dgcaip_component_weights: Optional[Mapping[str, float]] = None,
+        trace_callback: Optional[Callable[[str, Mapping[str, Any]], None]] = None,
     ) -> SDHObservation:
         if dgcaip_mode not in {"off", "caip", "dist", "dgcaip"}:
             raise ValueError("Unknown DG-CAIP observation mode.")
         rendered = render_person_box_carrier(
-            batch.images, batch.boxes_by_image, carrier, secret
+            batch.images,
+            batch.boxes_by_image,
+            carrier,
+            secret,
+            trace_callback=trace_callback,
         )
         clean_tag = "sdh_clean_%d" % self._counter
         adv_tag = "sdh_adv_%d" % self._counter
@@ -359,6 +364,18 @@ class SDHObservationEngine:
                 image_shape=batch.images.shape[-2:],
                 assignment_topk=self.assignment_topk,
             )
+        if trace_callback is not None:
+            trace_callback(
+                "clean.forward",
+                {
+                    "tower_classification": clean_features.classification,
+                    "tower_box": clean_features.box,
+                    "decoded_predictions": clean_predictions,
+                    "pred_scores_logits": clean_cache["pred_scores_logits"],
+                    "pred_bboxes": clean_cache["pred_bboxes"],
+                },
+            )
+            trace_callback("clean.tal", real_assign)
         with self.capture.record(adv_tag):
             adv_output = self.model(rendered.poisoned)
         adv_features = self.capture.take(adv_tag)
@@ -369,6 +386,17 @@ class SDHObservationEngine:
             image_shape=batch.images.shape[-2:],
             assignment_topk=self.assignment_topk,
         )
+        if trace_callback is not None:
+            trace_callback(
+                "poison.forward",
+                {
+                    "tower_classification": adv_features.classification,
+                    "tower_box": adv_features.box,
+                    "decoded_predictions": adv_predictions,
+                    "pred_scores_logits": adv_cache["pred_scores_logits"],
+                    "pred_bboxes": adv_cache["pred_bboxes"],
+                },
+            )
 
         labels = real_assign["target_labels"].long()
         if labels.ndim == 3:

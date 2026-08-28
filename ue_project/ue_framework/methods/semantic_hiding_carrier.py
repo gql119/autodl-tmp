@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 import math
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import torch
 from torch import nn
@@ -266,6 +266,8 @@ def render_person_box_carrier(
     boxes_by_image: Sequence[torch.Tensor],
     carrier: SemanticHidingCarrier,
     secret: torch.Tensor,
+    *,
+    trace_callback: Optional[Callable[[str, Mapping[str, Any]], None]] = None,
 ) -> RenderedSemanticCarrier:
     if images.ndim != 4 or images.shape[1] != 3:
         raise ValueError("images must be [B,3,H,W].")
@@ -278,6 +280,8 @@ def render_person_box_carrier(
     counts = images.new_zeros(batch, 1, height, width)
     canonical: List[torch.Tensor] = []
     recovered: List[torch.Tensor] = []
+    traced_hosts: List[torch.Tensor] = []
+    traced_patches: List[torch.Tensor] = []
     for batch_index, boxes in enumerate(boxes_by_image):
         if boxes.ndim != 2 or boxes.shape[1] != 4:
             raise ValueError("each boxes tensor must be [N,4] pixel xyxy.")
@@ -304,6 +308,9 @@ def render_person_box_carrier(
             counts[batch_index, :, top:bottom, left:right] += 1.0
             canonical.append(output.delta)
             recovered.append(output.recovered_secret)
+            if trace_callback is not None:
+                traced_hosts.append(host)
+                traced_patches.append(patch)
     union = counts > 0
     perturbation = torch.where(
         union.expand_as(accumulated), accumulated / counts.clamp_min(1.0), accumulated
@@ -315,6 +322,17 @@ def render_person_box_carrier(
     outside = perturbation * (~union).expand_as(perturbation)
     if torch.count_nonzero(outside).item() != 0:
         raise RuntimeError("Rendered semantic carrier leaked outside person boxes.")
+    if trace_callback is not None:
+        trace_callback(
+            "render",
+            {
+                "hosts": tuple(traced_hosts),
+                "canonical_deltas": tuple(canonical),
+                "resized_patches": tuple(traced_patches),
+                "perturbation": perturbation,
+                "poisoned": poisoned,
+            },
+        )
     return RenderedSemanticCarrier(
         poisoned=poisoned,
         perturbation=perturbation,

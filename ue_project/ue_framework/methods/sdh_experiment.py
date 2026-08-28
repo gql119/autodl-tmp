@@ -62,8 +62,12 @@ E2E_V0_SPEC_ID = E2E_V0_PROTOCOL_ID
 DGCAIP_SPEC_ID = "TAUSB-SDH-DGCAIP-CGR-E20-v2"
 DGCAIP_R3_DIAG_SPEC_ID = "TAUSB-SDH-DGCAIP-R3-DIAG-v1"
 DGCAIP_R4_DIAG_SPEC_ID = "TAUSB-SDH-DGCAIP-R4-D0-BINDING-FIX-v1"
+DGCAIP_P1_DETERMINISM_AUDIT_SPEC_ID = (
+    "TAUSB-SDH-DGCAIP-P1-DETERMINISM-AUDIT-v1"
+)
 DGCAIP_DIAG_SPEC_IDS = {DGCAIP_R3_DIAG_SPEC_ID, DGCAIP_R4_DIAG_SPEC_ID}
-DGCAIP_SPEC_IDS = {DGCAIP_SPEC_ID, *DGCAIP_DIAG_SPEC_IDS}
+DGCAIP_AUDIT_SPEC_IDS = {DGCAIP_P1_DETERMINISM_AUDIT_SPEC_ID}
+DGCAIP_SPEC_IDS = {DGCAIP_SPEC_ID, *DGCAIP_DIAG_SPEC_IDS, *DGCAIP_AUDIT_SPEC_IDS}
 E2E_V0_R2_CHECKPOINT_SHA256 = (
     "a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36"
 )
@@ -391,8 +395,12 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         raise ValueError("SDH requires at least 16 calibration batches.")
     if int(config["mechanism"].get("heldout_batches", -1)) < 24:
         raise ValueError("SDH requires at least 24 held-out batches.")
-    if int(config["mechanism"].get("optimization_steps", -1)) != 8:
-        raise ValueError("SDH matched microtrajectory must remain 8 steps.")
+    expected_steps = 1 if spec_id in DGCAIP_AUDIT_SPEC_IDS else 8
+    if int(config["mechanism"].get("optimization_steps", -1)) != expected_steps:
+        raise ValueError(
+            "SDH optimization_steps must remain %d for the selected Spec."
+            % expected_steps
+        )
     if int(config["mechanism"].get("max_backtracks", -1)) != 5:
         raise ValueError("SDH CGR max_backtracks must remain 5.")
     if float(config["mechanism"].get("probability_drop_tolerance", -1)) != 0.005:
@@ -469,11 +477,12 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         if not isinstance(dgcaip, Mapping):
             raise ValueError("DG-CAIP Spec requires a dgcaip config section.")
         run_mode = str(dgcaip.get("run_mode", ""))
-        expected_run_modes = (
-            {"r3_diag"}
-            if spec_id in DGCAIP_DIAG_SPEC_IDS
-            else {"d0", "mechanism"}
-        )
+        if spec_id in DGCAIP_DIAG_SPEC_IDS:
+            expected_run_modes = {"r3_diag"}
+        elif spec_id in DGCAIP_AUDIT_SPEC_IDS:
+            expected_run_modes = {"p1_determinism_audit"}
+        else:
+            expected_run_modes = {"d0", "mechanism"}
         if run_mode not in expected_run_modes:
             raise ValueError(
                 "DG-CAIP run_mode is invalid for the selected Spec."
@@ -499,7 +508,7 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         source_state_hash = str(dgcaip.get("source_p1_state_sha256", ""))
         if len(source_state_hash) != 64 or set(source_state_hash) == {"0"}:
             raise ValueError("DG-CAIP requires source_p1_state_sha256.")
-        if run_mode in {"mechanism", "r3_diag"}:
+        if run_mode in {"mechanism", "r3_diag", "p1_determinism_audit"}:
             if not str(dgcaip.get("d0_report", "")).strip():
                 raise ValueError("DG-CAIP mechanism requires a passed D0 report.")
             d0_hash = str(dgcaip.get("d0_report_sha256", ""))
@@ -521,10 +530,12 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
             for key, expected in replay_tolerances.items():
                 if float(dgcaip.get(key, float("nan"))) != expected:
                     raise ValueError("DG-CAIP %s must remain %s." % (key, expected))
-        if spec_id == DGCAIP_R4_DIAG_SPEC_ID:
+        if spec_id == DGCAIP_R4_DIAG_SPEC_ID or spec_id in DGCAIP_AUDIT_SPEC_IDS:
             if str(dgcaip.get("expected_d0_spec_id", "")) != DGCAIP_SPEC_ID:
                 raise ValueError(
-                    "R4-DIAG requires expected_d0_spec_id=" + DGCAIP_SPEC_ID + "."
+                    "DG-CAIP audit requires expected_d0_spec_id="
+                    + DGCAIP_SPEC_ID
+                    + "."
                 )
         if spec_id in DGCAIP_DIAG_SPEC_IDS:
             diagnostics = dgcaip.get("r3_diagnostics")
@@ -538,6 +549,49 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
                 raise ValueError("R3-DIAG freezes 24 held-out batches.")
             if float(config["mechanism"].get("max_seconds", -1)) != 600.0:
                 raise ValueError("R3-DIAG hard cap must remain 600 seconds.")
+        if spec_id in DGCAIP_AUDIT_SPEC_IDS:
+            audit = config.get("audit")
+            if not isinstance(audit, Mapping) or audit.get("enabled") is not True:
+                raise ValueError("P1 determinism audit requires audit.enabled=true.")
+            frozen_audit = {
+                "first_batch_index": 0,
+                "paired_repeats": 2,
+                "total_hard_cap_seconds": 300,
+                "max_artifact_bytes": 104857600,
+            }
+            for key, expected in frozen_audit.items():
+                if int(audit.get(key, -1)) != expected:
+                    raise ValueError("P1 determinism audit freezes audit.%s=%s." % (key, expected))
+            if audit.get("zero_parameter_updates") is not True:
+                raise ValueError("P1 determinism audit requires zero_parameter_updates=true.")
+            if str(audit.get("baseline_commit", "")) != (
+                "4eb064ade919fecec6d1466900442e9f9a9a2bf5"
+            ):
+                raise ValueError("P1 determinism audit baseline commit changed.")
+            if tuple(audit.get("normal_lanes", ())) != ("shared", "reset", "fresh"):
+                raise ValueError("P1 determinism audit normal lanes changed.")
+            if tuple(audit.get("strict_lanes", ())) != ("fresh",):
+                raise ValueError("P1 determinism audit strict lanes changed.")
+            if float(audit.get("absolute_tolerance", float("nan"))) != 1.0e-6:
+                raise ValueError("P1 determinism absolute tolerance changed.")
+            if float(audit.get("relative_tolerance", float("nan"))) != 1.0e-4:
+                raise ValueError("P1 determinism relative tolerance changed.")
+            if int(config["mechanism"].get("batch_size", -1)) != 4:
+                raise ValueError("P1 determinism audit freezes batch_size=4.")
+            if int(config["mechanism"].get("calibration_batches", -1)) != 16:
+                raise ValueError("P1 determinism audit freezes 16 calibration batches.")
+            if int(config["mechanism"].get("heldout_batches", -1)) != 24:
+                raise ValueError("P1 determinism audit freezes 24 held-out batches.")
+            if float(config["mechanism"].get("max_seconds", -1)) != 300.0:
+                raise ValueError("P1 determinism audit hard cap must remain 300 seconds.")
+            if str(config["spec"].get("exp_id", "")) != (
+                "TAUSB-SDH-DGCAIP-S0-P1-DET-AUDIT"
+            ):
+                raise ValueError("P1 determinism audit ExpID changed.")
+            if not str(config["runtime"].get("artifact_root", "")).endswith(
+                "/TAUSB-SDH-DGCAIP-S0-P1-DET-AUDIT"
+            ):
+                raise ValueError("P1 determinism audit artifact root changed.")
 
 
 def _resolve(base: Path, value: str) -> Path:
@@ -1056,6 +1110,10 @@ def _summarize_arm(
 
 def run_mechanism_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict[str, Any]:
     validate_sdh_experiment_config(config)
+    if str(config["spec"].get("spec_id", "")) in DGCAIP_AUDIT_SPEC_IDS:
+        raise ValueError(
+            "P1 determinism audit must use the dedicated zero-update runner."
+        )
     if str(config["spec"].get("spec_id", "")) in DGCAIP_SPEC_IDS:
         from .dgcaip_experiment import run_dgcaip_pilot
 
