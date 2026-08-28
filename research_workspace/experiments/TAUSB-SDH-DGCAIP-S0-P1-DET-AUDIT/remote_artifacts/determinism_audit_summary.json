@@ -1,0 +1,26 @@
+{
+  "decision": {
+    "checks": {
+      "exactly_one_label": true,
+      "input_valid": true,
+      "normal_pairs_complete": true,
+      "state_valid": true,
+      "strict_complete_or_operator_error": true
+    },
+    "input_valid": true,
+    "label": "cuda_nondeterministic_operator",
+    "mechanical_pass": true,
+    "pair_pass": {
+      "normal_fresh": false,
+      "normal_reset": false,
+      "normal_shared": false,
+      "strict_fresh": false
+    },
+    "state_valid": true,
+    "strict_operator_error": true
+  },
+  "normal_trace_sha256": "8f51059e6ae121d7208e23bd6d03f3d917a539b8fd19411d5e105d1c16061e90",
+  "schema": "tausb.p1-determinism-audit-summary.v1",
+  "spec_id": "TAUSB-SDH-DGCAIP-P1-DETERMINISM-AUDIT-v1",
+  "strict_evidence_sha256": "b0a0ed6ba1995519b8d4b0e78a08b1fe4b54e20a004970ee9afda266036b3ef4"
+}

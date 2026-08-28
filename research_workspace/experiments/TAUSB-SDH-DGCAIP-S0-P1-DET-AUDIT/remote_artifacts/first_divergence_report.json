@@ -1,0 +1,27 @@
+{
+  "normal": {
+    "fresh": {
+      "bitwise_only_drift": false,
+      "first_divergent_stage": "grad.components/cicr",
+      "first_non_allclose_stage": "grad.components/dlfc"
+    },
+    "reset": {
+      "bitwise_only_drift": false,
+      "first_divergent_stage": "grad.components/cicr",
+      "first_non_allclose_stage": "grad.components/dlfc"
+    },
+    "shared": {
+      "bitwise_only_drift": false,
+      "first_divergent_stage": "grad.components/cicr",
+      "first_non_allclose_stage": "grad.components/dlfc"
+    }
+  },
+  "schema": "tausb.p1-determinism-first-divergence.v1",
+  "spec_id": "TAUSB-SDH-DGCAIP-P1-DETERMINISM-AUDIT-v1",
+  "strict": {},
+  "strict_operator_error": {
+    "error": "upsample_bilinear2d_backward_out_cuda does not have a deterministic implementation, but you set 'torch.use_deterministic_algorithms(True)'. You can turn off determinism just for this operation, or you can use the 'warn_only=True' option, if that's acceptable for your application. You can also file an issue at https://github.com/pytorch/pytorch/issues to help us prioritize adding deterministic support for this operation.",
+    "error_type": "RuntimeError",
+    "traceback": "Traceback (most recent call last):\n  File \"/root/autodl-tmp/tausb-dgcaip/preflight-checkouts/cc55bf2-p1-det-audit/ue_project/ue_framework/tools/run_p1_determinism_audit.py\", line 67, in main\n    result = run_p1_determinism_lane(\n  File \"/root/autodl-tmp/tausb-dgcaip/preflight-checkouts/cc55bf2-p1-det-audit/ue_project/ue_framework/methods/p1_determinism_experiment.py\", line 621, in run_p1_determinism_lane\n    context = _prepare_context(config, config_base=config_base, start=start)\n  File \"/root/autodl-tmp/tausb-dgcaip/preflight-checkouts/cc55bf2-p1-det-audit/ue_project/ue_framework/methods/p1_determinism_experiment.py\", line 408, in _prepare_context\n    _flatten_autograd_norm(loss, omega, retain_graph=True)\n  File \"/root/autodl-tmp/tausb-dgcaip/preflight-checkouts/cc55bf2-p1-det-audit/ue_project/ue_framework/methods/sdh_experiment.py\", line 997, in _flatten_autograd_norm\n    gradients = torch.autograd.grad(\n  File \"/root/miniconda3/lib/python3.8/site-packages/torch/autograd/__init__.py\", line 303, in grad\n    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass\nRuntimeError: upsample_bilinear2d_backward_out_cuda does not have a deterministic implementation, but you set 'torch.use_deterministic_algorithms(True)'. You can turn off determinism just for this operation, or you can use the 'warn_only=True' option, if that's acceptable for your application. You can also file an issue at https://github.com/pytorch/pytorch/issues to help us prioritize adding deterministic support for this operation.\n"
+  }
+}

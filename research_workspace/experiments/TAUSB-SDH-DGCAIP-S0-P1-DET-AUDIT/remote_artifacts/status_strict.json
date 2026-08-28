@@ -1,0 +1,8 @@
+{
+  "ended_unix": 1787930129.9933558,
+  "mechanical_pass": true,
+  "mode": "strict",
+  "schema": "tausb.p1-determinism-status.v1",
+  "started_unix": 1787930124.0439093,
+  "status": "completed_diagnostic_operator_error"
+}
