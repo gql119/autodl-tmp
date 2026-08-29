@@ -270,7 +270,14 @@ def _linear_interpolation_matrix(
     if source_size <= 0 or target_size <= 0:
         raise ValueError("Resize dimensions must be positive.")
     positions = (
-        (torch.arange(target_size, device=reference.device, dtype=torch.float64) + 0.5)
+        (
+            torch.arange(
+                target_size,
+                device=reference.device,
+                dtype=reference.dtype,
+            )
+            + 0.5
+        )
         * (float(source_size) / float(target_size))
         - 0.5
     )

@@ -144,7 +144,10 @@ def main() -> int:
         backend = enable_strict_determinism()
         device = torch.device(str(config["runtime"]["device"]))
         torch.manual_seed(0)
-        source = torch.randn(1, 3, 256, 256, device=device)
+        epsilon = float(config["mechanism"]["epsilon"])
+        source = (
+            torch.rand(1, 3, 256, 256, device=device) * 2.0 - 1.0
+        ) * epsilon
         probes = [
             torch.randn(1, 3, height, width, device=device)
             for height, width in sizes
@@ -178,6 +181,8 @@ def main() -> int:
             "repeat_gradient_sha256": gradient_hashes,
             "bitwise_exact": exact,
             "max_forward_abs_error": max_forward_error,
+            "source_linf_bound": epsilon,
+            "source_max_abs": float(source.detach().abs().max()),
             "benchmark_iterations": args.iterations,
             "benchmark_seconds": benchmark_seconds,
             "peak_cuda_memory_bytes": peak_bytes,

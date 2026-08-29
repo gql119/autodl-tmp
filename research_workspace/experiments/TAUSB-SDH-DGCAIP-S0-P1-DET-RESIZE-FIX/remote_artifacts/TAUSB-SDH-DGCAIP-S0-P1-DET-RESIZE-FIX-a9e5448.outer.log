@@ -1,0 +1,4 @@
+Creating new Ultralytics Settings v0.0.6 file ✅ 
+View Ultralytics Settings with 'yolo settings' or at '/root/autodl-tmp/tausb-dgcaip-cache/p1-det-resize-fix-a9e5448/yolo/Ultralytics/settings.json'
+Update Settings with 'yolo settings key=value', i.e. 'yolo settings runs_dir=path/to/dir'. For help see https://docs.ultralytics.com/quickstart/#ultralytics-settings.
+[P1-DET-RESIZE] controller_exit=22; requesting AutoDL shutdown

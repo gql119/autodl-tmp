@@ -1,0 +1,1 @@
+{"schema":"tausb.p1-det-resize-controller.v1","status":"failed","exit_code":22,"label":"resize_forward_or_gradient_mismatch","execution_commit":"a9e5448e2e5d8faa50d160a7e53b5bdd274b46a1","config_sha256":"0294f29190b60b168afc54ac25e41eb5509a6103ceddf095bc713281a9480900","elapsed_seconds":7,"hard_cap_seconds":480}

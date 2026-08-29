@@ -168,6 +168,27 @@ def test_deterministic_resize_matches_cpu_bilinear_input_gradient():
     assert torch.allclose(fixed_gradient, legacy_gradient, atol=2e-5, rtol=1e-4)
 
 
+@pytest.mark.parametrize(
+    "target_size",
+    [(372, 394), (399, 175), (599, 577), (425, 160)],
+)
+def test_deterministic_resize_matches_real_box_forward_in_production_range(
+    target_size,
+):
+    torch.manual_seed(0)
+    epsilon = 16.0 / 255.0
+    inputs = (torch.rand(1, 3, 256, 256) * 2.0 - 1.0) * epsilon
+    expected = F.interpolate(
+        inputs,
+        size=target_size,
+        mode="bilinear",
+        align_corners=False,
+    )
+    actual = deterministic_bilinear_resize_2d(inputs, target_size)
+    assert torch.allclose(actual, expected, atol=2e-6, rtol=1e-5)
+    assert float((actual - expected).abs().max()) <= 2e-6
+
+
 def test_render_host_is_no_grad_but_patch_reaches_adapter():
     carrier = _small_carrier()
     carrier.freeze_for_detector_optimization()
