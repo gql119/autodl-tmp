@@ -1,0 +1,64 @@
+{
+  "accepted_steps": 2,
+  "adapter_changed": true,
+  "adapter_sha256_after": "944fe64b7eb6951ef9a22a3e7d35682e4809982192cd8840865fce7d94ea39a0",
+  "adapter_sha256_before": "4f8faeb84a0edc5544426321231fe2b6fc1bc13fb591100ec9eca08ae3e0d591",
+  "elapsed_seconds": 18.630365243181586,
+  "ended_unix": 1788014115.7116756,
+  "finite": true,
+  "frozen_state_checks": {
+    "cicr_bank": true,
+    "dgcaip_weights": true,
+    "dlfc_bank": true,
+    "hiding_trunk": true,
+    "model": true,
+    "nla_weight": true,
+    "reveal_decoder": true,
+    "target_weights": true
+  },
+  "passed": true,
+  "perturbation_linf": 0.06274443864822388,
+  "schema": "tausb.p1-resize-repair-writeback.v1",
+  "spec_id": "TAUSB-SDH-DGCAIP-P1-DET-RESIZE-FIX-v1",
+  "started_unix": 1788014096.9347322,
+  "state_loadable": true,
+  "state_path": "/root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-P1-DET-RESIZE-FIX/writeback_smoke/p1_resize_repair_smoke_state.pt",
+  "status": "passed",
+  "steps": [
+    {
+      "accepted": true,
+      "backtrack_attempts": 1,
+      "combined_norm": 194.3269805908203,
+      "max_final_row_dot": 188.242919921875,
+      "max_projected_row_dot": 2.0563602447509766e-06,
+      "nla_norm": 1.8824292421340942,
+      "objective": 39.10857009887695,
+      "probability_drop": {
+        "11": 0.0038755834102630615
+      },
+      "projected_target_norm": 48.2449836730957,
+      "route_mode": "projected_target_plus_nla",
+      "step": 0,
+      "step_size": 0.0005,
+      "target_norm": 49.72410202026367
+    },
+    {
+      "accepted": true,
+      "backtrack_attempts": 1,
+      "combined_norm": 78.18637084960938,
+      "max_final_row_dot": 0.8469774723052979,
+      "max_projected_row_dot": 2.6226043701171875e-06,
+      "nla_norm": 0.008469795808196068,
+      "objective": 39.32639694213867,
+      "probability_drop": {
+        "11": 0.0037563026417046785
+      },
+      "projected_target_norm": 78.1817855834961,
+      "route_mode": "projected_target_plus_nla",
+      "step": 1,
+      "step_size": 0.0005,
+      "target_norm": 78.55287170410156
+    }
+  ],
+  "support_valid": true
+}

@@ -1,0 +1,19 @@
+{
+  "normal": {
+    "reset": {
+      "bitwise_only_drift": false,
+      "first_divergent_stage": "grad.components/cicr",
+      "first_non_allclose_stage": "grad.components/dlfc"
+    }
+  },
+  "schema": "tausb.p1-determinism-first-divergence.v1",
+  "spec_id": "TAUSB-SDH-DGCAIP-P1-DET-RESIZE-FIX-v1",
+  "strict": {
+    "fresh": {
+      "bitwise_only_drift": false,
+      "first_divergent_stage": null,
+      "first_non_allclose_stage": null
+    }
+  },
+  "strict_operator_error": null
+}

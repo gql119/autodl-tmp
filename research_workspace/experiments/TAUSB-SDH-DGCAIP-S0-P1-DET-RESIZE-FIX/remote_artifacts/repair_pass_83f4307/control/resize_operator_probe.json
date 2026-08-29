@@ -1,0 +1,81 @@
+{
+  "backend": {
+    "cublas_workspace_config": ":4096:8",
+    "cuda_available": true,
+    "cuda_devices": [
+      {
+        "capability": [
+          8,
+          9
+        ],
+        "index": 0,
+        "name": "NVIDIA GeForce RTX 4090 D"
+      }
+    ],
+    "cuda_matmul_allow_tf32": false,
+    "cuda_version": "11.8",
+    "cudnn_allow_tf32": false,
+    "cudnn_benchmark": false,
+    "cudnn_deterministic": true,
+    "cudnn_version": 8700,
+    "deterministic_algorithms": true,
+    "deterministic_warn_only": false,
+    "torch_version": "2.0.0+cu118"
+  },
+  "benchmark_iterations": 32,
+  "benchmark_seconds": 0.11861307546496391,
+  "bitwise_exact": true,
+  "ended_unix": 1788013891.9091113,
+  "max_forward_abs_error": 8.828938007354736e-07,
+  "peak_cuda_memory_bytes": 98186752,
+  "person_box_sizes": [
+    [
+      372,
+      394
+    ],
+    [
+      399,
+      175
+    ],
+    [
+      599,
+      577
+    ],
+    [
+      425,
+      160
+    ]
+  ],
+  "repeat_forward_sha256": [
+    [
+      "3bf8531217184392059de2a56ede08faa303fde0f529326917743647752464f2",
+      "04a4d6aac48a1c3b34567d0c4039e70b26057ad72290ebf9c7ba34cedad2a4f0",
+      "5dd5f1067e020e4d597f7d2fd9b9900062017b09328480c3ebc57a1618e2a7a1",
+      "31cb3dce9bc2df35d0b762f3fb5b41a51575731e4594ad7ed0713a43eb485318"
+    ],
+    [
+      "3bf8531217184392059de2a56ede08faa303fde0f529326917743647752464f2",
+      "04a4d6aac48a1c3b34567d0c4039e70b26057ad72290ebf9c7ba34cedad2a4f0",
+      "5dd5f1067e020e4d597f7d2fd9b9900062017b09328480c3ebc57a1618e2a7a1",
+      "31cb3dce9bc2df35d0b762f3fb5b41a51575731e4594ad7ed0713a43eb485318"
+    ],
+    [
+      "3bf8531217184392059de2a56ede08faa303fde0f529326917743647752464f2",
+      "04a4d6aac48a1c3b34567d0c4039e70b26057ad72290ebf9c7ba34cedad2a4f0",
+      "5dd5f1067e020e4d597f7d2fd9b9900062017b09328480c3ebc57a1618e2a7a1",
+      "31cb3dce9bc2df35d0b762f3fb5b41a51575731e4594ad7ed0713a43eb485318"
+    ]
+  ],
+  "repeat_gradient_sha256": [
+    "b66050a8e65f6da938a6274caa585ade4206e7c01ac2c64ac766d6803131454e",
+    "b66050a8e65f6da938a6274caa585ade4206e7c01ac2c64ac766d6803131454e",
+    "b66050a8e65f6da938a6274caa585ade4206e7c01ac2c64ac766d6803131454e"
+  ],
+  "schema": "tausb.sdh-deterministic-resize-probe.v1",
+  "source_linf_bound": 0.06274509803921569,
+  "source_max_abs": 0.06274502724409103,
+  "spec_id": "TAUSB-SDH-DGCAIP-P1-DET-RESIZE-FIX-v1",
+  "split_sha256": "9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280",
+  "started_unix": 1788013889.7538588,
+  "status": "passed"
+}

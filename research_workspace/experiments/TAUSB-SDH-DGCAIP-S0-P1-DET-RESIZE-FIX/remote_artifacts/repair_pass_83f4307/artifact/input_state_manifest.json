@@ -1,0 +1,309 @@
+{
+  "image_ids": [
+    "000321",
+    "000777",
+    "001362",
+    "001686"
+  ],
+  "input_tensors": {
+    "input.cpu/batch_idx": {
+      "device": "cpu",
+      "dtype": "torch.int64",
+      "finite": true,
+      "sha256": "80177700523189c95bb9eec7c2269b3f56e0839991a08d9cf6a47cc864c8368f",
+      "shape": [
+        5
+      ]
+    },
+    "input.cpu/bboxes": {
+      "device": "cpu",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 2.5555621290306894,
+      "max": 0.9359999895095825,
+      "min": 0.25066667795181274,
+      "sha256": "e81d4869276e57d57f95990f6bfef05581e19d9f0201482e021f3724b6b665aa",
+      "shape": [
+        5,
+        4
+      ]
+    },
+    "input.cpu/boxes_by_image.0": {
+      "device": "cpu",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 786.9561614219689,
+      "max": 584.0,
+      "min": 82.0,
+      "sha256": "926e1c910b32549f55c55d8d2cddd965c0d7e3a175375807007b627aec0d65e8",
+      "shape": [
+        1,
+        4
+      ]
+    },
+    "input.cpu/boxes_by_image.1": {
+      "device": "cpu",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 672.3287886146182,
+      "max": 460.0,
+      "min": 0.0,
+      "sha256": "67f36ac5598b7fc00947f89bea6d3b750609107e79c90ad3d8cc9fe3f1dab484",
+      "shape": [
+        1,
+        4
+      ]
+    },
+    "input.cpu/boxes_by_image.2": {
+      "device": "cpu",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 905.1684926023441,
+      "max": 638.0,
+      "min": 39.0,
+      "sha256": "7358a653e4305068ae4fe0b8c4fbe7cfe5242eda4adffff650a402200261aa83",
+      "shape": [
+        1,
+        4
+      ]
+    },
+    "input.cpu/boxes_by_image.3": {
+      "device": "cpu",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 780.9833544961122,
+      "max": 638.0,
+      "min": 189.0,
+      "sha256": "474a5e6f990375a7abedb413934e6b9ba019efa5a4e66781edfa33a01d977758",
+      "shape": [
+        1,
+        4
+      ]
+    },
+    "input.cpu/cls": {
+      "device": "cpu",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 30.083217912982647,
+      "max": 14.0,
+      "min": 11.0,
+      "sha256": "2603e1581c00ecaa6f897e0d7a636251647e042dd13e733ba0e9412ee22f5e30",
+      "shape": [
+        5,
+        1
+      ]
+    },
+    "input.cpu/images": {
+      "device": "cpu",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 929.2386797216978,
+      "max": 1.0,
+      "min": 0.0,
+      "sha256": "e7e2c5c8ef3c1379206d6fade202c514ba60010eceac359c09308cadf6b08b14",
+      "shape": [
+        4,
+        3,
+        640,
+        640
+      ]
+    },
+    "input.cuda/batch_idx": {
+      "device": "cuda:0",
+      "dtype": "torch.int64",
+      "finite": true,
+      "sha256": "80177700523189c95bb9eec7c2269b3f56e0839991a08d9cf6a47cc864c8368f",
+      "shape": [
+        5
+      ]
+    },
+    "input.cuda/bboxes": {
+      "device": "cuda:0",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 2.5555621290306894,
+      "max": 0.9359999895095825,
+      "min": 0.25066667795181274,
+      "sha256": "e81d4869276e57d57f95990f6bfef05581e19d9f0201482e021f3724b6b665aa",
+      "shape": [
+        5,
+        4
+      ]
+    },
+    "input.cuda/boxes_by_image.0": {
+      "device": "cuda:0",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 786.9561614219689,
+      "max": 584.0,
+      "min": 82.0,
+      "sha256": "926e1c910b32549f55c55d8d2cddd965c0d7e3a175375807007b627aec0d65e8",
+      "shape": [
+        1,
+        4
+      ]
+    },
+    "input.cuda/boxes_by_image.1": {
+      "device": "cuda:0",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 672.3287886146182,
+      "max": 460.0,
+      "min": 0.0,
+      "sha256": "67f36ac5598b7fc00947f89bea6d3b750609107e79c90ad3d8cc9fe3f1dab484",
+      "shape": [
+        1,
+        4
+      ]
+    },
+    "input.cuda/boxes_by_image.2": {
+      "device": "cuda:0",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 905.1684926023441,
+      "max": 638.0,
+      "min": 39.0,
+      "sha256": "7358a653e4305068ae4fe0b8c4fbe7cfe5242eda4adffff650a402200261aa83",
+      "shape": [
+        1,
+        4
+      ]
+    },
+    "input.cuda/boxes_by_image.3": {
+      "device": "cuda:0",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 780.9833544961122,
+      "max": 638.0,
+      "min": 189.0,
+      "sha256": "474a5e6f990375a7abedb413934e6b9ba019efa5a4e66781edfa33a01d977758",
+      "shape": [
+        1,
+        4
+      ]
+    },
+    "input.cuda/cls": {
+      "device": "cuda:0",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 30.083217912982647,
+      "max": 14.0,
+      "min": 11.0,
+      "sha256": "2603e1581c00ecaa6f897e0d7a636251647e042dd13e733ba0e9412ee22f5e30",
+      "shape": [
+        5,
+        1
+      ]
+    },
+    "input.cuda/images": {
+      "device": "cuda:0",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 929.2386797216978,
+      "max": 1.0,
+      "min": 0.0,
+      "sha256": "e7e2c5c8ef3c1379206d6fade202c514ba60010eceac359c09308cadf6b08b14",
+      "shape": [
+        4,
+        3,
+        640,
+        640
+      ]
+    },
+    "input.cuda/secret": {
+      "device": "cuda:0",
+      "dtype": "torch.float32",
+      "finite": true,
+      "l2": 260.6328228126734,
+      "max": 0.9372549057006836,
+      "min": 0.0313725508749485,
+      "sha256": "ba4107e5b8c972ed2320913a2acedbba6a139308e416eedaf39f36622a835129",
+      "shape": [
+        1,
+        3,
+        256,
+        256
+      ]
+    }
+  },
+  "normal_pair_state": {
+    "reset": {
+      "initial_state_match": true,
+      "input_match": true,
+      "left_state_pre_sha256": "1c64055f1850cfddb2a1ee688a1cfaa0936a5b37d81805e4a9d77f59dc9d14d1",
+      "right_state_pre_sha256": "1c64055f1850cfddb2a1ee688a1cfaa0936a5b37d81805e4a9d77f59dc9d14d1"
+    }
+  },
+  "reference_state_pre": {
+    "backend": {
+      "cublas_workspace_config": ":4096:8",
+      "cuda_available": true,
+      "cuda_devices": [
+        {
+          "capability": [
+            8,
+            9
+          ],
+          "index": 0,
+          "name": "NVIDIA GeForce RTX 4090 D"
+        }
+      ],
+      "cuda_matmul_allow_tf32": false,
+      "cuda_version": "11.8",
+      "cudnn_allow_tf32": true,
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "cudnn_version": 8700,
+      "deterministic_algorithms": false,
+      "deterministic_warn_only": false,
+      "torch_version": "2.0.0+cu118"
+    },
+    "carrier": {
+      "gradients_sha256": "8a9736ac2cb3efe39de4d158a56719d0cd148a239b1811f01debb9d855432245",
+      "parameter_count": 34,
+      "state_sha256": "a3bec1ccd1c456bc30ce6e72cdf865f925e87a267e26964484ce383133812e14",
+      "state_tensor_count": 34,
+      "training_sha256": "d765dde59c205de9515a1b1b32cfb972b9531dd83153c53bb5557783bb98e051"
+    },
+    "cicr_bank_sha256": "3cdadd4c32b5ae51b8a5e2023ffc0e478fbc869ec86624025c6ebefa8105c7b4",
+    "dgcaip_weights_sha256": "e3798bb7dafb2f61b334fee5a8c31b298d32613c5add5f9650c24956b6cc65fd",
+    "dlfc_bank_sha256": "f40342c70a3d341dd23cebabd2645194ab4736e2af3a0167c710c69777c1f85e",
+    "engine": {
+      "capture_idle": true,
+      "counter": 44,
+      "dlfc_counter": 44,
+      "last_real_assign_keys": [
+        "fg_mask",
+        "target_gt_idx",
+        "target_labels",
+        "target_scores"
+      ],
+      "last_real_assign_sha256": "f778d1cf6ba1b5fcf16d5318acb6a99056c0973f97510c45487e8e82edd3014c"
+    },
+    "lambda_nla": 100.0,
+    "model": {
+      "gradients_sha256": "a0d35cffd39231db45150558f35f22f5eeb4b2bc92beeab0a115633b4d8e0982",
+      "parameter_count": 184,
+      "state_sha256": "14e5a5bf46d135a8fbffd5651a265ddb4b9135ea68b6ed979211c6e1290d7162",
+      "state_tensor_count": 355,
+      "training_sha256": "18f291a062162d9b76fc61b9312988e3f42797c444b9cd5c1e1f26b44c7c578c"
+    },
+    "rng": {
+      "cuda_device_count": 1,
+      "sha256": "ef0840c9cf9de7fe38da2c2382c2804cd91f946aa61ef7bded738d3db1a4581e"
+    },
+    "sha256": "1c64055f1850cfddb2a1ee688a1cfaa0936a5b37d81805e4a9d77f59dc9d14d1",
+    "target_weights_sha256": "fe8e0f4346ecf114a4d71748d6805f304f899efb0fc7f1a7e4636c87b7ac71bf"
+  },
+  "schema": "tausb.p1-determinism-input-state.v1",
+  "spec_id": "TAUSB-SDH-DGCAIP-P1-DET-RESIZE-FIX-v1",
+  "split_hash": "9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280",
+  "strict_pair_state": {
+    "fresh": {
+      "initial_state_match": true,
+      "input_match": true,
+      "left_state_pre_sha256": "19e7fc7393d8d9813fc5f26b9118240322f9fc91ef5caae8b79d32c7112d8edb",
+      "right_state_pre_sha256": "19e7fc7393d8d9813fc5f26b9118240322f9fc91ef5caae8b79d32c7112d8edb"
+    }
+  }
+}

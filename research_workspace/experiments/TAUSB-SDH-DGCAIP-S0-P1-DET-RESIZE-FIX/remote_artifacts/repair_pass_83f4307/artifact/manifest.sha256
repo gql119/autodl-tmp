@@ -1,0 +1,10 @@
+8afa81f1446d7bfda0d68167a6ece30a3918784b08df4b68fcda5e3208a7595f  /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-P1-DET-RESIZE-FIX/determinism_audit_summary.json
+f77d33eea0c7a2824f344cbb5a5fd66fdea21d6bdf7d8c2c135daac8428f0001  /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-P1-DET-RESIZE-FIX/first_divergence_report.json
+8b422b449d23baa43eec72b0bfefc1245d404bb7f215b3881e3d5e9bf39097a4  /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-P1-DET-RESIZE-FIX/input_state_manifest.json
+c7e57e381ad843565388f0fe0d11c26bfa06b09d2c64f8d44be00b0e6bbc7eee  /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-P1-DET-RESIZE-FIX/p1_trace_normal.json
+2bd161e1fcbba40300e3037fa66d5f1f1957c00d3f9567104bf4636c9d0de764  /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-P1-DET-RESIZE-FIX/p1_trace_strict.json
+3ec274650f8784e8ed5ac4cc82cbeb64d0168fc988d802589117f781b17dffd6  /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-P1-DET-RESIZE-FIX/status_normal.json
+88553f3380e96532031bc816cfa386f1222cb058b23e2f336b6ff2ab3fcae494  /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-P1-DET-RESIZE-FIX/status_strict.json
+de1d2635c7f60ba8e839ee7697a8711df21d69e58fb4cc873250434f54522e53  /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-P1-DET-RESIZE-FIX/status_summarize.json
+18244b0b81a13d1221d897401c01fa9d0fbfe658bbcd4867e080947007d07300  /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-P1-DET-RESIZE-FIX/writeback_smoke.json
+743f48073a58a6687d5e01a01251d6187ff21070024f12184eb976e50416eb35  /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-P1-DET-RESIZE-FIX/writeback_smoke/p1_resize_repair_smoke_state.pt

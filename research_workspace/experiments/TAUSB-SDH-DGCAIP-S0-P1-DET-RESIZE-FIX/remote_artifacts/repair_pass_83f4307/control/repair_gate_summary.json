@@ -1,0 +1,11 @@
+{
+  "checks": {
+    "resize_probe_pass": true,
+    "strict_replay_pass": true,
+    "writeback_pass": true
+  },
+  "label": "repair_pass",
+  "pass": true,
+  "schema": "tausb.p1-det-resize-gate-summary.v1",
+  "stage_exit_code": 0
+}

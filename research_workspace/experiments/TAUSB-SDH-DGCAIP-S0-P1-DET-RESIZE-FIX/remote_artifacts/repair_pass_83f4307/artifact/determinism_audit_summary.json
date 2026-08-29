@@ -1,0 +1,22 @@
+{
+  "decision": {
+    "checks": {
+      "exactly_one_label": true,
+      "input_valid": true,
+      "normal_pairs_complete": true,
+      "state_valid": true,
+      "strict_complete_or_operator_error": true
+    },
+    "input_valid": true,
+    "label": "strict_replay_pass",
+    "mechanical_pass": true,
+    "normal_reset_bitwise_pass": false,
+    "state_valid": true,
+    "strict_fresh_bitwise_pass": true,
+    "strict_operator_error": false
+  },
+  "normal_trace_sha256": "c7e57e381ad843565388f0fe0d11c26bfa06b09d2c64f8d44be00b0e6bbc7eee",
+  "schema": "tausb.p1-determinism-audit-summary.v1",
+  "spec_id": "TAUSB-SDH-DGCAIP-P1-DET-RESIZE-FIX-v1",
+  "strict_evidence_sha256": "2bd161e1fcbba40300e3037fa66d5f1f1957c00d3f9567104bf4636c9d0de764"
+}
