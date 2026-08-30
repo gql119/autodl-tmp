@@ -9,6 +9,8 @@ import sys
 import time
 import traceback
 
+import yaml
+
 from ue_framework.io_utils import atomic_write_json
 from ue_framework.tools.bind_tausb_sdh_dgcaip_p4_e20 import (
     validate_dgcaip_p4_binding,
@@ -60,6 +62,70 @@ def _remaining(started: float) -> int:
     return seconds
 
 
+def _validate_mechanism_output_binding(
+    mechanism_config: Path,
+    mechanism_root: Path,
+) -> None:
+    config = yaml.safe_load(mechanism_config.read_text(encoding="utf-8"))
+    try:
+        configured_root = Path(config["runtime"]["artifact_root"]).resolve()
+    except (KeyError, TypeError) as error:
+        raise GuardFailure(
+            "PRECHECK", "mechanism_artifact_root_missing"
+        ) from error
+    if configured_root != mechanism_root:
+        raise GuardFailure(
+            "PRECHECK",
+            "mechanism_artifact_root_mismatch: config=%s cli=%s"
+            % (configured_root, mechanism_root),
+        )
+
+
+def _fresh_output_roots(
+    args: argparse.Namespace,
+    mechanism_root: Path,
+    control_root: Path,
+    log_root: Path,
+) -> list[Path]:
+    run_root_prefix = args.run_root_prefix.rstrip("-")
+    return [
+        mechanism_root,
+        control_root,
+        log_root,
+        Path(args.binding_root).resolve(),
+        Path(args.sparse_control_root).resolve(),
+        Path(args.comparison_root).resolve(),
+        Path(run_root_prefix + "-E20-C0").resolve(),
+        Path(run_root_prefix + "-E20-M1").resolve(),
+    ]
+
+
+def _write_failure_evidence(control_root: Path, error: BaseException) -> None:
+    ended = time.time()
+    failure = {
+        "schema": "tausb.dgcaip-p4-oneboot-failure.v1",
+        "status": "failed",
+        "error_type": type(error).__name__,
+        "error": str(error),
+        "traceback": traceback.format_exc(),
+        "ended_unix": ended,
+    }
+    atomic_write_json(str(control_root / "controller_failure.json"), failure)
+    status_path = control_root / "controller_status.json"
+    if status_path.is_file():
+        status = json.loads(status_path.read_text(encoding="utf-8"))
+        status.update(
+            {
+                "status": "failed",
+                "current_stage": "",
+                "error_type": type(error).__name__,
+                "error": str(error),
+                "ended_unix": ended,
+            }
+        )
+        atomic_write_json(str(status_path), status)
+
+
 def _run(args: argparse.Namespace) -> int:
     started = time.monotonic()
     repository_root = Path(args.repository_root).resolve()
@@ -69,7 +135,7 @@ def _run(args: argparse.Namespace) -> int:
     mechanism_root = Path(args.mechanism_root).resolve()
     control_root = Path(args.control_root).resolve()
     log_root = Path(args.log_root).resolve()
-    fresh = [control_root, log_root, mechanism_root]
+    fresh = _fresh_output_roots(args, mechanism_root, control_root, log_root)
     if _git(repository_root, "rev-parse", "HEAD") != args.expected_commit:
         raise GuardFailure("PRECHECK", "execution_commit_mismatch")
     if _git(repository_root, "status", "--porcelain"):
@@ -78,6 +144,7 @@ def _run(args: argparse.Namespace) -> int:
         raise GuardFailure("PRECHECK", "fresh_oneboot_path_already_exists")
     if not python_bin.is_file() or not mechanism_config.is_file():
         raise GuardFailure("PRECHECK", "python_or_mechanism_config_missing")
+    _validate_mechanism_output_binding(mechanism_config, mechanism_root)
     control_root.mkdir(parents=True, exist_ok=False)
     log_root.mkdir(parents=True, exist_ok=False)
     status = {
@@ -202,17 +269,7 @@ def main() -> int:
         return _run(args)
     except BaseException as error:
         if control_root.exists():
-            atomic_write_json(
-                str(control_root / "controller_failure.json"),
-                {
-                    "schema": "tausb.dgcaip-p4-oneboot-failure.v1",
-                    "status": "failed",
-                    "error_type": type(error).__name__,
-                    "error": str(error),
-                    "traceback": traceback.format_exc(),
-                    "ended_unix": time.time(),
-                },
-            )
+            _write_failure_evidence(control_root, error)
         print("[DGCAIP-P4-OneBoot] %s: %s" % (type(error).__name__, error), file=sys.stderr)
         return int(getattr(error, "exit_code", 1))
 
