@@ -7,7 +7,8 @@ if [[ $# -ne 1 || ! "$1" =~ ^[0-9a-f]{40}$ ]]; then
 fi
 
 expected_commit="$1"
-repository_root="/root/autodl-tmp"
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+repository_root="$(cd -- "${script_dir}/../../../.." && pwd)"
 data_root="/root/autodl-tmp"
 python_bin="/root/miniconda3/bin/python"
 exp_root="${data_root}/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-P4-SPARSE-E20"
@@ -31,7 +32,7 @@ cd "${repository_root}/ue_project"
   --mechanism-config "${repository_root}/ue_project/ue_framework/configs/tausb_sdh_dgcaip_p4_sparse_e20_v1.yaml" \
   --mechanism-root "${exp_root}" \
   --base-config "${repository_root}/ue_project/ue_framework/configs/exp_voc_person_sdh_lfc_cicr_cgr_nla_map50_v3.yaml" \
-  --dataset-root "${repository_root}/ue_project/VOC_0712_Kaggle_Ready" \
+  --dataset-root "${data_root}/ue_project/VOC_0712_Kaggle_Ready" \
   --binding-root "${exp_root}-BINDING" \
   --run-root-prefix "${exp_root}-VICTIM" \
   --control-root "${exp_root}-CONTROL" \
