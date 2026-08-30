@@ -95,6 +95,20 @@ def _all_finite(value: Any) -> bool:
     return True
 
 
+def _support_outside_linf(observations: Sequence[SDHObservation]) -> float:
+    return max(
+        float(
+            (
+                item.rendered.perturbation.detach()
+                * (~item.rendered.union_support.detach())
+            )
+            .abs()
+            .max()
+        )
+        for item in observations
+    )
+
+
 def _frozen_snapshot(
     *,
     base_carrier: torch.nn.Module,
@@ -982,16 +996,8 @@ def run_dgcaip_pilot(
                         float(item.rendered.perturbation.detach().abs().max())
                         for item in heldout_observations
                     ),
-                    "support_outside_linf": max(
-                        float(
-                            (
-                                item.rendered.perturbation.detach()
-                                * (1.0 - item.rendered.union_support.detach())
-                            )
-                            .abs()
-                            .max()
-                        )
-                        for item in heldout_observations
+                    "support_outside_linf": _support_outside_linf(
+                        heldout_observations
                     ),
                 }
             )

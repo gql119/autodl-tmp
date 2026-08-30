@@ -16,6 +16,7 @@ from ue_framework.methods.dgcaip_experiment import (
     R3_DIAGNOSTIC_ARMS,
     _constraint_limits,
     _p1_replay_report,
+    _support_outside_linf,
     _validate_d0_report_binding,
 )
 from ue_framework.methods.sdh_experiment import (
@@ -100,6 +101,15 @@ def _dg_result() -> DGCAIPResult:
         covered_instance_count=1,
         coverage=1.0,
     )
+
+
+def test_support_outside_linf_accepts_bool_union_support() -> None:
+    rendered = types.SimpleNamespace(
+        perturbation=torch.tensor([[[[0.5, 0.25]]]]),
+        union_support=torch.tensor([[[[True, False]]]]),
+    )
+    observation = types.SimpleNamespace(rendered=rendered)
+    assert _support_outside_linf([observation]) == pytest.approx(0.25)
 
 
 def test_dgcaip_config_and_arm_switches_are_frozen() -> None:

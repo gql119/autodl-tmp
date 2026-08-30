@@ -19,7 +19,12 @@ shutdown_instance() {
 }
 trap shutdown_instance EXIT INT TERM HUP
 
-mkdir -p "${data_root}/tausb-cache" "${data_root}/tausb-tmp" "${wrapper_log_root}"
+mkdir -p \
+  "${data_root}/tausb-cache/xdg/torch/kernels" \
+  "${data_root}/tausb-cache/torch" \
+  "${data_root}/tausb-cache/yolo" \
+  "${data_root}/tausb-tmp" \
+  "${wrapper_log_root}"
 cd "${repository_root}/ue_project"
 
 /usr/bin/timeout --signal=TERM --kill-after=60s 7200s \
