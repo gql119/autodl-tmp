@@ -9,6 +9,8 @@ import torch
 
 from ue_framework.methods.sdh_materializer import (
     SDHMaterializer,
+    DGCAIP_P4_PROVENANCE_HASH_KEYS,
+    build_dgcaip_p4_candidate_state_payload,
     build_feasibility_sdh_state_payload,
     build_frozen_sdh_state_payload,
     load_frozen_sdh_state,
@@ -199,3 +201,71 @@ def test_v0_materializer_rejects_wrong_mechanism_provenance_hash(tmp_path) -> No
     method_cfg["mechanism_metrics_sha256"] = "0" * 64
     with pytest.raises(ValueError, match="mechanism_metrics_sha256"):
         SDHMaterializer(cfg, method_cfg, torch.device("cpu"), torch.nn.Identity())
+
+
+def _p4_candidate_state(tmp_path):
+    torch.manual_seed(17)
+    carrier = SemanticHidingCarrier(
+        input_size=32,
+        width=8,
+        coupling_blocks=2,
+        epsilon=16 / 255,
+    )
+    provenance_hashes = {
+        name: format(index + 1, "x") * 64
+        for index, name in enumerate(DGCAIP_P4_PROVENANCE_HASH_KEYS)
+    }
+    payload = build_dgcaip_p4_candidate_state_payload(
+        carrier=carrier,
+        secret=torch.rand((1, 3, 32, 32)),
+        target_class_id=14,
+        mechanism_scientific_gate_passed=False,
+        provenance_hashes=provenance_hashes,
+        **HASHES,
+    )
+    path = tmp_path / "p4_dgcaip_candidate_sdh_state.pt"
+    torch.save(payload, path)
+    return path, hashlib.sha256(path.read_bytes()).hexdigest(), provenance_hashes
+
+
+def test_p4_candidate_keeps_arm_identity_and_allows_scientific_fail(tmp_path) -> None:
+    path, state_hash, provenance_hashes = _p4_candidate_state(tmp_path)
+    cfg, method_cfg = _cfg(path)
+    method_cfg.update(
+        {
+            "protocol_id": "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1",
+            "materialization_mode": "p4_dgcaip_candidate_state",
+            "allow_failed_scientific_gates": True,
+            "frozen_sdh_state_sha256": state_hash,
+            **provenance_hashes,
+        }
+    )
+    materializer = SDHMaterializer(
+        cfg, method_cfg, torch.device("cpu"), torch.nn.Identity()
+    )
+    result = materializer.generate(
+        np.full((40, 48, 3), 0.5, dtype=np.float32),
+        [{"cls": 14, "bbox": [0.5, 0.5, 0.4, 0.6]}],
+        0,
+        40,
+        16 / 255,
+        "bbox",
+    )
+    assert result.extras["source_arm_id"] == "P4-DGCAIP"
+    assert result.extras["state_integrity_gate_passed"] is True
+    assert result.extras["mechanism_scientific_gate_passed"] is False
+    assert result.extras["evidence_scope"] == (
+        "diagnostic_candidate_ap50_evaluation"
+    )
+
+
+def test_p4_candidate_cannot_be_loaded_as_legacy_p1(tmp_path) -> None:
+    path, _, _ = _p4_candidate_state(tmp_path)
+    with pytest.raises(ValueError, match="arm_id=P1"):
+        load_frozen_sdh_state(
+            str(path),
+            device=torch.device("cpu"),
+            expected_target_class_id=14,
+            expected_epsilon=16 / 255,
+            expected_hashes=HASHES,
+        )

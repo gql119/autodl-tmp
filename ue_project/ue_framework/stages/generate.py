@@ -83,6 +83,16 @@ MANIFEST_FIELDS = [
     "mechanism_decision_sha256",
     "mechanism_config_sha256",
     "p1_state_sha256",
+    "source_arm_id",
+    "state_integrity_gate_passed",
+    "mechanism_scientific_gate_passed",
+    "mechanism_scientific_decision_sha256",
+    "state_integrity_decision_sha256",
+    "p4_state_sha256",
+    "source_p1_state_sha256",
+    "source_p1_metrics_sha256",
+    "d0_report_sha256",
+    "repair_report_sha256",
     "secret_source_sha256",
 ]
 
@@ -412,6 +422,16 @@ def run_generate_poisoned_dataset(ctx: RunContext) -> None:
                 "mechanism_decision_sha256",
                 "mechanism_config_sha256",
                 "p1_state_sha256",
+                "source_arm_id",
+                "state_integrity_gate_passed",
+                "mechanism_scientific_gate_passed",
+                "mechanism_scientific_decision_sha256",
+                "state_integrity_decision_sha256",
+                "p4_state_sha256",
+                "source_p1_state_sha256",
+                "source_p1_metrics_sha256",
+                "d0_report_sha256",
+                "repair_report_sha256",
                 "secret_source_sha256",
             )
         }

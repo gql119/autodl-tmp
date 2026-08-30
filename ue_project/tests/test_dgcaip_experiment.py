@@ -21,6 +21,7 @@ from ue_framework.methods.dgcaip_experiment import (
 from ue_framework.methods.sdh_experiment import (
     DGCAIP_R3_DIAG_SPEC_ID,
     DGCAIP_R4_DIAG_SPEC_ID,
+    DGCAIP_P4_E20_SPEC_ID,
     DGCAIP_SPEC_ID,
     validate_sdh_experiment_config,
 )
@@ -43,6 +44,12 @@ R4 = (
     / "ue_framework"
     / "configs"
     / "tausb_sdh_dgcaip_r4_d0_binding_fix_v1.yaml"
+)
+P4_E20 = (
+    Path(__file__).parents[1]
+    / "ue_framework"
+    / "configs"
+    / "tausb_sdh_dgcaip_p4_sparse_e20_v1.yaml"
 )
 
 
@@ -196,6 +203,26 @@ def test_r4_d0_producer_binding_is_explicit_and_fail_closed() -> None:
     wrong_report["spec_id"] = DGCAIP_R3_DIAG_SPEC_ID
     with pytest.raises(ValueError, match="SpecID mismatch"):
         _validate_d0_report_binding(wrong_report, config, config["dgcaip"])
+
+
+def test_p4_e20_config_freezes_strict_production_and_repair_binding() -> None:
+    config = yaml.safe_load(P4_E20.read_text(encoding="utf-8"))
+    validate_sdh_experiment_config(config)
+    assert config["spec"]["spec_id"] == DGCAIP_P4_E20_SPEC_ID
+    assert config["dgcaip"]["run_mode"] == "production_e20"
+    assert config["runtime"]["strict_determinism"] is True
+    assert config["mechanism"]["optimization_steps"] == 8
+    assert config["mechanism"]["max_seconds"] == 1200
+
+    non_strict = copy.deepcopy(config)
+    non_strict["runtime"]["strict_determinism"] = False
+    with pytest.raises(ValueError, match="strict determinism"):
+        validate_sdh_experiment_config(non_strict)
+
+    wrong_repair = copy.deepcopy(config)
+    wrong_repair["dgcaip"]["repair_report_sha256"] = "f" * 64
+    with pytest.raises(ValueError, match="repair report hash"):
+        validate_sdh_experiment_config(wrong_repair)
 
 
 def test_d0_binding_legacy_fallback_and_existing_gates() -> None:

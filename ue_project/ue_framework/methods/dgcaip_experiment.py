@@ -27,6 +27,7 @@ from .dgcaip_r3_diagnostics import (
 )
 from .instance_cicr import FrozenInstanceCICRBank
 from .non_target_logit_alignment import FrozenNLAGradientCalibration
+from .p1_determinism_audit import backend_manifest, payload_sha256
 from .sdh_experiment import (
     _batches,
     _clone_detector_carrier,
@@ -44,8 +45,10 @@ from .sdh_experiment import (
     _time_guard,
     _validate_e2e_v0_runtime_inputs,
     _write_json,
+    _canonical_json_sha256,
     deterministic_person_split,
 )
+from .sdh_materializer import build_dgcaip_p4_candidate_state_payload
 from .sdh_mechanism import (
     FrozenTargetGradientCalibration,
     SDHObservation,
@@ -78,6 +81,39 @@ P1_REPLAY_SCALARS = (
     "dlfc_cosine_median",
     "backtrack_skip_ratio",
 )
+
+
+def _all_finite(value: Any) -> bool:
+    if torch.is_tensor(value):
+        return bool(torch.isfinite(value).all())
+    if isinstance(value, Mapping):
+        return all(_all_finite(item) for item in value.values())
+    if isinstance(value, (tuple, list)):
+        return all(_all_finite(item) for item in value)
+    if isinstance(value, (float, np.floating)):
+        return math.isfinite(float(value))
+    return True
+
+
+def _frozen_snapshot(
+    *,
+    base_carrier: torch.nn.Module,
+    engine: SDHObservationEngine,
+    dlfc_bank: DetectorLFCPrototypeBank,
+    cicr_bank: FrozenInstanceCICRBank,
+    target_calibration: FrozenTargetGradientCalibration,
+    nla_calibration: FrozenNLAGradientCalibration,
+    dg_calibration: FrozenDGCAIPGradientCalibration,
+) -> Dict[str, str]:
+    return {
+        "base_carrier": payload_sha256(base_carrier.state_dict()),
+        "surrogate": payload_sha256(engine.model.state_dict()),
+        "dlfc_bank": payload_sha256(dlfc_bank.state_dict()),
+        "cicr_bank": payload_sha256(cicr_bank.state_dict()),
+        "target_calibration": payload_sha256(target_calibration.state_dict()),
+        "nla_calibration": payload_sha256(nla_calibration.state_dict()),
+        "dgcaip_calibration": payload_sha256(dg_calibration.state_dict()),
+    }
 
 
 def _validate_d0_report_binding(
@@ -481,16 +517,38 @@ def run_dgcaip_pilot(
     start = time.monotonic()
     max_seconds = float(config["mechanism"]["max_seconds"])
     device = torch.device(str(config["runtime"]["device"]))
-    base_carrier, primary_secret, _, _, label_dir, split = _prepare_experiment(
+    base_carrier, primary_secret, hiding_state, _, label_dir, split = _prepare_experiment(
         config, config_base=config_base
     )
     dg_config = config["dgcaip"]
+    production_e20 = str(dg_config.get("run_mode", "")) == "production_e20"
     r3_diagnostics = dg_config.get("r3_diagnostics", {})
     r3_enabled = bool(r3_diagnostics.get("enabled", False))
     arm_modes = R3_DIAGNOSTIC_ARMS if r3_enabled else DGCAIP_ARMS
     source_p1_path = _resolve(config_base, str(dg_config["source_p1_state"]))
     if _file_sha256(source_p1_path) != str(dg_config["source_p1_state_sha256"]).lower():
         raise ValueError("DG-CAIP source P1 state hash mismatch.")
+    repair_report_path = None
+    backend = None
+    if production_e20:
+        repair_report_path = _resolve(
+            config_base, str(dg_config["repair_report"])
+        )
+        if _file_sha256(repair_report_path) != str(
+            dg_config["repair_report_sha256"]
+        ).lower():
+            raise ValueError("DG-CAIP repair report hash mismatch.")
+        backend = backend_manifest()
+        if not (
+            backend["cublas_workspace_config"] == ":4096:8"
+            and backend["deterministic_algorithms"]
+            and not backend["deterministic_warn_only"]
+            and backend["cudnn_deterministic"]
+            and not backend["cudnn_benchmark"]
+            and backend["cuda_matmul_allow_tf32"] is False
+            and backend["cudnn_allow_tf32"] is False
+        ):
+            raise RuntimeError("DG-CAIP production strict backend is not active.")
     engine = _load_engine(config, config_base=config_base)
     batch_size = int(config["mechanism"]["batch_size"])
     artifact_root = _resolve(config_base, str(config["runtime"]["artifact_root"]))
@@ -678,6 +736,15 @@ def run_dgcaip_pilot(
         initial_metric_map = _instance_metric_map(initial_heldout)
         q4_keys = _cohort_keys(initial_metric_map, highest=True)
         q1_keys = _cohort_keys(initial_metric_map, highest=False)
+        frozen_before = _frozen_snapshot(
+            base_carrier=base_carrier,
+            engine=engine,
+            dlfc_bank=dlfc_bank,
+            cicr_bank=cicr_bank,
+            target_calibration=target_calibration,
+            nla_calibration=nla_calibration,
+            dg_calibration=dg_calibration,
+        )
 
         arms = {}
         arm_deltas = {}
@@ -701,10 +768,10 @@ def run_dgcaip_pilot(
                 batch = load(paths_batch)
                 batch_sha256 = (
                     _batch_sha256(paths_batch, label_dir)
-                    if r3_enabled
+                    if r3_enabled or production_e20
                     else None
                 )
-                if r3_enabled:
+                if r3_enabled or production_e20:
                     arm_batch_hashes[arm_id].append(str(batch_sha256))
                 observation = engine.observe(
                     batch,
@@ -911,6 +978,21 @@ def run_dgcaip_pilot(
                     "backtrack_skip_ratio": backtrack_or_skip
                     / float(config["mechanism"]["optimization_steps"]),
                     "steps": step_rows,
+                    "full_perturbation_linf": max(
+                        float(item.rendered.perturbation.detach().abs().max())
+                        for item in heldout_observations
+                    ),
+                    "support_outside_linf": max(
+                        float(
+                            (
+                                item.rendered.perturbation.detach()
+                                * (1.0 - item.rendered.union_support.detach())
+                            )
+                            .abs()
+                            .max()
+                        )
+                        for item in heldout_observations
+                    ),
                 }
             )
             arms[arm_id] = summary
@@ -919,11 +1001,21 @@ def run_dgcaip_pilot(
                 key: value.detach().cpu().clone()
                 for key, value in carrier.state_dict().items()
             }
-            if r3_enabled:
+            if r3_enabled or production_e20:
                 arm_final_hashes[arm_id] = _parameter_sha256(parameters)
 
         if len(set(arm_initial_hashes.values())) != 1:
             raise ValueError("DG-CAIP arms do not share the same adapter initialization.")
+
+        frozen_after = _frozen_snapshot(
+            base_carrier=base_carrier,
+            engine=engine,
+            dlfc_bank=dlfc_bank,
+            cicr_bank=cicr_bank,
+            target_calibration=target_calibration,
+            nla_calibration=nla_calibration,
+            dg_calibration=dg_calibration,
+        )
 
         if r3_enabled:
             expected_arms = {"P1-A", "P1-B", "P2-CAIP", "P4-DGCAIP"}
@@ -1056,7 +1148,6 @@ def run_dgcaip_pilot(
             relative_tolerance=float(dg_config["p1_replay_relative_tolerance"]),
         )
         checks = {
-            "p1_replay": bool(p1_replay["pass"]),
             "q4_three_of_four_improve_20pct": sum(
                 value >= 0.20 for value in q4_improvements.values()
             ) >= 3,
@@ -1083,6 +1174,8 @@ def run_dgcaip_pilot(
             ),
             "backtrack_skip": p4["backtrack_skip_ratio"] < 0.50,
         }
+        if not production_e20:
+            checks["p1_replay"] = bool(p1_replay["pass"])
         decision = {
             "checks": checks,
             "pass": all(checks.values()),
@@ -1090,6 +1183,70 @@ def run_dgcaip_pilot(
             "p4_vs_p3_q4_damage_improvement": _relative_improvement(
                 p3_damage, p4_damage
             ),
+        }
+        accepted_p4_steps = [item for item in p4_steps if item["accepted"]]
+        shared_batches = len(
+            {tuple(values) for values in arm_batch_hashes.values()}
+        ) == 1
+        verification_carrier = _clone_detector_carrier(
+            base_carrier, torch.device("cpu")
+        )
+        verification_carrier.load_state_dict(
+            arm_states["P4-DGCAIP"], strict=True
+        )
+        verification_hash = _parameter_sha256(
+            adapter_parameters(verification_carrier)
+        )
+        state_integrity_checks = {
+            "strict_backend": bool(
+                not production_e20
+                or (
+                    backend is not None
+                    and backend["cublas_workspace_config"] == ":4096:8"
+                    and backend["deterministic_algorithms"]
+                    and not backend["deterministic_warn_only"]
+                )
+            ),
+            "shared_initial_adapter": len(set(arm_initial_hashes.values())) == 1,
+            "shared_batch_sequence": bool(not production_e20 or shared_batches),
+            "p4_state_finite": _all_finite(arm_states["P4-DGCAIP"]),
+            "p4_metrics_finite": _all_finite(p4),
+            "p4_update_accepted": len(accepted_p4_steps) >= 1,
+            "p4_adapter_changed": bool(
+                not production_e20
+                or arm_final_hashes["P4-DGCAIP"]
+                != arm_initial_hashes["P4-DGCAIP"]
+            ),
+            "p4_linf": float(p4["full_perturbation_linf"])
+            <= 16.0 / 255.0 + 1.0e-6,
+            "p4_support": float(p4["support_outside_linf"]) == 0.0,
+            "frozen_modules_unchanged": frozen_before == frozen_after,
+            "p4_state_roundtrip": bool(
+                not production_e20
+                or verification_hash == arm_final_hashes["P4-DGCAIP"]
+            ),
+            "orthogonality": max(
+                (
+                    float(item["max_projected_row_dot"])
+                    for item in accepted_p4_steps
+                ),
+                default=float("inf"),
+            )
+            <= 1.0e-5,
+            "null_dimension": min(
+                (int(item["null_dimension"]) for item in accepted_p4_steps),
+                default=0,
+            )
+            > 0,
+        }
+        state_integrity = {
+            "schema": "tausb.dgcaip-state-integrity.v1",
+            "checks": state_integrity_checks,
+            "pass": all(state_integrity_checks.values()),
+            "accepted_p4_steps": len(accepted_p4_steps),
+            "frozen_before": frozen_before,
+            "frozen_after": frozen_after,
+            "strict_backend": backend,
         }
         result = {
             "schema": "tausb.dgcaip-mechanism.v1",
@@ -1102,28 +1259,108 @@ def run_dgcaip_pilot(
             "nla_calibration": nla_calibration.state_dict(),
             "dgcaip_calibration": dg_calibration.state_dict(),
             "arm_initial_adapter_sha256": arm_initial_hashes,
+            "arm_final_adapter_sha256": arm_final_hashes,
+            "arm_batch_sha256": arm_batch_hashes,
             "shared_initial_adapter_sha256": next(iter(arm_initial_hashes.values())),
             "initial": initial_summary,
             "arms": arms,
             "p1_replay": p1_replay,
+            "p1_replay_role": (
+                "historical_reference_only_pre_deterministic_resize"
+                if production_e20
+                else "scientific_gate"
+            ),
             "decision": decision,
+            "state_integrity": state_integrity,
             "elapsed_seconds": time.monotonic() - start,
         }
         metrics_path = output_root / "mechanism_metrics.json"
         _write_json(metrics_path, result)
-        if decision["pass"]:
+        save_p4 = bool(
+            state_integrity["pass"] if production_e20 else decision["pass"]
+        )
+        if save_p4:
+            p4_state_path = output_root / "p4_dgcaip_state.pt"
             torch.save(
                 {
                     "schema": "tausb.dgcaip-state.v1",
                     "arm_id": "P4-DGCAIP",
                     "carrier_state": arm_states["P4-DGCAIP"],
                     "source_p1_state_sha256": _file_sha256(source_p1_path),
+                    "source_p1_metrics_sha256": _file_sha256(
+                        source_p1_metrics_path
+                    ),
                     "d0_report_sha256": _file_sha256(d0_path),
                     "mechanism_metrics_sha256": _file_sha256(metrics_path),
+                    "mechanism_config_sha256": _canonical_json_sha256(config),
+                    "state_integrity_gate_passed": bool(
+                        state_integrity["pass"]
+                    ),
+                    "mechanism_scientific_gate_passed": bool(
+                        decision["pass"]
+                    ),
                     "dgcaip_calibration": dg_calibration.state_dict(),
                 },
-                output_root / "p4_dgcaip_state.pt",
+                p4_state_path,
             )
+            if production_e20:
+                hiding_provenance = hiding_state.get(
+                    "e2e_v0_hiding_provenance"
+                )
+                if not isinstance(hiding_provenance, Mapping):
+                    raise ValueError("DG-CAIP P4 hiding provenance is missing.")
+                candidate = build_dgcaip_p4_candidate_state_payload(
+                    carrier=verification_carrier,
+                    secret=primary_secret.detach().cpu(),
+                    target_class_id=14,
+                    secret_source_sha256=config["secrets"][
+                        "primary_source_sha256"
+                    ],
+                    secret_tensor_sha256=config["secrets"][
+                        "primary_tensor_sha256"
+                    ],
+                    source_manifest_sha256=config["secrets"][
+                        "manifest_sha256"
+                    ],
+                    train_split_sha256=config["dataset"][
+                        "train_label_manifest_sha256"
+                    ],
+                    mechanism_scientific_gate_passed=bool(decision["pass"]),
+                    provenance_hashes={
+                        "hiding_metrics_sha256": hiding_provenance[
+                            "hiding_metrics_sha256"
+                        ],
+                        "hiding_checkpoint_sha256": hiding_provenance[
+                            "hiding_checkpoint_sha256"
+                        ],
+                        "hiding_split_sha256": hiding_state["split_hash"],
+                        "mechanism_metrics_sha256": _file_sha256(metrics_path),
+                        "mechanism_scientific_decision_sha256": _canonical_json_sha256(
+                            decision
+                        ),
+                        "state_integrity_decision_sha256": _canonical_json_sha256(
+                            state_integrity
+                        ),
+                        "mechanism_config_sha256": _canonical_json_sha256(
+                            config
+                        ),
+                        "p4_state_sha256": _file_sha256(p4_state_path),
+                        "source_p1_state_sha256": _file_sha256(
+                            source_p1_path
+                        ),
+                        "source_p1_metrics_sha256": _file_sha256(
+                            source_p1_metrics_path
+                        ),
+                        "d0_report_sha256": _file_sha256(d0_path),
+                        "repair_report_sha256": _file_sha256(
+                            repair_report_path
+                        ),
+                    },
+                )
+                torch.save(
+                    candidate,
+                    output_root / "p4_dgcaip_candidate_sdh_state.pt",
+                )
         return result
     finally:
         engine.close()

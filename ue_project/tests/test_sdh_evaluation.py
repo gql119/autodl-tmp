@@ -204,7 +204,15 @@ def test_person_audit_subset_is_balanced_deterministic_and_hashed(tmp_path) -> N
     assert len(first) == 4
 
 
-def _e2e_metrics(*, arm_id, person=0.8, other=0.8, pilot_kind="e20"):
+def _e2e_metrics(
+    *,
+    arm_id,
+    person=0.8,
+    other=0.8,
+    pilot_kind="e20",
+    person_free=None,
+    person_cooccur=None,
+):
     hashes = {
         "clean_val_manifest_sha256": "a" * 64,
         "paired_training_protocol_sha256": "b" * 64,
@@ -235,7 +243,48 @@ def _e2e_metrics(*, arm_id, person=0.8, other=0.8, pilot_kind="e20"):
         "poisoned_count": 0 if arm_id == "C0" else 6095,
         "actual_linf_max": 0.0 if arm_id == "C0" else 16 / 255,
         "sparse_train_list_sha256": ("7" if arm_id == "C0" else "8") * 64,
+        "AP_person_free_non_target": float(
+            other if person_free is None else person_free
+        ),
+        "AP_person_cooccur_non_target": float(
+            other if person_cooccur is None else person_cooccur
+        ),
     }
+
+
+def _dgcaip_p4_metrics(
+    *,
+    arm_id,
+    person,
+    other,
+    person_free,
+    person_cooccur,
+    integrity=True,
+    scientific=False,
+):
+    result = _e2e_metrics(
+        arm_id=arm_id,
+        person=person,
+        other=other,
+        person_free=person_free,
+        person_cooccur=person_cooccur,
+    )
+    result.update(
+        {
+            "protocol_id": "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1",
+            "evidence_scope": "diagnostic_candidate_ap50_evaluation",
+            "state_integrity_gate_passed": integrity,
+            "mechanism_scientific_gate_passed": scientific,
+            "mechanism_scientific_decision_sha256": "9" * 64,
+            "state_integrity_decision_sha256": "a" * 64,
+            "p4_state_sha256": "b" * 64,
+            "source_p1_state_sha256": "c" * 64,
+            "source_p1_metrics_sha256": "d" * 64,
+            "d0_report_sha256": "e" * 64,
+            "repair_report_sha256": "f" * 64,
+        }
+    )
+    return result
 
 
 def test_e2e_v0_comparison_reports_all_classes_and_directional_pass() -> None:
@@ -289,6 +338,47 @@ def test_e2e_v0_e200_uses_frozen_full_horizon_thresholds() -> None:
     failure = build_sdh_e2e_v0_comparison(clean, failed)
     assert failure["pilot_decision"] == "full_horizon_failure"
     assert failure["summary"]["failure_checks"]["person_drop_lt_0_10"] is True
+
+
+def test_dgcaip_p4_candidate_accepts_scientific_fail_and_requires_integrity() -> None:
+    clean = _dgcaip_p4_metrics(
+        arm_id="C0",
+        person=0.80,
+        other=0.80,
+        person_free=0.80,
+        person_cooccur=0.80,
+    )
+    poisoned = _dgcaip_p4_metrics(
+        arm_id="M1",
+        person=0.20,
+        other=0.75,
+        person_free=0.77,
+        person_cooccur=0.72,
+    )
+    result = build_sdh_e2e_v0_comparison(clean, poisoned)
+    assert result["schema"] == "tausb.dgcaip-p4-e20-comparison.v1"
+    assert result["state_integrity_gate_passed"] is True
+    assert result["mechanism_scientific_gate_passed"] is False
+    assert result["pilot_decision"] == "dgcaip_selective_e20_success_single_seed"
+    assert result["summary"]["person_drop"] == pytest.approx(0.60)
+    assert result["summary"]["person_cooccur_non_target_drop"] == pytest.approx(
+        0.08
+    )
+    assert result["summary"]["non_target_worse_than_historical_p1_by_0_05"] == 0
+    assert result["historical_reference"]["comparison_sha256"] == (
+        "fb1041032fc4b3a349bdb1a62e22b92f81fa7f79b44ffc0eb643437ff685340f"
+    )
+    aeroplane = next(
+        row for row in result["per_class"] if row["class_name"] == "aeroplane"
+    )
+    assert aeroplane["historical_p1_e20_drop"] == pytest.approx(
+        0.038226589022230084
+    )
+
+    poisoned_without_integrity = dict(poisoned)
+    poisoned_without_integrity["state_integrity_gate_passed"] = False
+    with pytest.raises(ValueError, match="state integrity"):
+        build_sdh_e2e_v0_comparison(clean, poisoned_without_integrity)
 
 
 def _sdh_v0_ctx(tmp_path):

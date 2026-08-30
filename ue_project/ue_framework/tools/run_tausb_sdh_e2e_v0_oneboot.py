@@ -201,16 +201,19 @@ def validate_arm(
     arm_id: str,
     expected_epochs: int,
     expected_poisoned_count: int,
+    protocol_id: str = PROTOCOL_ID,
+    evidence_scope: str = EVIDENCE_SCOPE,
+    shared_metric_hash_keys: Sequence[str] = SHARED_METRIC_HASH_KEYS,
 ) -> Dict[str, float]:
     identity = {
         "method": METHOD,
         "steps": STEPS,
         "seed": SEED,
-        "protocol_id": PROTOCOL_ID,
+        "protocol_id": protocol_id,
         "pilot_kind": pilot_kind,
         "arm_id": arm_id,
         "victim_epochs": expected_epochs,
-        "evidence_scope": EVIDENCE_SCOPE,
+        "evidence_scope": evidence_scope,
         "hiding_gate_passed": False,
     }
     for key, expected in identity.items():
@@ -225,7 +228,16 @@ def validate_arm(
         raise ValueError("%s actual_linf_max is invalid." % arm_id)
     if not isinstance(metrics.get("mechanism_gate_passed"), bool):
         raise ValueError("%s mechanism gate provenance is missing." % arm_id)
-    for key in SHARED_METRIC_HASH_KEYS:
+    if protocol_id == "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1":
+        if metrics.get("state_integrity_gate_passed") is not True:
+            raise ValueError("%s DG-CAIP P4 state integrity is missing." % arm_id)
+        if not isinstance(metrics.get("mechanism_scientific_gate_passed"), bool):
+            raise ValueError("%s DG-CAIP P4 scientific gate is missing." % arm_id)
+        if metrics["mechanism_scientific_gate_passed"] != metrics[
+            "mechanism_gate_passed"
+        ]:
+            raise ValueError("%s DG-CAIP P4 scientific provenance differs." % arm_id)
+    for key in shared_metric_hash_keys:
         if len(str(metrics.get(key, ""))) != 64:
             raise ValueError("%s %s is not a SHA-256 value." % (arm_id, key))
     if pilot_kind == "smoke" and len(
