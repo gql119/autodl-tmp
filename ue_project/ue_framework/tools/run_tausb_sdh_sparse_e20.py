@@ -19,6 +19,9 @@ import yaml
 from ue_framework.io_utils import atomic_write_json
 from ue_framework.metrics_utils import VOC20_CLASS_NAMES
 from ue_framework.tools.bind_tausb_sdh_e2e_v0 import _validate_mechanism_binding
+from ue_framework.tools.bind_tausb_sdh_dgcaip_p4_e20 import (
+    validate_dgcaip_p4_binding,
+)
 from ue_framework.tools.run_tausb_sdh_e2e_v0_oneboot import (
     GuardFailure,
     run_guarded,
@@ -47,6 +50,25 @@ E200_FROZEN_SDH_STATE_SHA256 = (
 )
 E200_P1_STATE_SHA256 = (
     "2e102026a9356116de38acb1f5056bf5728afcd453e3447b516d4222f4d70b81"
+)
+DGCAIP_P4_PROTOCOL_ID = "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1"
+DGCAIP_P4_EVIDENCE_SCOPE = "diagnostic_candidate_ap50_evaluation"
+DGCAIP_P4_METRIC_HASH_KEYS = (
+    "clean_val_manifest_sha256",
+    "paired_training_protocol_sha256",
+    "frozen_sdh_state_sha256",
+    "hiding_metrics_sha256",
+    "hiding_checkpoint_sha256",
+    "hiding_split_sha256",
+    "mechanism_metrics_sha256",
+    "mechanism_scientific_decision_sha256",
+    "state_integrity_decision_sha256",
+    "mechanism_config_sha256",
+    "p4_state_sha256",
+    "source_p1_state_sha256",
+    "source_p1_metrics_sha256",
+    "d0_report_sha256",
+    "repair_report_sha256",
 )
 
 
@@ -129,6 +151,12 @@ def _arguments() -> argparse.Namespace:
         choices=(20, 200),
         default=20,
         help="Select the frozen E20 compatibility contract or approved E200 contract.",
+    )
+    parser.add_argument(
+        "--binding-protocol",
+        choices=("e2e_v0", "dgcaip_p4"),
+        default="e2e_v0",
+        help="Select the legacy P1 binder or approved DG-CAIP P4 candidate binder.",
     )
     parser.add_argument(
         "--finalize-only",
@@ -554,6 +582,7 @@ class SparseControllerState:
             "started_unix": time.time(),
         }
         self._write()
+        print("[SparseController] start %s" % stage, flush=True)
 
     def complete(self, stage: str, details: Mapping[str, Any] = None) -> None:
         record = {"status": "completed", "ended_unix": time.time(), **dict(details or {})}
@@ -562,6 +591,7 @@ class SparseControllerState:
         self.payload["stages"][stage].update(record)
         self.payload["current_stage"] = ""
         self._write()
+        print("[SparseController] complete %s" % stage, flush=True)
 
     def fail(self, stage: str, error: BaseException) -> None:
         self.payload["stages"].setdefault(stage, {"started_unix": time.time()})
@@ -577,12 +607,14 @@ class SparseControllerState:
             {"status": "failed", "current_stage": "", "ended_unix": time.time()}
         )
         self._write()
+        print("[SparseController] failed %s: %s" % (stage, error), flush=True)
 
     def finish(self) -> None:
         self.payload.update(
             {"status": "completed", "current_stage": "", "ended_unix": time.time()}
         )
         self._write()
+        print("[SparseController] completed", flush=True)
 
 
 def _remaining(
@@ -677,8 +709,27 @@ def write_terminal_evidence_manifest(
 
 def _run_controller(args: argparse.Namespace) -> int:
     started = time.monotonic()
+    print("[SparseController] precheck", flush=True)
     os.environ.pop("TAUSB_EXPECTED_VICTIM_INIT_TENSOR_SHA256", None)
-    contract = _experiment_contract(int(args.victim_epochs))
+    binding_protocol = str(getattr(args, "binding_protocol", "e2e_v0"))
+    candidate_protocol = binding_protocol == "dgcaip_p4"
+    if candidate_protocol and int(args.victim_epochs) != 20:
+        raise GuardFailure("PRECHECK", "DGCAIP_P4_is_restricted_to_E20")
+    contract = (
+        SparseExperimentContract(
+            victim_epochs=20,
+            spec_id=DGCAIP_P4_PROTOCOL_ID,
+            exp_id="TAUSB-SDH-DGCAIP-S0-P4-SPARSE-E20",
+            run_id="P4-SPARSE-E20-S0-R1",
+            overall_wall_seconds=2 * 60 * 60,
+            materialize_wall_seconds=40 * 60,
+            arm_train_eval_wall_seconds=40 * 60,
+            disk_reserve_bytes=3 * 1024 ** 3,
+            expected_paired_wall_minutes=(55, 100),
+        )
+        if candidate_protocol
+        else _experiment_contract(int(args.victim_epochs))
+    )
     repository_root = Path(args.repository_root).resolve()
     required_storage_root = Path(args.required_storage_root).resolve()
     project_root = repository_root / "ue_project"
@@ -736,7 +787,11 @@ def _run_controller(args: argparse.Namespace) -> int:
     system_disk_monitor = (
         SystemDiskMonitor() if contract.victim_epochs == 200 else None
     )
-    mechanism_binding = _validate_mechanism_binding(mechanism_root, mechanism_config)
+    mechanism_binding = (
+        validate_dgcaip_p4_binding(mechanism_root, mechanism_config)
+        if candidate_protocol
+        else _validate_mechanism_binding(mechanism_root, mechanism_config)
+    )
     frozen_mechanism_hashes = (
         validate_e200_mechanism_hashes(mechanism_binding)
         if contract.victim_epochs == 200
@@ -791,14 +846,25 @@ def _run_controller(args: argparse.Namespace) -> int:
             "expected_paired_wall_minutes": list(contract.expected_paired_wall_minutes),
             "overall_wall_cap_seconds": contract.overall_wall_seconds,
             "victim_epochs": contract.victim_epochs,
+            "binding_protocol": binding_protocol,
         },
     )
     try:
         stage = "BIND_SPARSE_E%d" % contract.victim_epochs
         state.start(stage)
-        bind_result = run_guarded(
-            stage=stage,
-            command=(
+        bind_command = (
+            (
+                str(python_bin), "-u", "-m",
+                "ue_framework.tools.bind_tausb_sdh_dgcaip_p4_e20",
+                "--mechanism-root", str(mechanism_root),
+                "--mechanism-config", str(mechanism_config),
+                "--base-config", str(base_config),
+                "--dataset-root", str(dataset_root),
+                "--output-dir", str(binding_root),
+                "--run-root-prefix", args.run_root_prefix,
+            )
+            if candidate_protocol
+            else (
                 str(python_bin), "-u", "-m", "ue_framework.tools.bind_tausb_sdh_e2e_v0",
                 "--mechanism-root", str(mechanism_root),
                 "--mechanism-config", str(mechanism_config),
@@ -808,7 +874,11 @@ def _run_controller(args: argparse.Namespace) -> int:
                 "--run-root-prefix", args.run_root_prefix,
                 "--full-voc-only",
                 "--victim-epochs", str(contract.victim_epochs),
-            ),
+            )
+        )
+        bind_result = run_guarded(
+            stage=stage,
+            command=bind_command,
             cwd=project_root,
             log_path=log_root / "binding.log",
             wall_seconds=_remaining(started, 300, contract),
@@ -900,6 +970,32 @@ def _run_controller(args: argparse.Namespace) -> int:
                 arm_id=arm_id,
                 expected_epochs=contract.victim_epochs,
                 expected_poisoned_count=0 if arm_id == "C0" else 6095,
+                protocol_id=(
+                    DGCAIP_P4_PROTOCOL_ID
+                    if candidate_protocol
+                    else "TAUSB-SDH-E2E-V0-MAP50-v1"
+                ),
+                evidence_scope=(
+                    DGCAIP_P4_EVIDENCE_SCOPE
+                    if candidate_protocol
+                    else "end_to_end_feasibility_not_formal_method"
+                ),
+                shared_metric_hash_keys=(
+                    DGCAIP_P4_METRIC_HASH_KEYS
+                    if candidate_protocol
+                    else (
+                        "clean_val_manifest_sha256",
+                        "paired_training_protocol_sha256",
+                        "frozen_sdh_state_sha256",
+                        "hiding_metrics_sha256",
+                        "hiding_checkpoint_sha256",
+                        "hiding_split_sha256",
+                        "mechanism_metrics_sha256",
+                        "mechanism_decision_sha256",
+                        "mechanism_config_sha256",
+                        "p1_state_sha256",
+                    )
+                ),
             )
             fresh_init_records[arm_id] = _read_json(
                 _fresh_init_path(run_roots[arm_id], arm_id)

@@ -509,8 +509,34 @@ def _sdh_manifest_provenance(ctx: RunContext, manifest_rows: List[Dict]) -> Dict
     ]
     expected = ctx.cfg["methods"]["tausb_sdh"]
     feasibility_mode = expected.get("protocol_id") == "TAUSB-SDH-E2E-V0-MAP50-v1"
+    candidate_mode = (
+        expected.get("protocol_id") == "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1"
+    )
     binding = {}
-    if feasibility_mode:
+    if candidate_mode:
+        binding = {
+            "protocol_id": expected["protocol_id"],
+            "evidence_scope": expected["evidence_scope"],
+            "frozen_sdh_state_sha256": expected["frozen_sdh_state_sha256"],
+            **{
+                key: expected[key]
+                for key in (
+                    "hiding_metrics_sha256",
+                    "hiding_checkpoint_sha256",
+                    "hiding_split_sha256",
+                    "mechanism_metrics_sha256",
+                    "mechanism_scientific_decision_sha256",
+                    "state_integrity_decision_sha256",
+                    "mechanism_config_sha256",
+                    "p4_state_sha256",
+                    "source_p1_state_sha256",
+                    "source_p1_metrics_sha256",
+                    "d0_report_sha256",
+                    "repair_report_sha256",
+                )
+            },
+        }
+    elif feasibility_mode:
         binding = {
             "protocol_id": expected["protocol_id"],
             "evidence_scope": expected["evidence_scope"],
@@ -562,7 +588,7 @@ def _sdh_manifest_provenance(ctx: RunContext, manifest_rows: List[Dict]) -> Dict
         raise ValueError("Formal SDH must use only person_gt_bbox support.")
     output["support_source"] = "person_gt_bbox"
     output["single_final_secret"] = True
-    if feasibility_mode:
+    if feasibility_mode or candidate_mode:
         for key, expected_value in binding.items():
             values = {str(row.get(key, "")).strip() for row in poisoned}
             if values != {str(expected_value)}:
@@ -582,6 +608,29 @@ def _sdh_manifest_provenance(ctx: RunContext, manifest_rows: List[Dict]) -> Dict
             raise ValueError("E2E V0 manifest mechanism gate flag is inconsistent.")
         output["hiding_gate_passed"] = False
         output["mechanism_gate_passed"] = next(iter(mechanism_flags)) == "true"
+        if candidate_mode:
+            source_arms = {
+                str(row.get("source_arm_id", "")).strip() for row in poisoned
+            }
+            if source_arms != {"P4-DGCAIP"}:
+                raise ValueError("DG-CAIP P4 manifest source arm mismatch.")
+            integrity_flags = {
+                str(row.get("state_integrity_gate_passed", "")).strip().lower()
+                for row in poisoned
+            }
+            if integrity_flags != {"true"}:
+                raise ValueError("DG-CAIP P4 manifest integrity gate mismatch.")
+            scientific_flags = {
+                str(row.get("mechanism_scientific_gate_passed", "")).strip().lower()
+                for row in poisoned
+            }
+            if scientific_flags != mechanism_flags:
+                raise ValueError("DG-CAIP P4 manifest scientific gate mismatch.")
+            output["source_arm_id"] = "P4-DGCAIP"
+            output["state_integrity_gate_passed"] = True
+            output["mechanism_scientific_gate_passed"] = output[
+                "mechanism_gate_passed"
+            ]
     return output
 
 
@@ -592,7 +641,10 @@ def _sdh_mechanism_evidence(ctx: RunContext) -> Dict:
         return {"sdh_mechanism_diagnostics": "not_applicable_clean_or_legacy_arm"}
     method_cfg = ctx.cfg["methods"]["tausb_sdh"]
     feasibility_mode = method_cfg.get("protocol_id") == "TAUSB-SDH-E2E-V0-MAP50-v1"
-    if not feasibility_mode and ctx.run_tag not in {"M1", "P1-V", "P1V"}:
+    candidate_mode = (
+        method_cfg.get("protocol_id") == "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1"
+    )
+    if not (feasibility_mode or candidate_mode) and ctx.run_tag not in {"M1", "P1-V", "P1V"}:
         return {"sdh_mechanism_diagnostics": "not_applicable_clean_or_legacy_arm"}
     frozen_state_value = str(method_cfg.get("frozen_sdh_state", "")).strip()
     if not frozen_state_value:
@@ -603,19 +655,27 @@ def _sdh_mechanism_evidence(ctx: RunContext) -> Dict:
         raise FileNotFoundError("Formal SDH mechanism metrics are missing: %s" % report_path)
     with open(report_path, "r", encoding="utf-8") as handle:
         report = json.load(handle)
-    if report.get("schema") != "tausb.sdh-mechanism-pilot.v1":
+    expected_schema = (
+        "tausb.dgcaip-mechanism.v1"
+        if candidate_mode
+        else "tausb.sdh-mechanism-pilot.v1"
+    )
+    if report.get("schema") != expected_schema:
         raise ValueError("Unsupported SDH mechanism report schema.")
-    if feasibility_mode:
+    if feasibility_mode or candidate_mode:
         if _file_sha256(report_path) != str(method_cfg["mechanism_metrics_sha256"]):
             raise ValueError("E2E V0 mechanism metrics hash differs from config.")
     decision = report.get("decision")
     if not isinstance(decision, dict) or not isinstance(decision.get("pass"), bool):
         raise ValueError("SDH mechanism decision is missing or invalid.")
-    if feasibility_mode:
-        if _canonical_json_sha256(decision) != str(
-            method_cfg["mechanism_decision_sha256"]
-        ):
-            raise ValueError("E2E V0 mechanism decision hash differs from config.")
+    if feasibility_mode or candidate_mode:
+        decision_hash_key = (
+            "mechanism_scientific_decision_sha256"
+            if candidate_mode
+            else "mechanism_decision_sha256"
+        )
+        if _canonical_json_sha256(decision) != str(method_cfg[decision_hash_key]):
+            raise ValueError("SDH diagnostic mechanism decision hash differs from config.")
     else:
         if decision.get("pass") is not True:
             raise ValueError("Formal SDH poison arm requires a passing mechanism decision.")
@@ -624,28 +684,36 @@ def _sdh_mechanism_evidence(ctx: RunContext) -> Dict:
     arms = report.get("arms")
     if not isinstance(arms, dict):
         raise ValueError("SDH mechanism report is missing arm diagnostics.")
-    for arm in ("T0", "T1", "P0", "P1"):
+    expected_arms = (
+        ("P1-R", "P2-CAIP", "P3-DIST", "P4-DGCAIP")
+        if candidate_mode
+        else ("T0", "T1", "P0", "P1")
+    )
+    for arm in expected_arms:
         if not isinstance(arms.get(arm), dict):
             raise ValueError("SDH mechanism report is missing %s diagnostics." % arm)
     split_hash = str(report.get("split_hash", ""))
     if len(split_hash) != 64:
         raise ValueError("SDH mechanism report split hash is invalid.")
-    if feasibility_mode and split_hash != str(method_cfg["hiding_split_sha256"]):
-        raise ValueError("E2E V0 mechanism split hash differs from config.")
+    if (feasibility_mode or candidate_mode) and split_hash != str(
+        method_cfg["hiding_split_sha256"]
+    ):
+        raise ValueError("SDH diagnostic mechanism split hash differs from config.")
+    arm_diagnostics = {arm: arms[arm] for arm in expected_arms}
     return {
         "sdh_mechanism_diagnostics": {
             "report_path": report_path,
             "schema": report["schema"],
             "split_hash": split_hash,
-            "T0": arms["T0"],
-            "T1": arms["T1"],
-            "P0": arms["P0"],
-            "P1": arms["P1"],
+            **arm_diagnostics,
             "decision": decision,
-            "hiding_gate_passed": False if feasibility_mode else True,
+            "state_integrity": report.get("state_integrity") if candidate_mode else None,
+            "hiding_gate_passed": False if feasibility_mode or candidate_mode else True,
             "mechanism_gate_passed": bool(decision["pass"]),
             "evidence_scope": (
-                "end_to_end_feasibility_not_formal_method"
+                "diagnostic_candidate_ap50_evaluation"
+                if candidate_mode
+                else "end_to_end_feasibility_not_formal_method"
                 if feasibility_mode
                 else "heldout_mechanism_only_not_fresh_victim_ue"
             ),
@@ -785,7 +853,11 @@ def run_evaluate(ctx: RunContext) -> None:
     sdh_method_cfg = cfg.get("methods", {}).get("tausb_sdh", {})
     sdh_feasibility = (
         ctx.method == "tausb_sdh"
-        and sdh_method_cfg.get("protocol_id") == "TAUSB-SDH-E2E-V0-MAP50-v1"
+        and sdh_method_cfg.get("protocol_id")
+        in {
+            "TAUSB-SDH-E2E-V0-MAP50-v1",
+            "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1",
+        }
     )
     if (ctx.run_tag == "M1" or sdh_feasibility) and expected_poisoned is not None:
         if quality_metrics["poisoned_count"] != int(expected_poisoned):
@@ -870,6 +942,19 @@ def run_evaluate(ctx: RunContext) -> None:
         final_metrics["mechanism_gate_passed"] = bool(
             diagnostics["mechanism_gate_passed"]
         )
+        if sdh_method_cfg.get("protocol_id") == (
+            "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1"
+        ):
+            integrity = diagnostics.get("state_integrity")
+            if not isinstance(integrity, dict) or integrity.get("pass") is not True:
+                raise ValueError("DG-CAIP P4 metrics require passing state integrity.")
+            final_metrics["evidence_scope"] = (
+                "diagnostic_candidate_ap50_evaluation"
+            )
+            final_metrics["state_integrity_gate_passed"] = True
+            final_metrics["mechanism_scientific_gate_passed"] = bool(
+                diagnostics["mechanism_gate_passed"]
+            )
 
     final_metrics.update(
         build_pareto_scores(

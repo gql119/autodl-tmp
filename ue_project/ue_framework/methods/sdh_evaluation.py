@@ -7,6 +7,32 @@ import numpy as np
 from ..metrics_utils import VOC20_CLASS_NAMES
 
 
+HISTORICAL_P1_E20_COMPARISON_SHA256 = (
+    "fb1041032fc4b3a349bdb1a62e22b92f81fa7f79b44ffc0eb643437ff685340f"
+)
+HISTORICAL_P1_E20_NON_TARGET_DROPS = {
+    "aeroplane": 0.038226589022230084,
+    "bicycle": 0.25013913338167876,
+    "bird": 0.10124518216664091,
+    "boat": 0.03171785268990995,
+    "bottle": 0.2185363081058203,
+    "bus": 0.05579628460541142,
+    "car": 0.03534823583484159,
+    "cat": 0.10860100054162669,
+    "chair": 0.08188758062997009,
+    "cow": 0.09037579494076275,
+    "diningtable": 0.08819122678567304,
+    "dog": 0.175804465512999,
+    "horse": 0.19072849155176064,
+    "motorbike": 0.10872554954443792,
+    "pottedplant": 0.04337531484831897,
+    "sheep": 0.03873706223921036,
+    "sofa": 0.06339216150469512,
+    "train": 0.05034001793747023,
+    "tvmonitor": 0.05093865219688398,
+}
+
+
 def _strict_named_ap50(metrics: Mapping[str, object], name: str) -> Dict[str, float]:
     values = metrics.get("ap50_by_class")
     if not isinstance(values, Mapping) or set(values) != set(VOC20_CLASS_NAMES):
@@ -112,6 +138,19 @@ def build_sdh_fresh_victim_comparison(
             }
         )
     non_target = [row for row in per_class if not row["is_target"]]
+    worse_than_historical_p1_by_005 = 0
+    if dgcaip_p4:
+        if set(HISTORICAL_P1_E20_NON_TARGET_DROPS) != {
+            row["class_name"] for row in non_target
+        }:
+            raise ValueError("Historical P1 E20 non-target baseline is incomplete.")
+        for row in non_target:
+            historical_drop = HISTORICAL_P1_E20_NON_TARGET_DROPS[row["class_name"]]
+            additional_drop = float(row["drop_C0_minus_M1"]) - historical_drop
+            row["historical_p1_e20_drop"] = historical_drop
+            row["additional_drop_vs_historical_p1_e20"] = additional_drop
+            if additional_drop > 0.05:
+                worse_than_historical_p1_by_005 += 1
     person = next(row for row in per_class if row["is_target"])
     macro_drop = float(np.mean([row["drop_C0_minus_P1V"] for row in non_target]))
     recovery = float(counterfactual["person_ap50_recovery"])
@@ -151,13 +190,27 @@ def build_sdh_e2e_v0_comparison(
     if pilot_kind not in expected_epochs_by_pilot:
         raise ValueError("E2E V0 comparison requires matched e20 or e200 metrics.")
     expected_epochs = expected_epochs_by_pilot[pilot_kind]
+    protocol_id = str(clean.get("protocol_id", ""))
+    dgcaip_p4 = protocol_id == "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1"
+    if protocol_id not in {
+        "TAUSB-SDH-E2E-V0-MAP50-v1",
+        "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1",
+    }:
+        raise ValueError("Unsupported SDH paired-comparison protocol.")
+    if dgcaip_p4 and pilot_kind != "e20":
+        raise ValueError("DG-CAIP P4 comparison is restricted to E20.")
+    evidence_scope = (
+        "diagnostic_candidate_ap50_evaluation"
+        if dgcaip_p4
+        else "end_to_end_feasibility_not_formal_method"
+    )
     required_identity = {
-        "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+        "protocol_id": protocol_id,
         "pilot_kind": pilot_kind,
         "seed": 0,
         "steps": 40,
         "victim_epochs": expected_epochs,
-        "evidence_scope": "end_to_end_feasibility_not_formal_method",
+        "evidence_scope": evidence_scope,
         "hiding_gate_passed": False,
     }
     for key, expected in required_identity.items():
@@ -167,6 +220,15 @@ def build_sdh_e2e_v0_comparison(
         raise ValueError("E2E V0 comparison requires explicit C0 and M1 arm identity.")
     if clean.get("mechanism_gate_passed") != poisoned.get("mechanism_gate_passed"):
         raise ValueError("C0/M1 mechanism gate provenance differs.")
+    if dgcaip_p4:
+        if clean.get("state_integrity_gate_passed") is not True or poisoned.get(
+            "state_integrity_gate_passed"
+        ) is not True:
+            raise ValueError("DG-CAIP P4 state integrity provenance is missing.")
+        if clean.get("mechanism_scientific_gate_passed") != poisoned.get(
+            "mechanism_scientific_gate_passed"
+        ):
+            raise ValueError("DG-CAIP P4 scientific gate provenance differs.")
     clean_layout = str(clean.get("materialization_layout", "full_png_v1"))
     poisoned_layout = str(poisoned.get("materialization_layout", "full_png_v1"))
     if clean_layout != poisoned_layout or clean_layout not in {
@@ -182,10 +244,21 @@ def build_sdh_e2e_v0_comparison(
         "hiding_checkpoint_sha256",
         "hiding_split_sha256",
         "mechanism_metrics_sha256",
-        "mechanism_decision_sha256",
         "mechanism_config_sha256",
-        "p1_state_sha256",
     ]
+    shared_hash_keys.extend(
+        [
+            "mechanism_scientific_decision_sha256",
+            "state_integrity_decision_sha256",
+            "p4_state_sha256",
+            "source_p1_state_sha256",
+            "source_p1_metrics_sha256",
+            "d0_report_sha256",
+            "repair_report_sha256",
+        ]
+        if dgcaip_p4
+        else ["mechanism_decision_sha256", "p1_state_sha256"]
+    )
     if clean_layout == "sparse_mixed_list_v1":
         shared_hash_keys.extend(
             ["ordered_stems_sha256", "label_content_manifest_sha256"]
@@ -243,7 +316,34 @@ def build_sdh_e2e_v0_comparison(
     non_target_gt_020 = sum(
         row["drop_C0_minus_M1"] > 0.20 for row in non_target
     )
-    if pilot_kind == "e200":
+    person_free_drop = float(clean["AP_person_free_non_target"]) - float(
+        poisoned["AP_person_free_non_target"]
+    )
+    person_cooccur_drop = float(clean["AP_person_cooccur_non_target"]) - float(
+        poisoned["AP_person_cooccur_non_target"]
+    )
+    if dgcaip_p4:
+        success_checks = {
+            "person_drop_ge_0_55": person_drop >= 0.55,
+            "non_target_macro_drop_le_0_07": non_target_macro_drop <= 0.07,
+            "person_cooccur_drop_le_0_09": person_cooccur_drop <= 0.09,
+            "non_target_count_drop_le_0_10_ge_16": non_target_le_010 >= 16,
+            "no_non_target_drop_gt_0_15": non_target_le_015 == 19,
+        }
+        failure_checks = {
+            "person_drop_lt_0_40": person_drop < 0.40,
+            "cooccur_improvement_vs_p1_lt_0_015": (
+                0.132122 - person_cooccur_drop
+            )
+            < 0.015,
+            "non_target_worse_than_p1_by_0_05_ge_5": (
+                worse_than_historical_p1_by_005 >= 5
+            ),
+        }
+        success_decision = "dgcaip_selective_e20_success_single_seed"
+        failure_decision = "dgcaip_selective_e20_failure_single_seed"
+        claim_status = "tentative_dgcaip_single_seed_e20"
+    elif pilot_kind == "e200":
         success_checks = {
             "person_drop_ge_0_30": person_drop >= 0.30,
             "non_target_macro_drop_le_0_05": non_target_macro_drop <= 0.05,
@@ -280,15 +380,29 @@ def build_sdh_e2e_v0_comparison(
     elif any(failure_checks.values()):
         decision = failure_decision
     else:
-        decision = "inconclusive_tradeoff"
+        decision = (
+            "inconclusive_divergence_protection_tradeoff"
+            if dgcaip_p4
+            else "inconclusive_tradeoff"
+        )
     return {
-        "schema": "tausb.sdh-e2e-v0-comparison.v1",
-        "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+        "schema": (
+            "tausb.dgcaip-p4-e20-comparison.v1"
+            if dgcaip_p4
+            else "tausb.sdh-e2e-v0-comparison.v1"
+        ),
+        "protocol_id": protocol_id,
         "claim_status": claim_status,
         "pilot_decision": decision,
         "mechanism_gate_passed": bool(clean["mechanism_gate_passed"]),
+        "state_integrity_gate_passed": True if dgcaip_p4 else None,
+        "mechanism_scientific_gate_passed": (
+            bool(clean["mechanism_scientific_gate_passed"])
+            if dgcaip_p4
+            else None
+        ),
         "hiding_gate_passed": False,
-        "evidence_scope": "end_to_end_feasibility_not_formal_method",
+        "evidence_scope": evidence_scope,
         "materialization_layout": clean_layout,
         "per_class": per_class,
         "summary": {
@@ -297,9 +411,24 @@ def build_sdh_e2e_v0_comparison(
             "non_target_classes_drop_le_0_10": non_target_le_010,
             "non_target_classes_drop_le_0_15": non_target_le_015,
             "non_target_classes_drop_gt_0_20": non_target_gt_020,
+            "person_free_non_target_drop": person_free_drop,
+            "person_cooccur_non_target_drop": person_cooccur_drop,
+            "non_target_worse_than_historical_p1_by_0_05": (
+                worse_than_historical_p1_by_005 if dgcaip_p4 else None
+            ),
             "success_checks": success_checks,
             "failure_checks": failure_checks,
         },
+        "historical_reference": (
+            {
+                "protocol_id": "TAUSB-SDH-E2E-V0-MAP50-v1",
+                "pilot_kind": "e20",
+                "comparison_sha256": HISTORICAL_P1_E20_COMPARISON_SHA256,
+                "person_cooccur_non_target_drop": 0.132122,
+            }
+            if dgcaip_p4
+            else None
+        ),
         "paired_identity": {
             key: clean[key]
             for key in tuple(
@@ -308,9 +437,17 @@ def build_sdh_e2e_v0_comparison(
                 "paired_training_protocol_sha256",
                 "frozen_sdh_state_sha256",
                 "mechanism_metrics_sha256",
-                "mechanism_decision_sha256",
                 "mechanism_config_sha256",
                 ]
+                + (
+                    [
+                        "mechanism_scientific_decision_sha256",
+                        "state_integrity_decision_sha256",
+                        "p4_state_sha256",
+                    ]
+                    if dgcaip_p4
+                    else ["mechanism_decision_sha256"]
+                )
                 + (
                     ["ordered_stems_sha256", "label_content_manifest_sha256"]
                     if clean_layout == "sparse_mixed_list_v1"

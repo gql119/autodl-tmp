@@ -21,6 +21,24 @@ FORMAL_SDH_ARM_ID = "P1"
 E2E_V0_PROTOCOL_ID = "TAUSB-SDH-E2E-V0-MAP50-v1"
 E2E_V0_MATERIALIZATION_MODE = "p1_feasibility_state"
 E2E_V0_EVIDENCE_SCOPE = "end_to_end_feasibility_not_formal_method"
+DGCAIP_P4_PROTOCOL_ID = "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1"
+DGCAIP_P4_MATERIALIZATION_MODE = "p4_dgcaip_candidate_state"
+DGCAIP_P4_EVIDENCE_SCOPE = "diagnostic_candidate_ap50_evaluation"
+DGCAIP_P4_ARM_ID = "P4-DGCAIP"
+DGCAIP_P4_PROVENANCE_HASH_KEYS = (
+    "hiding_metrics_sha256",
+    "hiding_checkpoint_sha256",
+    "hiding_split_sha256",
+    "mechanism_metrics_sha256",
+    "mechanism_scientific_decision_sha256",
+    "state_integrity_decision_sha256",
+    "mechanism_config_sha256",
+    "p4_state_sha256",
+    "source_p1_state_sha256",
+    "source_p1_metrics_sha256",
+    "d0_report_sha256",
+    "repair_report_sha256",
+)
 
 
 def _torch_load(path: str, *, map_location: str = "cpu") -> Any:
@@ -212,6 +230,55 @@ def build_feasibility_sdh_state_payload(
     return payload
 
 
+def build_dgcaip_p4_candidate_state_payload(
+    *,
+    carrier: SemanticHidingCarrier,
+    secret: torch.Tensor,
+    target_class_id: int,
+    secret_source_sha256: str,
+    secret_tensor_sha256: str,
+    source_manifest_sha256: str,
+    train_split_sha256: str,
+    mechanism_scientific_gate_passed: bool,
+    provenance_hashes: Mapping[str, str],
+) -> Dict[str, Any]:
+    missing = sorted(set(DGCAIP_P4_PROVENANCE_HASH_KEYS).difference(provenance_hashes))
+    if missing:
+        raise ValueError("DG-CAIP P4 provenance hashes are missing: %s" % missing)
+    if any(not torch.isfinite(value).all() for value in carrier.state_dict().values()):
+        raise ValueError("DG-CAIP P4 carrier state contains a non-finite tensor.")
+    payload = build_frozen_sdh_state_payload(
+        carrier=carrier,
+        secret=secret,
+        target_class_id=target_class_id,
+        secret_source_sha256=secret_source_sha256,
+        secret_tensor_sha256=secret_tensor_sha256,
+        source_manifest_sha256=source_manifest_sha256,
+        train_split_sha256=train_split_sha256,
+        hiding_gate_passed=False,
+        mechanism_gate_passed=bool(mechanism_scientific_gate_passed),
+    )
+    payload.update(
+        {
+            "arm_id": DGCAIP_P4_ARM_ID,
+            "source_arm_id": DGCAIP_P4_ARM_ID,
+            "protocol_id": DGCAIP_P4_PROTOCOL_ID,
+            "materialization_mode": DGCAIP_P4_MATERIALIZATION_MODE,
+            "allow_failed_scientific_gates": True,
+            "evidence_scope": DGCAIP_P4_EVIDENCE_SCOPE,
+            "state_integrity_gate_passed": True,
+            "mechanism_scientific_gate_passed": bool(
+                mechanism_scientific_gate_passed
+            ),
+            **{
+                name: _require_sha256(provenance_hashes[name], name)
+                for name in DGCAIP_P4_PROVENANCE_HASH_KEYS
+            },
+        }
+    )
+    return payload
+
+
 @dataclass(frozen=True)
 class FrozenSDHState:
     carrier: SemanticHidingCarrier
@@ -240,10 +307,43 @@ def load_frozen_sdh_state(
     payload = _torch_load(path)
     if not isinstance(payload, Mapping) or payload.get("schema") != FROZEN_SDH_STATE_SCHEMA:
         raise ValueError("Frozen SDH state has an unsupported schema.")
-    if payload.get("arm_id") != FORMAL_SDH_ARM_ID:
-        raise ValueError("Formal SDH materialization requires the P1 state.")
     feasibility_mode = feasibility_contract is not None
-    if feasibility_mode:
+    candidate_mode = bool(
+        feasibility_mode
+        and feasibility_contract.get("protocol_id") == DGCAIP_P4_PROTOCOL_ID
+    )
+    expected_arm_id = DGCAIP_P4_ARM_ID if candidate_mode else FORMAL_SDH_ARM_ID
+    if payload.get("arm_id") != expected_arm_id:
+        raise ValueError(
+            "SDH materialization requires arm_id=%s." % expected_arm_id
+        )
+    if candidate_mode:
+        if payload.get("protocol_id") != DGCAIP_P4_PROTOCOL_ID:
+            raise ValueError("DG-CAIP P4 state protocol_id mismatch.")
+        if payload.get("materialization_mode") != DGCAIP_P4_MATERIALIZATION_MODE:
+            raise ValueError("DG-CAIP P4 state materialization mode mismatch.")
+        if payload.get("evidence_scope") != DGCAIP_P4_EVIDENCE_SCOPE:
+            raise ValueError("DG-CAIP P4 state evidence scope mismatch.")
+        if payload.get("allow_failed_scientific_gates") is not True:
+            raise ValueError("DG-CAIP P4 state did not preserve diagnostic gates.")
+        if payload.get("state_integrity_gate_passed") is not True:
+            raise ValueError("DG-CAIP P4 state integrity gate did not pass.")
+        if payload.get("source_arm_id") != DGCAIP_P4_ARM_ID:
+            raise ValueError("DG-CAIP P4 source arm identity mismatch.")
+        if not isinstance(payload.get("mechanism_scientific_gate_passed"), bool):
+            raise ValueError("DG-CAIP P4 scientific gate flag is missing.")
+        expected_state_hash = _require_sha256(
+            feasibility_contract.get("frozen_sdh_state_sha256", ""),
+            "frozen_sdh_state_sha256",
+        )
+        if _file_sha256(path) != expected_state_hash:
+            raise ValueError("DG-CAIP P4 frozen state file hash mismatch.")
+        for name in DGCAIP_P4_PROVENANCE_HASH_KEYS:
+            actual = _require_sha256(payload.get(name, ""), name)
+            expected = _require_sha256(feasibility_contract.get(name, ""), name)
+            if actual != expected:
+                raise ValueError("DG-CAIP P4 %s does not match config." % name)
+    elif feasibility_mode:
         if payload.get("protocol_id") != E2E_V0_PROTOCOL_ID:
             raise ValueError("E2E V0 state protocol_id mismatch.")
         if payload.get("materialization_mode") != E2E_V0_MATERIALIZATION_MODE:
@@ -361,6 +461,26 @@ def load_frozen_sdh_state(
         state_content_hash=content_hash,
         provenance=(
             {
+                "protocol_id": DGCAIP_P4_PROTOCOL_ID,
+                "source_arm_id": DGCAIP_P4_ARM_ID,
+                "evidence_scope": DGCAIP_P4_EVIDENCE_SCOPE,
+                "hiding_gate_passed": False,
+                "mechanism_gate_passed": payload["mechanism_gate_passed"],
+                "mechanism_scientific_gate_passed": payload[
+                    "mechanism_scientific_gate_passed"
+                ],
+                "state_integrity_gate_passed": True,
+                "frozen_sdh_state_sha256": feasibility_contract[
+                    "frozen_sdh_state_sha256"
+                ],
+                **{
+                    name: payload[name]
+                    for name in DGCAIP_P4_PROVENANCE_HASH_KEYS
+                },
+            }
+            if candidate_mode
+            else
+            {
                 "protocol_id": E2E_V0_PROTOCOL_ID,
                 "evidence_scope": E2E_V0_EVIDENCE_SCOPE,
                 "hiding_gate_passed": False,
@@ -399,32 +519,50 @@ class SDHMaterializer(BasePoisonGenerator):
         super().__init__(cfg, method_cfg, device, surrogate)
         protocol_id = str(method_cfg.get("protocol_id", ""))
         feasibility_mode = protocol_id == E2E_V0_PROTOCOL_ID
+        candidate_mode = protocol_id == DGCAIP_P4_PROTOCOL_ID
         feasibility_markers = bool(
             method_cfg.get("allow_failed_scientific_gates", False)
-            or method_cfg.get("materialization_mode") == E2E_V0_MATERIALIZATION_MODE
+            or method_cfg.get("materialization_mode")
+            in {E2E_V0_MATERIALIZATION_MODE, DGCAIP_P4_MATERIALIZATION_MODE}
         )
-        if feasibility_markers and not feasibility_mode:
-            raise ValueError("Failed-gate materialization is restricted to E2E V0.")
+        if feasibility_markers and not (feasibility_mode or candidate_mode):
+            raise ValueError(
+                "Failed-gate materialization is restricted to an approved protocol."
+            )
         if feasibility_mode:
             if method_cfg.get("materialization_mode") != E2E_V0_MATERIALIZATION_MODE:
                 raise ValueError("E2E V0 materialization mode mismatch.")
             if method_cfg.get("allow_failed_scientific_gates") is not True:
                 raise ValueError("E2E V0 failed-gate materialization was not enabled.")
+        if candidate_mode:
+            if method_cfg.get("materialization_mode") != DGCAIP_P4_MATERIALIZATION_MODE:
+                raise ValueError("DG-CAIP P4 materialization mode mismatch.")
+            if method_cfg.get("allow_failed_scientific_gates") is not True:
+                raise ValueError("DG-CAIP P4 diagnostic materialization was not enabled.")
         contract = (
             {
-                name: str(method_cfg.get(name, ""))
-                for name in (
-                    "frozen_sdh_state_sha256",
-                    "hiding_metrics_sha256",
-                    "hiding_checkpoint_sha256",
-                    "hiding_split_sha256",
-                    "mechanism_metrics_sha256",
-                    "mechanism_decision_sha256",
-                    "mechanism_config_sha256",
-                    "p1_state_sha256",
-                )
+                "protocol_id": protocol_id,
+                **{
+                    name: str(method_cfg.get(name, ""))
+                    for name in (
+                        "frozen_sdh_state_sha256",
+                        *(
+                            DGCAIP_P4_PROVENANCE_HASH_KEYS
+                            if candidate_mode
+                            else (
+                                "hiding_metrics_sha256",
+                                "hiding_checkpoint_sha256",
+                                "hiding_split_sha256",
+                                "mechanism_metrics_sha256",
+                                "mechanism_decision_sha256",
+                                "mechanism_config_sha256",
+                                "p1_state_sha256",
+                            )
+                        ),
+                    )
+                },
             }
-            if feasibility_mode
+            if feasibility_mode or candidate_mode
             else None
         )
         self.state = load_frozen_sdh_state(

@@ -166,6 +166,13 @@ def _default_config() -> Dict[str, Any]:
                 "mechanism_decision_sha256": "",
                 "mechanism_config_sha256": "",
                 "p1_state_sha256": "",
+                "mechanism_scientific_decision_sha256": "",
+                "state_integrity_decision_sha256": "",
+                "p4_state_sha256": "",
+                "source_p1_state_sha256": "",
+                "source_p1_metrics_sha256": "",
+                "d0_report_sha256": "",
+                "repair_report_sha256": "",
             },
             "ours_mask": {
                 "support_type": "mask",
@@ -316,6 +323,13 @@ def _ensure_method_defaults(cfg: Dict[str, Any]) -> None:
             "mechanism_decision_sha256": "",
             "mechanism_config_sha256": "",
             "p1_state_sha256": "",
+            "mechanism_scientific_decision_sha256": "",
+            "state_integrity_decision_sha256": "",
+            "p4_state_sha256": "",
+            "source_p1_state_sha256": "",
+            "source_p1_metrics_sha256": "",
+            "d0_report_sha256": "",
+            "repair_report_sha256": "",
         }
         for key, value in required.items():
             if key not in sdh:
@@ -411,9 +425,14 @@ def load_config(config_path: str) -> Dict[str, Any]:
         victim = cfg["victim"]
         protocol_id = str(method_cfg.get("protocol_id", ""))
         feasibility_protocol = protocol_id == "TAUSB-SDH-E2E-V0-MAP50-v1"
+        dgcaip_p4_protocol = (
+            protocol_id == "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1"
+        )
         frozen_victim = {"imgsz": 640, "batch": 36, "optimizer": "SGD"}
         frozen_victim["epochs"] = (
-            int(victim.get("epochs", -1)) if feasibility_protocol else 200
+            int(victim.get("epochs", -1))
+            if feasibility_protocol or dgcaip_p4_protocol
+            else 200
         )
         for key, expected in frozen_victim.items():
             if victim.get(key) != expected:
@@ -427,7 +446,62 @@ def load_config(config_path: str) -> Dict[str, Any]:
         ):
             if not str(method_cfg.get(key, "")).strip():
                 raise ValueError("TAUSB-SDH methods config requires %s." % key)
-        if feasibility_protocol:
+        if dgcaip_p4_protocol:
+            if method_cfg.get("materialization_mode") != "p4_dgcaip_candidate_state":
+                raise ValueError("DG-CAIP P4 requires candidate-state materialization.")
+            if method_cfg.get("allow_failed_scientific_gates") is not True:
+                raise ValueError("DG-CAIP P4 requires diagnostic-gate preservation.")
+            if method_cfg.get("binding_status") != "bound":
+                raise ValueError("DG-CAIP P4 config is not bound to mechanism artifacts.")
+            if method_cfg.get("evidence_scope") != (
+                "diagnostic_candidate_ap50_evaluation"
+            ):
+                raise ValueError("DG-CAIP P4 evidence scope mismatch.")
+            if method_cfg.get("require_hiding_gate_pass") is not False:
+                raise ValueError("DG-CAIP P4 preserves hiding_gate_passed=false.")
+            if method_cfg.get("require_mechanism_gate_pass") is not False:
+                raise ValueError("DG-CAIP P4 scientific gate must remain diagnostic.")
+            if bool(cfg["data"].get("allow_pseudo_mask_fallback", True)):
+                raise ValueError("DG-CAIP P4 requires explicit person GT bbox support.")
+            if str(cfg["experiment"].get("pilot_kind", "")) != "e20":
+                raise ValueError("DG-CAIP P4 first victim experiment must be E20.")
+            if str(cfg["experiment"].get("arm_id", "")) not in {"C0", "M1"}:
+                raise ValueError("DG-CAIP P4 requires arm C0/M1.")
+            if int(victim.get("epochs", -1)) != 20:
+                raise ValueError("DG-CAIP P4 victim epochs must remain 20.")
+            if int(cfg["experiment"].get("expected_train_images", -1)) != 16551:
+                raise ValueError("DG-CAIP P4 expected_train_images mismatch.")
+            if int(cfg["experiment"].get("expected_target_images", -1)) != 6095:
+                raise ValueError("DG-CAIP P4 expected_target_images mismatch.")
+            arm_id = str(cfg["experiment"]["arm_id"])
+            expected_poisoned = 0 if arm_id == "C0" else 6095
+            expected_ratio = 0.0 if arm_id == "C0" else 1.0
+            if int(cfg["experiment"].get("expected_poisoned_count", -1)) != expected_poisoned:
+                raise ValueError("DG-CAIP P4 expected_poisoned_count mismatch.")
+            if float(cfg["experiment"].get("poisoning_ratio", -1)) != expected_ratio:
+                raise ValueError("DG-CAIP P4 poisoning ratio does not match arm identity.")
+            if str(cfg["data"].get("materialization_layout", "")) != "sparse_mixed_list_v1":
+                raise ValueError("DG-CAIP P4 requires sparse_mixed_list_v1.")
+            if str(cfg["data"].get("train_selection_manifest", "")).strip():
+                raise ValueError("DG-CAIP P4 full VOC forbids a selection manifest.")
+            for key in (
+                "frozen_sdh_state_sha256",
+                "hiding_metrics_sha256",
+                "hiding_checkpoint_sha256",
+                "hiding_split_sha256",
+                "mechanism_metrics_sha256",
+                "mechanism_scientific_decision_sha256",
+                "state_integrity_decision_sha256",
+                "mechanism_config_sha256",
+                "p4_state_sha256",
+                "source_p1_state_sha256",
+                "source_p1_metrics_sha256",
+                "d0_report_sha256",
+                "repair_report_sha256",
+            ):
+                if not _is_sha256(method_cfg.get(key, "")):
+                    raise ValueError("DG-CAIP P4 methods config requires SHA-256 %s." % key)
+        elif feasibility_protocol:
             if method_cfg.get("materialization_mode") != "p1_feasibility_state":
                 raise ValueError("E2E V0 requires p1_feasibility_state materialization.")
             if method_cfg.get("allow_failed_scientific_gates") is not True:

@@ -9,6 +9,7 @@ import traceback
 
 import yaml
 
+from ue_framework.methods.p1_determinism_audit import enable_strict_determinism
 from ue_framework.methods.sdh_experiment import (
     run_hiding_pilot,
     run_mechanism_pilot,
@@ -35,6 +36,9 @@ def main() -> int:
     status_path = artifact_root / ("status_%s.json" % args.stage)
     started = time.time()
     try:
+        strict_backend = None
+        if config["runtime"].get("strict_determinism") is True:
+            strict_backend = enable_strict_determinism()
         if args.stage == "hiding":
             result = run_hiding_pilot(config, config_base=project_root)
         else:
@@ -45,6 +49,10 @@ def main() -> int:
             "started_unix": started,
             "ended_unix": time.time(),
             "gate_pass": bool(result.get("gate", result.get("decision", {})).get("pass")),
+            "state_integrity_gate_pass": bool(
+                result.get("state_integrity", {}).get("pass", False)
+            ),
+            "strict_backend": strict_backend,
         }
         status_path.parent.mkdir(parents=True, exist_ok=True)
         status_path.write_text(json.dumps(status, indent=2), encoding="utf-8")
