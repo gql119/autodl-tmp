@@ -20,11 +20,13 @@ from .constraint_gradient_router import (
 )
 from .detector_lfc import DetectorLFCPrototypeBank
 from .dgcaip import DGCAIPResult, FrozenDGCAIPGradientCalibration
+from .dgcaip_dataset_risk import load_risk_bank
 from .dgcaip_diagnostics import build_dgcaip_locator_report
 from .dgcaip_r3_diagnostics import (
     build_rejection_attribution,
     build_same_process_replay,
 )
+from .dgcaip_strict_step import run_strict_dgcaip_step
 from .instance_cicr import FrozenInstanceCICRBank
 from .non_target_logit_alignment import FrozenNLAGradientCalibration
 from .p1_determinism_audit import backend_manifest, payload_sha256
@@ -355,6 +357,18 @@ def _filter_metrics(values: Mapping[str, float], limits: Mapping[str, float]) ->
     return {name: float(values[name]) for name in limits}
 
 
+def _strict_candidate_metrics(
+    values: Mapping[str, float],
+    baselines: Mapping[str, float],
+) -> Dict[str, float]:
+    """Treat a lost clean-TAL constraint as a rejected candidate, not a crash."""
+
+    return {
+        name: float(values.get(name, float(baseline) + 1.0))
+        for name, baseline in baselines.items()
+    }
+
+
 def _instance_metric_map(
     observations: Sequence[SDHObservation],
 ) -> Dict[Tuple[str, int, int], Dict[str, float]]:
@@ -483,11 +497,19 @@ def _prepare_experiment(
     return carrier, secret, hiding_state, image_dir, label_dir, split
 
 
-def _load_engine(config: Mapping[str, Any], *, config_base: Path) -> SDHObservationEngine:
+def _load_engine(
+    config: Mapping[str, Any],
+    *,
+    config_base: Path,
+    checkpoint_path: Path | None = None,
+) -> SDHObservationEngine:
     from ultralytics import YOLO
 
     device = torch.device(str(config["runtime"]["device"]))
-    wrapper = YOLO(str(_resolve(config_base, str(config["model"]["surrogate_checkpoint"]))))
+    resolved_checkpoint = checkpoint_path or _resolve(
+        config_base, str(config["model"]["surrogate_checkpoint"])
+    )
+    wrapper = YOLO(str(resolved_checkpoint))
     model = wrapper.model.to(device).eval()
     dgcaip = config["dgcaip"]
     return SDHObservationEngine(
@@ -517,17 +539,71 @@ def run_dgcaip_pilot(
     start = time.monotonic()
     max_seconds = float(config["mechanism"]["max_seconds"])
     device = torch.device(str(config["runtime"]["device"]))
-    base_carrier, primary_secret, hiding_state, _, label_dir, split = _prepare_experiment(
+    base_carrier, primary_secret, hiding_state, image_dir, label_dir, split = _prepare_experiment(
         config, config_base=config_base
     )
     dg_config = config["dgcaip"]
     production_e20 = str(dg_config.get("run_mode", "")) == "production_e20"
+    strict_dataset = (
+        str(config["spec"].get("spec_id", ""))
+        == "TAUSB-SDH-DGCAIP-DATASET-CGR-PROXY-v1"
+        and str(dg_config.get("run_mode", "")) == "strict_mechanism"
+    )
     r3_diagnostics = dg_config.get("r3_diagnostics", {})
     r3_enabled = bool(r3_diagnostics.get("enabled", False))
-    arm_modes = R3_DIAGNOSTIC_ARMS if r3_enabled else DGCAIP_ARMS
+    arm_modes = (
+        {"P5-DATASET-STRICT": "dgcaip"}
+        if strict_dataset
+        else (R3_DIAGNOSTIC_ARMS if r3_enabled else DGCAIP_ARMS)
+    )
     source_p1_path = _resolve(config_base, str(dg_config["source_p1_state"]))
     if _file_sha256(source_p1_path) != str(dg_config["source_p1_state_sha256"]).lower():
         raise ValueError("DG-CAIP source P1 state hash mismatch.")
+    dataset_ranks = None
+    strict_replay_ids: Tuple[str, ...] = ()
+    risk_bank = None
+    if strict_dataset:
+        ranking_config = config["dataset_ranking"]
+        risk_bank_path = _resolve(
+            config_base, str(ranking_config["risk_bank"])
+        )
+        if _file_sha256(risk_bank_path) != str(
+            ranking_config["risk_bank_file_sha256"]
+        ).lower():
+            raise ValueError("Strict mechanism risk-bank file hash mismatch.")
+        risk_bank = load_risk_bank(
+            risk_bank_path,
+            expected_spec_id="TAUSB-SDH-DGCAIP-DATASET-CGR-PROXY-v1",
+            expected_sha256=str(ranking_config["risk_bank_canonical_sha256"]),
+        )
+        dataset_ranks = risk_bank.rank_mapping()
+        replay_path = _resolve(
+            config_base, str(ranking_config["replay_manifest"])
+        )
+        if _file_sha256(replay_path) != str(
+            ranking_config["replay_manifest_file_sha256"]
+        ).lower():
+            raise ValueError("Strict mechanism replay-manifest hash mismatch.")
+        replay_payload = json.loads(replay_path.read_text(encoding="utf-8"))
+        if (
+            replay_payload.get("schema") != "tausb.dgcaip-dataset-replay.v1"
+            or replay_payload.get("spec_id")
+            != "TAUSB-SDH-DGCAIP-DATASET-CGR-PROXY-v1"
+            or replay_payload.get("risk_bank_canonical_sha256")
+            != risk_bank.canonical_sha256
+        ):
+            raise ValueError("Strict mechanism replay manifest is not bound to the bank.")
+        strict_replay_ids = tuple(str(item) for item in replay_payload["image_ids"])
+        expected_slots = int(config["mechanism"]["optimization_steps"]) * int(
+            config["mechanism"]["batch_size"]
+        )
+        if len(strict_replay_ids) != expected_slots:
+            raise ValueError("Strict mechanism replay slot count mismatch.")
+        base_carrier = _load_saved_p1_carrier(
+            source_p1_path,
+            base_carrier=base_carrier,
+            device=device,
+        )
     repair_report_path = None
     backend = None
     if production_e20:
@@ -550,6 +626,23 @@ def run_dgcaip_pilot(
         ):
             raise RuntimeError("DG-CAIP production strict backend is not active.")
     engine = _load_engine(config, config_base=config_base)
+    protection_engines: Dict[str, SDHObservationEngine] = {}
+    protection_snapshot_hashes: Dict[str, str] = {}
+    if strict_dataset:
+        for snapshot in config["model"]["protection_surrogate_snapshots"]:
+            snapshot_id = str(snapshot["id"])
+            checkpoint = _resolve(config_base, str(snapshot["checkpoint"]))
+            actual_hash = _file_sha256(checkpoint)
+            if actual_hash != str(snapshot["sha256"]).lower():
+                raise ValueError(
+                    "Strict protection snapshot hash mismatch: %s" % snapshot_id
+                )
+            protection_snapshot_hashes[snapshot_id] = actual_hash
+            protection_engines[snapshot_id] = _load_engine(
+                config,
+                config_base=config_base,
+                checkpoint_path=checkpoint,
+            )
     batch_size = int(config["mechanism"]["batch_size"])
     artifact_root = _resolve(config_base, str(config["runtime"]["artifact_root"]))
     run_mode = str(dg_config["run_mode"])
@@ -608,24 +701,42 @@ def run_dgcaip_pilot(
             _write_json(output_root / "d0_locator.json", result)
             return result
 
-        d0_path = _resolve(config_base, str(dg_config["d0_report"]))
-        if _file_sha256(d0_path) != str(dg_config["d0_report_sha256"]).lower():
-            raise ValueError("DG-CAIP D0 report hash mismatch.")
-        d0_report = json.loads(d0_path.read_text(encoding="utf-8"))
-        _validate_d0_report_binding(d0_report, config, dg_config)
-        source_p1_metrics_path = _resolve(
-            config_base, str(dg_config["source_p1_metrics"])
-        )
-        if _file_sha256(source_p1_metrics_path) != str(
-            dg_config["source_p1_metrics_sha256"]
-        ).lower():
-            raise ValueError("DG-CAIP source P1 metrics hash mismatch.")
-        source_p1_metrics = json.loads(
-            source_p1_metrics_path.read_text(encoding="utf-8")
-        )
+        if strict_dataset:
+            d0_path = None
+            source_p1_metrics_path = None
+            source_p1_metrics = {}
+        else:
+            d0_path = _resolve(config_base, str(dg_config["d0_report"]))
+            if _file_sha256(d0_path) != str(dg_config["d0_report_sha256"]).lower():
+                raise ValueError("DG-CAIP D0 report hash mismatch.")
+            d0_report = json.loads(d0_path.read_text(encoding="utf-8"))
+            _validate_d0_report_binding(d0_report, config, dg_config)
+            source_p1_metrics_path = _resolve(
+                config_base, str(dg_config["source_p1_metrics"])
+            )
+            if _file_sha256(source_p1_metrics_path) != str(
+                dg_config["source_p1_metrics_sha256"]
+            ).lower():
+                raise ValueError("DG-CAIP source P1 metrics hash mismatch.")
+            source_p1_metrics = json.loads(
+                source_p1_metrics_path.read_text(encoding="utf-8")
+            )
 
         calibration_batches = _batches(split["calibration"], batch_size)
         heldout_batches = _batches(split["heldout"], batch_size)
+        if strict_dataset:
+            by_id = {
+                path.stem: path for path in _person_paths(image_dir, label_dir, 14)
+            }
+            missing_replay = sorted(set(strict_replay_ids).difference(by_id))
+            if missing_replay:
+                raise ValueError("Strict replay references unknown training images.")
+            optimization_batches = _batches(
+                [by_id[image_id] for image_id in strict_replay_ids],
+                batch_size,
+            )
+        else:
+            optimization_batches = calibration_batches
         initial_observations = []
         with torch.no_grad():
             for paths_batch in calibration_batches:
@@ -745,6 +856,17 @@ def run_dgcaip_pilot(
             nla_calibration=nla_calibration,
             dg_calibration=dg_calibration,
         )
+        if strict_dataset:
+            frozen_before.update(
+                {
+                    "protection_snapshot_%s" % snapshot_id: payload_sha256(
+                        snapshot_engine.model.state_dict()
+                    )
+                    for snapshot_id, snapshot_engine in sorted(
+                        protection_engines.items()
+                    )
+                }
+            )
 
         arms = {}
         arm_deltas = {}
@@ -764,14 +886,14 @@ def run_dgcaip_pilot(
             backtrack_or_skip = 0
             for step in range(int(config["mechanism"]["optimization_steps"])):
                 _time_guard(start, max_seconds, "DG-CAIP mechanism")
-                paths_batch = calibration_batches[step % len(calibration_batches)]
+                paths_batch = optimization_batches[step % len(optimization_batches)]
                 batch = load(paths_batch)
                 batch_sha256 = (
                     _batch_sha256(paths_batch, label_dir)
-                    if r3_enabled or production_e20
+                    if r3_enabled or production_e20 or strict_dataset
                     else None
                 )
-                if r3_enabled or production_e20:
+                if r3_enabled or production_e20 or strict_dataset:
                     arm_batch_hashes[arm_id].append(str(batch_sha256))
                 observation = engine.observe(
                     batch,
@@ -779,6 +901,9 @@ def run_dgcaip_pilot(
                     primary_secret,
                     dgcaip_mode=dg_mode,
                     dgcaip_component_weights=dg_weights,
+                    dgcaip_dataset_percentile_ranks=(
+                        dataset_ranks if strict_dataset else None
+                    ),
                 )
                 components, _, _ = _component_losses(observation, dlfc_bank, cicr_bank)
                 objective = compose_sdh_target_objective(
@@ -834,6 +959,97 @@ def run_dgcaip_pilot(
                     )
                     protection_ratio = (
                         float(routed.nla_norm * lambda_nla / max(routed.projected_target_norm, 1.0e-12))
+                    )
+                elif strict_dataset:
+                    if observation.dgcaip is None:
+                        raise RuntimeError("Strict DG-CAIP observation is missing.")
+                    protection_observations = {
+                        snapshot_id: snapshot_engine.observe(
+                            batch,
+                            carrier,
+                            primary_secret,
+                            dgcaip_mode="dgcaip",
+                            dgcaip_component_weights=dg_weights,
+                            dgcaip_dataset_percentile_ranks=dataset_ranks,
+                        )
+                        for snapshot_id, snapshot_engine in sorted(
+                            protection_engines.items()
+                        )
+                    }
+                    if any(
+                        protected.dgcaip is None
+                        for protected in protection_observations.values()
+                    ):
+                        raise RuntimeError(
+                            "Strict protection snapshot observation is missing."
+                        )
+                    current_metrics = {
+                        "%s/%s" % (snapshot_id, name): value
+                        for snapshot_id, protected in sorted(
+                            protection_observations.items()
+                        )
+                        for name, value in _dgcaip_class_metrics(
+                            protected.dgcaip
+                        ).items()
+                    }
+
+                    def evaluate_strict(candidate):
+                        _copy_parameters_(parameters, candidate)
+                        try:
+                            with torch.no_grad():
+                                candidate_values = {}
+                                for snapshot_id, snapshot_engine in sorted(
+                                    protection_engines.items()
+                                ):
+                                    current = snapshot_engine.observe(
+                                        batch,
+                                        carrier,
+                                        primary_secret,
+                                        dgcaip_mode="dgcaip",
+                                        dgcaip_component_weights=dg_weights,
+                                        dgcaip_dataset_percentile_ranks=dataset_ranks,
+                                    )
+                                    if current.dgcaip is None:
+                                        continue
+                                    candidate_values.update(
+                                        {
+                                            "%s/%s" % (snapshot_id, name): value
+                                            for name, value in _dgcaip_class_metrics(
+                                                current.dgcaip
+                                            ).items()
+                                        }
+                                    )
+                            return _strict_candidate_metrics(
+                                candidate_values, current_metrics
+                            )
+                        finally:
+                            _copy_parameters_(parameters, originals)
+
+                    strict_step = run_strict_dgcaip_step(
+                        parameters=parameters,
+                        target_loss=objective.loss,
+                        observation=observation,
+                        protection_observations=protection_observations,
+                        current_metrics=current_metrics,
+                        evaluate_constraints=evaluate_strict,
+                        step_size=float(config["mechanism"]["learning_rate"]),
+                        js_epsilon=float(dg_config["js_backtracking_epsilon"]),
+                        repair_floor_fraction=float(
+                            config["strict_route"]["repair_floor_fraction"]
+                        ),
+                        max_repair_norm_ratio=float(
+                            config["strict_route"]["max_repair_norm_ratio"]
+                        ),
+                        max_projection_iterations=int(
+                            config["strict_route"]["max_projection_iterations"]
+                        ),
+                        max_backtracks=5,
+                        record_trace=True,
+                    )
+                    routed = strict_step.route
+                    backtracked = strict_step.backtracking
+                    protection_ratio = routed.repair_norm / max(
+                        routed.target_norm, 1.0e-12
                     )
                 else:
                     per_class_protection, protection_loss = _combined_protection_losses(
@@ -894,7 +1110,7 @@ def run_dgcaip_pilot(
                             max_backtracks=5,
                         )
                     protection_ratio = routed.explicit_protection_norm_ratio
-                if r3_enabled:
+                if r3_enabled or strict_dataset:
                     arm_route_gradients[arm_id].append(
                         routed.gradient.detach().cpu().clone()
                     )
@@ -908,12 +1124,40 @@ def run_dgcaip_pilot(
                     "constraint_rank": routed.rank,
                     "null_dimension": routed.null_dimension,
                     "attack_retention": routed.attack_retention,
-                    "max_projected_row_dot": routed.max_projected_row_dot,
-                    "max_final_row_dot": routed.max_final_row_dot,
+                    "max_projected_row_dot": (
+                        routed.max_safe_final_row_dot
+                        if strict_dataset
+                        else routed.max_projected_row_dot
+                    ),
+                    "max_final_row_dot": (
+                        routed.max_safe_final_row_dot
+                        if strict_dataset
+                        else routed.max_final_row_dot
+                    ),
                     "explicit_protection_norm_ratio": protection_ratio,
                     "backtrack_attempts": backtracked.attempts,
                     "accepted": backtracked.accepted,
                 }
+                if strict_dataset:
+                    step_row.update(
+                        {
+                            "min_violated_final_row_dot": (
+                                routed.min_violated_final_row_dot
+                            ),
+                            "repair_floor": routed.repair_floor,
+                            "repair_norm": routed.repair_norm,
+                            "route_feasible": routed.feasible,
+                            "target_gradient_norm": routed.target_norm,
+                            "final_gradient_norm": routed.final_norm,
+                            "batch_sha256": batch_sha256,
+                            "routed_gradient_sha256": _parameter_sha256(
+                                (routed.gradient,)
+                            ),
+                            "backtracking_trace": [
+                                asdict(item) for item in backtracked.trace
+                            ],
+                        }
+                    )
                 if r3_enabled:
                     serialized_trace = [
                         asdict(item) for item in backtracked.trace
@@ -1001,7 +1245,7 @@ def run_dgcaip_pilot(
                 key: value.detach().cpu().clone()
                 for key, value in carrier.state_dict().items()
             }
-            if r3_enabled or production_e20:
+            if r3_enabled or production_e20 or strict_dataset:
                 arm_final_hashes[arm_id] = _parameter_sha256(parameters)
 
         if len(set(arm_initial_hashes.values())) != 1:
@@ -1016,6 +1260,103 @@ def run_dgcaip_pilot(
             nla_calibration=nla_calibration,
             dg_calibration=dg_calibration,
         )
+        if strict_dataset:
+            frozen_after.update(
+                {
+                    "protection_snapshot_%s" % snapshot_id: payload_sha256(
+                        snapshot_engine.model.state_dict()
+                    )
+                    for snapshot_id, snapshot_engine in sorted(
+                        protection_engines.items()
+                    )
+                }
+            )
+
+        if strict_dataset:
+            arm_id = "P5-DATASET-STRICT"
+            strict_arm = arms[arm_id]
+            strict_steps = strict_arm["steps"]
+            accepted_steps = [item for item in strict_steps if item["accepted"]]
+            safe_dot_pass = all(
+                float(item["max_final_row_dot"]) <= 1.0e-5
+                for item in accepted_steps
+            )
+            repair_dot_pass = all(
+                float(item["min_violated_final_row_dot"])
+                + 1.0e-6
+                >= float(item["repair_floor"])
+                for item in accepted_steps
+                if float(item["repair_floor"]) > 0.0
+            )
+            checks = {
+                "risk_bank_bound": bool(
+                    risk_bank is not None
+                    and dataset_ranks is not None
+                    and len(dataset_ranks) == risk_bank.covered_instance_count
+                ),
+                "replay_slots_bound": len(strict_replay_ids)
+                == int(config["mechanism"]["optimization_steps"]) * batch_size,
+                "at_least_one_update": bool(accepted_steps),
+                "final_safe_orthogonality": bool(
+                    accepted_steps and safe_dot_pass
+                ),
+                "violated_repair_direction": bool(
+                    accepted_steps and repair_dot_pass
+                ),
+                "null_dimension": min(
+                    (int(item["null_dimension"]) for item in accepted_steps),
+                    default=0,
+                )
+                > 0,
+                "attack_retention": _median(
+                    item["attack_retention"] for item in strict_steps
+                )
+                >= 0.60,
+                "backtrack_skip": strict_arm["backtrack_skip_ratio"] < 0.70,
+                "finite": _all_finite(strict_arm)
+                and _all_finite(arm_states[arm_id]),
+                "adapter_changed": arm_final_hashes[arm_id]
+                != arm_initial_hashes[arm_id],
+                "frozen_modules_unchanged": frozen_before == frozen_after,
+            }
+            result = {
+                "schema": "tausb.dgcaip-dataset-strict-mechanism.v1",
+                "spec_id": config["spec"]["spec_id"],
+                "split_hash": _split_hash(split),
+                "source_p1_state_sha256": _file_sha256(source_p1_path),
+                "risk_bank_canonical_sha256": risk_bank.canonical_sha256,
+                "risk_bank_file_sha256": _file_sha256(risk_bank_path),
+                "replay_manifest_file_sha256": _file_sha256(replay_path),
+                "protection_snapshot_sha256": protection_snapshot_hashes,
+                "target_weight_calibration": target_calibration.state_dict(),
+                "nla_calibration": nla_calibration.state_dict(),
+                "dgcaip_calibration": dg_calibration.state_dict(),
+                "initial": initial_summary,
+                "arms": arms,
+                "decision": {"checks": checks, "pass": all(checks.values())},
+                "elapsed_seconds": time.monotonic() - start,
+            }
+            _write_json(
+                output_root / "backtracking_trace.json",
+                {
+                    "schema": "tausb.dgcaip-dataset-strict-backtracking.v1",
+                    arm_id: strict_steps,
+                },
+            )
+            torch.save(
+                {
+                    "schema": "tausb.dgcaip-dataset-strict-state.v1",
+                    "spec_id": config["spec"]["spec_id"],
+                    "arm_id": arm_id,
+                    "carrier_state": arm_states[arm_id],
+                    "decision": result["decision"],
+                    "risk_bank_canonical_sha256": risk_bank.canonical_sha256,
+                    "source_p1_state_sha256": _file_sha256(source_p1_path),
+                },
+                output_root / "p5_dataset_strict_state.pt",
+            )
+            _write_json(output_root / "mechanism_metrics.json", result)
+            return result
 
         if r3_enabled:
             expected_arms = {"P1-A", "P1-B", "P2-CAIP", "P4-DGCAIP"}

@@ -128,6 +128,40 @@ def divergence_guided_weights(
     )
 
 
+def dataset_rank_guided_weights(
+    percentile_ranks: torch.Tensor,
+    geometry_risks: torch.Tensor,
+    *,
+    lower: float = 0.5,
+    upper: float = 2.0,
+) -> DivergenceWeightResult:
+    """Convert frozen dataset-level ranks into bounded per-batch weights."""
+
+    if percentile_ranks.ndim != 1 or geometry_risks.shape != percentile_ranks.shape:
+        raise ValueError("Dataset ranks and geometry risks must align as vectors.")
+    detached_ranks = percentile_ranks.detach()
+    detached_geometry = geometry_risks.detach()
+    if not torch.isfinite(detached_ranks).all() or bool(
+        ((detached_ranks < 0) | (detached_ranks > 1)).any()
+    ):
+        raise ValueError("Dataset percentile ranks must be finite in [0,1].")
+    if not torch.isfinite(detached_geometry).all() or bool(
+        (detached_geometry <= 0).any()
+    ):
+        raise ValueError("Geometry risks must be finite and positive.")
+    hardness = 1.0 + 2.0 * detached_ranks.square()
+    weights = _bounded_mean_one(
+        detached_geometry * hardness,
+        lower=lower,
+        upper=upper,
+    )
+    return DivergenceWeightResult(
+        weights=weights,
+        percentile_ranks=detached_ranks,
+        hardness=hardness,
+    )
+
+
 def _rectangle_union_area(rectangles: Sequence[Sequence[float]]) -> float:
     if not rectangles:
         return 0.0
@@ -229,6 +263,10 @@ def dgcaip_instance_preservation(
     box_tolerance: float = 0.02,
     alignment_tolerance: float = 0.05,
     minimum_rank_instances: int = 4,
+    image_ids: Optional[Sequence[str]] = None,
+    dataset_percentile_ranks: Optional[
+        Mapping[Tuple[str, int, int], float]
+    ] = None,
 ) -> DGCAIPResult:
     if clean_boxes.shape != poison_boxes.shape or clean_boxes.shape[:2] != clean_logits.shape[:2] or clean_boxes.shape[-1] != 4:
         raise ValueError("Clean/poison boxes must align with logits as [B,A,4].")
@@ -346,7 +384,29 @@ def dgcaip_instance_preservation(
         [record.js_divergence.detach() for record in collection.instances]
     )
     geometry_tensor = divergence_values.new_tensor(geometry_risks)
-    if enable_divergence_hardness:
+    if dataset_percentile_ranks is not None:
+        if image_ids is None or len(image_ids) != clean_logits.shape[0]:
+            raise ValueError(
+                "Dataset-ranked DG-CAIP requires one image_id per batch item."
+            )
+        frozen_ranks = []
+        for record in collection.instances:
+            key = (
+                str(image_ids[record.batch_index]),
+                record.gt_index,
+                record.class_id,
+            )
+            if key not in dataset_percentile_ranks:
+                raise ValueError("Dataset risk bank is missing an active DG-CAIP instance.")
+            rank = float(dataset_percentile_ranks[key])
+            if not math.isfinite(rank) or not 0.0 <= rank <= 1.0:
+                raise ValueError("Dataset risk-bank rank must be finite in [0,1].")
+            frozen_ranks.append(rank)
+        weight_result = dataset_rank_guided_weights(
+            divergence_values.new_tensor(frozen_ranks),
+            geometry_tensor,
+        )
+    elif enable_divergence_hardness:
         weight_result = divergence_guided_weights(
             divergence_values,
             geometry_tensor,

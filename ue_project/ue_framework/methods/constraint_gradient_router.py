@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Callable, Dict, Mapping, Sequence, Tuple
 
 import torch
@@ -118,6 +119,32 @@ class BudgetedProtectionRouteResult:
     scaled_protection_norm: float
     explicit_protection_norm_ratio: float
     combined_norm: float
+
+
+@dataclass(frozen=True)
+class StrictConstrainedRouteResult:
+    mode: str
+    gradient: torch.Tensor
+    parameter_gradients: Tuple[torch.Tensor, ...]
+    target_gradient: torch.Tensor
+    projected_target_gradient: torch.Tensor
+    safe_constraint_matrix: torch.Tensor
+    violated_constraint_matrix: torch.Tensor
+    singular_values: torch.Tensor
+    rank: int
+    null_dimension: int
+    attack_retention: float
+    max_safe_final_row_dot: float
+    min_violated_final_row_dot: float
+    repair_floor: float
+    repair_norm: float
+    repair_iterations: int
+    feasible: bool
+    active_safe_constraints: Tuple[str, ...]
+    active_violated_constraints: Tuple[str, ...]
+    target_norm: float
+    projected_target_norm: float
+    final_norm: float
 
 
 def _validate_parameters(parameters: Sequence[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
@@ -426,6 +453,193 @@ def route_budgeted_protection_gradients(
     )
 
 
+def _normalized_loss_rows(
+    losses: Mapping[str, torch.Tensor],
+    parameters: Sequence[torch.Tensor],
+    *,
+    epsilon: float,
+) -> Tuple[Tuple[str, ...], Tuple[torch.Tensor, ...]]:
+    names = []
+    rows = []
+    for name in sorted(losses):
+        gradient = _multi_parameter_gradient(losses[name], parameters)
+        norm = gradient.norm()
+        if float(norm.detach()) <= epsilon:
+            continue
+        names.append(str(name))
+        rows.append(gradient / norm)
+    return tuple(names), tuple(rows)
+
+
+def route_strict_final_update(
+    *,
+    parameters: Sequence[torch.Tensor],
+    target_loss: torch.Tensor,
+    safe_constraint_losses: Mapping[str, torch.Tensor],
+    violated_constraint_losses: Mapping[str, torch.Tensor],
+    repair_floor_fraction: float = 0.05,
+    max_repair_norm_ratio: float = 0.25,
+    max_projection_iterations: int = 64,
+    svd_relative_tolerance: float = 1.0e-4,
+    epsilon: float = 1.0e-12,
+) -> StrictConstrainedRouteResult:
+    """Route the complete update through safe equalities and repair inequalities.
+
+    The returned vector is the actual gradient used by ``omega -= step * d``.
+    Safe rows therefore require zero dot product, while a positive violated-row
+    dot product produces first-order loss reduction.
+    """
+
+    omega = _validate_parameters(parameters)
+    if set(safe_constraint_losses).intersection(violated_constraint_losses):
+        raise ValueError("Safe and violated constraint names must be disjoint.")
+    if not 0 <= repair_floor_fraction or not 0 <= max_repair_norm_ratio:
+        raise ValueError("Strict-route repair fractions must be non-negative.")
+    if max_projection_iterations < 1 or svd_relative_tolerance <= 0:
+        raise ValueError("Strict-route iteration and SVD tolerances are invalid.")
+
+    target = _multi_parameter_gradient(target_loss, omega)
+    target_norm_tensor = target.norm()
+    if float(target_norm_tensor.detach()) <= epsilon:
+        raise ValueError("Target loss has a zero omega gradient.")
+    safe_names, safe_rows = _normalized_loss_rows(
+        safe_constraint_losses, omega, epsilon=epsilon
+    )
+    violated_names, violated_rows = _normalized_loss_rows(
+        violated_constraint_losses, omega, epsilon=epsilon
+    )
+    dimension = int(target.numel())
+    if safe_rows:
+        safe_matrix = torch.stack(safe_rows)
+        _, singular_values, vh = torch.linalg.svd(
+            safe_matrix, full_matrices=False
+        )
+        if not torch.isfinite(singular_values).all():
+            raise ValueError("Non-finite singular values in strict CGR.")
+        rank = int(
+            (
+                singular_values / singular_values[0].clamp_min(epsilon)
+                >= float(svd_relative_tolerance)
+            ).sum().item()
+        )
+        row_space = vh[:rank]
+
+        def project_safe(vector: torch.Tensor) -> torch.Tensor:
+            return vector - row_space.T @ (row_space @ vector)
+
+        projected = project_safe(target)
+    else:
+        safe_matrix = target.new_zeros((0, dimension))
+        singular_values = target.new_zeros((0,))
+        rank = 0
+
+        def project_safe(vector: torch.Tensor) -> torch.Tensor:
+            return vector
+
+        projected = target
+
+    violated_matrix = (
+        torch.stack(violated_rows)
+        if violated_rows
+        else target.new_zeros((0, dimension))
+    )
+    projected_norm_tensor = projected.norm()
+    repair_floor = (
+        float(repair_floor_fraction)
+        * float(target_norm_tensor.detach())
+        / max(1, len(violated_rows))
+    )
+    candidate = projected.clone()
+    feasible = True
+    iterations = 0
+    if violated_rows:
+        projected_violated_rows = tuple(project_safe(row) for row in violated_rows)
+        for iteration in range(max_projection_iterations):
+            iterations = iteration + 1
+            changed = False
+            for row, direction in zip(violated_rows, projected_violated_rows):
+                shortfall = repair_floor - float(torch.dot(row, candidate).detach())
+                if shortfall <= 1.0e-7:
+                    continue
+                denominator = float(torch.dot(row, direction).detach())
+                if denominator <= epsilon:
+                    feasible = False
+                    break
+                candidate = candidate + (shortfall / denominator) * direction
+                changed = True
+            if not feasible or not changed:
+                break
+        if feasible:
+            min_violated_dot = float(
+                (violated_matrix @ candidate).min().detach()
+            )
+            feasible = min_violated_dot + 1.0e-6 >= repair_floor
+        else:
+            min_violated_dot = float(
+                (violated_matrix @ candidate).min().detach()
+            )
+    else:
+        min_violated_dot = 0.0
+
+    repair = candidate - projected
+    repair_norm_tensor = repair.norm()
+    repair_budget = float(max_repair_norm_ratio) * float(target_norm_tensor.detach())
+    if float(repair_norm_tensor.detach()) > repair_budget + 1.0e-7:
+        feasible = False
+    max_safe_dot = (
+        float((safe_matrix @ candidate).abs().max().detach())
+        if safe_rows
+        else 0.0
+    )
+    if max_safe_dot > 1.0e-5 or not torch.isfinite(candidate).all():
+        feasible = False
+    null_dimension = dimension - rank
+    if null_dimension <= 0 or float(candidate.norm().detach()) <= epsilon:
+        feasible = False
+
+    if not feasible:
+        selected = torch.zeros_like(target)
+        mode = "skip_infeasible_constraints"
+    elif violated_rows and float(repair_norm_tensor.detach()) > epsilon:
+        selected = candidate
+        mode = "strict_projected_target_with_repair"
+    elif safe_rows:
+        selected = candidate
+        mode = "strict_projected_target"
+    else:
+        selected = candidate
+        mode = "target"
+    retention = float(
+        (
+            projected_norm_tensor / target_norm_tensor.clamp_min(epsilon)
+        ).detach()
+    )
+    return StrictConstrainedRouteResult(
+        mode=mode,
+        gradient=selected,
+        parameter_gradients=unflatten_parameter_tensor(selected, omega),
+        target_gradient=target,
+        projected_target_gradient=projected,
+        safe_constraint_matrix=safe_matrix,
+        violated_constraint_matrix=violated_matrix,
+        singular_values=singular_values,
+        rank=rank,
+        null_dimension=null_dimension,
+        attack_retention=retention,
+        max_safe_final_row_dot=max_safe_dot,
+        min_violated_final_row_dot=min_violated_dot,
+        repair_floor=repair_floor,
+        repair_norm=float(repair_norm_tensor.detach()),
+        repair_iterations=iterations,
+        feasible=feasible,
+        active_safe_constraints=safe_names,
+        active_violated_constraints=violated_names,
+        target_norm=float(target_norm_tensor.detach()),
+        projected_target_norm=float(projected_norm_tensor.detach()),
+        final_norm=float(selected.norm().detach()),
+    )
+
+
 def backtrack_multi_parameter_update(
     *,
     parameters: Sequence[torch.Tensor],
@@ -566,6 +780,117 @@ def backtrack_multi_parameter_constraints(
             last_values[name] <= float(limits[name]) + epsilon
             for name in limits
         ):
+            return MultiParameterBacktrackingResult(
+                candidate=candidate,
+                accepted=True,
+                attempts=attempt + 1,
+                step_size=current_step,
+                values=last_values,
+                status="accepted",
+                trace=tuple(trace),
+            )
+        current_step *= 0.5
+    return MultiParameterBacktrackingResult(
+        candidate=originals,
+        accepted=False,
+        attempts=max_backtracks + 1,
+        step_size=0.0,
+        values=last_values,
+        status="skip",
+        trace=tuple(trace),
+    )
+
+
+def backtrack_mixed_multi_parameter_constraints(
+    *,
+    parameters: Sequence[torch.Tensor],
+    flattened_gradient: torch.Tensor,
+    step_size: float,
+    evaluate_constraints: Callable[[Tuple[torch.Tensor, ...]], Mapping[str, float]],
+    safe_limits: Mapping[str, float],
+    violated_baselines: Mapping[str, float],
+    max_backtracks: int = 5,
+    epsilon: float = 1.0e-9,
+    record_trace: bool = False,
+) -> MultiParameterBacktrackingResult:
+    """Backtrack a complete update with safe and repair acceptance rules."""
+
+    omega = _validate_parameters(parameters)
+    if set(safe_limits).intersection(violated_baselines):
+        raise ValueError("Safe and violated nonlinear constraint keys must be disjoint.")
+    expected_keys = set(safe_limits).union(violated_baselines)
+    if step_size <= 0 or not expected_keys:
+        raise ValueError("Mixed backtracking requires a positive step and constraints.")
+    if max_backtracks != 5:
+        raise ValueError("SDH-CGR requires exactly five nonlinear backtracks.")
+    all_bounds = tuple(safe_limits.values()) + tuple(violated_baselines.values())
+    if any(not math.isfinite(float(value)) for value in all_bounds):
+        raise ValueError("Mixed backtracking bounds must be finite.")
+    gradients = unflatten_parameter_tensor(flattened_gradient, omega)
+    originals = tuple(parameter.detach().clone() for parameter in omega)
+    current_step = float(step_size)
+    last_values: Dict[str, float] = {}
+    trace = []
+    for attempt in range(max_backtracks + 1):
+        candidate = tuple(
+            original - current_step * gradient.detach()
+            for original, gradient in zip(originals, gradients)
+        )
+        evaluated = dict(evaluate_constraints(candidate))
+        if set(evaluated) != expected_keys:
+            raise ValueError("Mixed constraint evaluator returned unexpected keys.")
+        if any(not math.isfinite(float(value)) for value in evaluated.values()):
+            raise ValueError("Mixed constraint evaluator returned non-finite values.")
+        last_values = {str(name): float(value) for name, value in evaluated.items()}
+        safe_ok = all(
+            last_values[name] <= float(limit) + epsilon
+            for name, limit in safe_limits.items()
+        )
+        violated_nonincreasing = all(
+            last_values[name] <= float(baseline) + epsilon
+            for name, baseline in violated_baselines.items()
+        )
+        violated_improved = (
+            any(
+                last_values[name] < float(baseline) - epsilon
+                for name, baseline in violated_baselines.items()
+            )
+            if violated_baselines
+            else True
+        )
+        accepted = safe_ok and violated_nonincreasing and violated_improved
+        if record_trace:
+            rows = tuple(
+                ConstraintValueTrace(
+                    name=name,
+                    family=name.rsplit(":", 1)[-1],
+                    value=last_values[name],
+                    limit=float(
+                        safe_limits.get(name, violated_baselines.get(name))
+                    ),
+                    margin=last_values[name]
+                    - float(safe_limits.get(name, violated_baselines.get(name))),
+                    violated=(
+                        last_values[name]
+                        > float(safe_limits.get(name, violated_baselines.get(name)))
+                        + epsilon
+                    ),
+                )
+                for name in sorted(expected_keys)
+            )
+            trace.append(
+                ConstraintAttemptTrace(
+                    attempt=attempt,
+                    step_size=current_step,
+                    finite=True,
+                    constraints=rows,
+                    group_max_margin={},
+                    group_violation_count={},
+                    accepted=accepted,
+                    reason=("accepted" if accepted else "mixed_constraint_failed"),
+                )
+            )
+        if accepted:
             return MultiParameterBacktrackingResult(
                 candidate=candidate,
                 accepted=True,

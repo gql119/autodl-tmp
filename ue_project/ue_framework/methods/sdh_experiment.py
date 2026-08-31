@@ -63,6 +63,9 @@ DGCAIP_SPEC_ID = "TAUSB-SDH-DGCAIP-CGR-E20-v2"
 DGCAIP_R3_DIAG_SPEC_ID = "TAUSB-SDH-DGCAIP-R3-DIAG-v1"
 DGCAIP_R4_DIAG_SPEC_ID = "TAUSB-SDH-DGCAIP-R4-D0-BINDING-FIX-v1"
 DGCAIP_P4_E20_SPEC_ID = "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1"
+DGCAIP_DATASET_CGR_PROXY_SPEC_ID = (
+    "TAUSB-SDH-DGCAIP-DATASET-CGR-PROXY-v1"
+)
 DGCAIP_P1_DETERMINISM_AUDIT_SPEC_ID = (
     "TAUSB-SDH-DGCAIP-P1-DETERMINISM-AUDIT-v1"
 )
@@ -75,6 +78,7 @@ DGCAIP_AUDIT_SPEC_IDS = {
 DGCAIP_SPEC_IDS = {
     DGCAIP_SPEC_ID,
     DGCAIP_P4_E20_SPEC_ID,
+    DGCAIP_DATASET_CGR_PROXY_SPEC_ID,
     *DGCAIP_DIAG_SPEC_IDS,
     *DGCAIP_AUDIT_SPEC_IDS,
 }
@@ -487,7 +491,15 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         if not isinstance(dgcaip, Mapping):
             raise ValueError("DG-CAIP Spec requires a dgcaip config section.")
         run_mode = str(dgcaip.get("run_mode", ""))
-        if spec_id == DGCAIP_P4_E20_SPEC_ID:
+        if spec_id == DGCAIP_DATASET_CGR_PROXY_SPEC_ID:
+            expected_run_modes = {
+                "dataset_risk_scan",
+                "short_victim_risk_scan",
+                "strict_mechanism",
+                "proxy_victim_audit",
+                "production_e20",
+            }
+        elif spec_id == DGCAIP_P4_E20_SPEC_ID:
             expected_run_modes = {"production_e20"}
         elif spec_id in DGCAIP_DIAG_SPEC_IDS:
             expected_run_modes = {"r3_diag"}
@@ -501,7 +513,6 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
             )
         frozen = {
             "temperature": 2.0,
-            "protection_ratio": 0.25,
             "classification_tolerance": 0.005,
             "box_tolerance": 0.02,
             "alignment_tolerance": 0.05,
@@ -510,16 +521,122 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         for key, expected in frozen.items():
             if float(dgcaip.get(key, float("nan"))) != expected:
                 raise ValueError("DG-CAIP %s must remain %s." % (key, expected))
+        if spec_id == DGCAIP_DATASET_CGR_PROXY_SPEC_ID:
+            ranking = config.get("dataset_ranking")
+            strict_route = config.get("strict_route")
+            agreement = config.get("proxy_agreement")
+            if not all(
+                isinstance(section, Mapping)
+                for section in (ranking, strict_route, agreement)
+            ):
+                raise ValueError(
+                    "Dataset-CGR-Proxy requires ranking, route, and agreement sections."
+                )
+            expected_values = {
+                "dataset_ranking.js_weight": (ranking, "js_weight", 0.7),
+                "dataset_ranking.kl_weight": (ranking, "kl_weight", 0.3),
+                "dataset_ranking.top_fraction": (ranking, "top_fraction", 0.25),
+                "dataset_ranking.minimum_coverage": (ranking, "minimum_coverage", 0.90),
+                "dataset_ranking.high_risk_replay_fraction": (
+                    ranking,
+                    "high_risk_replay_fraction",
+                    0.50,
+                ),
+                "strict_route.repair_floor_fraction": (
+                    strict_route,
+                    "repair_floor_fraction",
+                    0.05,
+                ),
+                "strict_route.max_repair_norm_ratio": (
+                    strict_route,
+                    "max_repair_norm_ratio",
+                    0.25,
+                ),
+                "proxy_agreement.minimum_spearman": (
+                    agreement,
+                    "minimum_spearman",
+                    0.40,
+                ),
+                "proxy_agreement.minimum_top_overlap": (
+                    agreement,
+                    "minimum_top_overlap",
+                    0.50,
+                ),
+                "proxy_agreement.minimum_coverage": (
+                    agreement,
+                    "minimum_coverage",
+                    0.90,
+                ),
+            }
+            for name, (section, key, expected) in expected_values.items():
+                if float(section.get(key, float("nan"))) != expected:
+                    raise ValueError("%s must remain %s." % (name, expected))
+            if int(strict_route.get("max_projection_iterations", -1)) != 64:
+                raise ValueError("strict_route.max_projection_iterations must remain 64.")
+            snapshots = config["model"].get("protection_surrogate_snapshots")
+            expected_snapshot_ids = (
+                ["v3"]
+                if run_mode == "short_victim_risk_scan"
+                else ["e1", "e5", "e20"]
+            )
+            if not isinstance(snapshots, list) or [
+                str(item.get("id", "")) for item in snapshots
+            ] != expected_snapshot_ids:
+                raise ValueError(
+                    "Protection snapshot IDs must be %s."
+                    % "/".join(expected_snapshot_ids)
+                )
+            for item in snapshots:
+                if not str(item.get("checkpoint", "")).strip():
+                    raise ValueError("Protection snapshot checkpoint is missing.")
+                digest = str(item.get("sha256", ""))
+                if len(digest) != 64 or set(digest) == {"0"}:
+                    raise ValueError("Protection snapshot SHA256 is invalid.")
+            if run_mode == "strict_mechanism":
+                for key in ("risk_bank", "replay_manifest"):
+                    if not str(ranking.get(key, "")).strip():
+                        raise ValueError("Strict mechanism %s path is missing." % key)
+                for key in (
+                    "risk_bank_file_sha256",
+                    "risk_bank_canonical_sha256",
+                    "replay_manifest_file_sha256",
+                ):
+                    digest = str(ranking.get(key, ""))
+                    if len(digest) != 64 or set(digest) == {"0"}:
+                        raise ValueError("Strict mechanism %s is invalid." % key)
+            if run_mode == "proxy_victim_audit":
+                for role in ("proxy", "victim"):
+                    if not str(
+                        agreement.get("%s_risk_bank" % role, "")
+                    ).strip():
+                        raise ValueError("Proxy-victim audit risk-bank path is missing.")
+                    digest = str(
+                        agreement.get("%s_risk_bank_file_sha256" % role, "")
+                    )
+                    if len(digest) != 64 or set(digest) == {"0"}:
+                        raise ValueError("Proxy-victim audit file SHA256 is invalid.")
+            if run_mode == "short_victim_risk_scan":
+                if not str(dgcaip.get("source_carrier_state", "")).strip():
+                    raise ValueError("Short-victim scan source carrier state is missing.")
+                digest = str(dgcaip.get("source_carrier_state_sha256", ""))
+                if len(digest) != 64 or set(digest) == {"0"}:
+                    raise ValueError("Short-victim source carrier SHA256 is invalid.")
+        elif float(dgcaip.get("protection_ratio", float("nan"))) != 0.25:
+            raise ValueError("DG-CAIP protection_ratio must remain 0.25.")
         if int(dgcaip.get("minimum_rank_instances", -1)) != 4:
             raise ValueError("DG-CAIP minimum_rank_instances must remain 4.")
         split_hash = str(dgcaip.get("expected_split_sha256", ""))
         if len(split_hash) != 64 or set(split_hash) == {"0"}:
             raise ValueError("DG-CAIP requires expected_split_sha256.")
-        if not str(dgcaip.get("source_p1_state", "")).strip():
-            raise ValueError("DG-CAIP requires source_p1_state.")
-        source_state_hash = str(dgcaip.get("source_p1_state_sha256", ""))
-        if len(source_state_hash) != 64 or set(source_state_hash) == {"0"}:
-            raise ValueError("DG-CAIP requires source_p1_state_sha256.")
+        if not (
+            spec_id == DGCAIP_DATASET_CGR_PROXY_SPEC_ID
+            and run_mode == "short_victim_risk_scan"
+        ):
+            if not str(dgcaip.get("source_p1_state", "")).strip():
+                raise ValueError("DG-CAIP requires source_p1_state.")
+            source_state_hash = str(dgcaip.get("source_p1_state_sha256", ""))
+            if len(source_state_hash) != 64 or set(source_state_hash) == {"0"}:
+                raise ValueError("DG-CAIP requires source_p1_state_sha256.")
         if run_mode in {
             "mechanism",
             "r3_diag",
@@ -1162,6 +1279,10 @@ def run_mechanism_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict
         raise ValueError(
             "P1 determinism audit must use the dedicated zero-update runner."
         )
+    if str(config["spec"].get("spec_id", "")) == DGCAIP_DATASET_CGR_PROXY_SPEC_ID:
+        from .dgcaip_dataset_risk_experiment import run_dataset_cgr_proxy_stage
+
+        return run_dataset_cgr_proxy_stage(config, config_base=config_base)
     if str(config["spec"].get("spec_id", "")) in DGCAIP_SPEC_IDS:
         from .dgcaip_experiment import run_dgcaip_pilot
 

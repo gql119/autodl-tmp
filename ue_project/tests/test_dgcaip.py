@@ -9,6 +9,7 @@ from ue_framework.methods.dgcaip import (
     FrozenDGCAIPGradientCalibration,
     cooccurrence_geometry_risk,
     dgcaip_instance_preservation,
+    dataset_rank_guided_weights,
     divergence_guided_weights,
 )
 
@@ -43,6 +44,15 @@ def test_small_batch_disables_divergence_ranking() -> None:
     )
     assert torch.allclose(result.hardness, torch.ones(3))
     assert torch.allclose(result.weights, torch.ones(3))
+
+
+def test_dataset_ranks_replace_batch_ranking_without_gradient() -> None:
+    ranks = torch.tensor([0.0, 1.0], requires_grad=True)
+    result = dataset_rank_guided_weights(ranks, torch.ones(2))
+    assert result.percentile_ranks.tolist() == pytest.approx([0.0, 1.0])
+    assert result.weights[1] > result.weights[0]
+    assert result.weights.mean() == pytest.approx(1.0)
+    assert not result.weights.requires_grad
 
 
 def test_joint_instance_loss_is_finite_and_backpropagates_only_to_poison() -> None:
@@ -117,6 +127,48 @@ def test_feature_switches_remove_geometry_and_hardness_without_removing_loss() -
     assert all(term.geometry_risk == 1.0 for term in result.instances)
     assert all(term.weight == pytest.approx(1.0) for term in result.instances)
     assert result.loss.item() > 0
+
+
+def test_instance_loss_uses_frozen_dataset_ranks_and_fails_closed_on_missing_key() -> None:
+    clean_logits = torch.zeros((1, 5, 20))
+    poison_logits = clean_logits.clone().requires_grad_(True)
+    boxes = torch.tensor(
+        [[[0.0, 0.0, 2.0, 2.0], [2.0, 0.0, 4.0, 2.0], [2.0, 0.0, 4.0, 2.0], [4.0, 0.0, 6.0, 2.0], [4.0, 0.0, 6.0, 2.0]]]
+    )
+    arguments = (
+        clean_logits,
+        poison_logits,
+        boxes,
+        boxes.clone().requires_grad_(True),
+        torch.tensor([[14, 1, 1, 2, 2]]),
+        torch.tensor([[True, True, True, True, True]]),
+        torch.tensor([[0, 1, 1, 2, 2]]),
+        torch.tensor([[[14], [1], [2]]]),
+        torch.tensor([[[0.0, 0.0, 2.0, 2.0], [2.0, 0.0, 4.0, 2.0], [4.0, 0.0, 6.0, 2.0]]]),
+        torch.tensor([[[True], [True], [True]]]),
+    )
+    result = dgcaip_instance_preservation(
+        *arguments,
+        target_class_id=14,
+        assignment_source="clean_real_tal",
+        enable_geometry_risk=False,
+        image_ids=("image-a",),
+        dataset_percentile_ranks={
+            ("image-a", 1, 1): 0.0,
+            ("image-a", 2, 2): 1.0,
+        },
+    )
+    weights = {term.class_id: term.weight for term in result.instances}
+    assert weights[2] > weights[1]
+    with pytest.raises(ValueError, match="missing"):
+        dgcaip_instance_preservation(
+            *arguments,
+            target_class_id=14,
+            assignment_source="clean_real_tal",
+            enable_geometry_risk=False,
+            image_ids=("image-a",),
+            dataset_percentile_ranks={("image-a", 1, 1): 0.0},
+        )
 
 
 def test_component_calibration_is_one_shot_warmup_only_and_serializable() -> None:

@@ -5,7 +5,9 @@ import torch
 
 from ue_framework.methods.constraint_gradient_router import (
     ConstraintTerm,
+    backtrack_mixed_multi_parameter_constraints,
     backtracking_candidate,
+    route_strict_final_update,
     route_coefficient_gradient,
 )
 
@@ -140,3 +142,77 @@ def test_repair_backtracking_requires_actual_improvement() -> None:
     )
     assert result.accepted
     assert result.values["margin"] == pytest.approx(0.5)
+
+
+def test_strict_route_constrains_the_complete_final_update() -> None:
+    parameter = torch.zeros(2, requires_grad=True)
+    result = route_strict_final_update(
+        parameters=(parameter,),
+        target_loss=parameter[0] + parameter[1],
+        safe_constraint_losses={"safe": parameter[0]},
+        violated_constraint_losses={},
+    )
+    assert result.feasible
+    assert result.mode == "strict_projected_target"
+    assert result.gradient.tolist() == pytest.approx([0.0, 1.0], abs=1e-7)
+    assert result.max_safe_final_row_dot <= 1.0e-6
+
+
+def test_strict_route_repairs_inside_safe_nullspace() -> None:
+    parameter = torch.zeros(2, requires_grad=True)
+    result = route_strict_final_update(
+        parameters=(parameter,),
+        target_loss=parameter[0] + 0.01 * parameter[1],
+        safe_constraint_losses={"safe": parameter[0]},
+        violated_constraint_losses={"violated": parameter[1]},
+    )
+    assert result.feasible
+    assert result.mode == "strict_projected_target_with_repair"
+    assert result.max_safe_final_row_dot <= 1.0e-6
+    assert result.min_violated_final_row_dot >= result.repair_floor - 1.0e-6
+    assert result.gradient[0] == pytest.approx(0.0, abs=1e-7)
+
+
+def test_strict_route_skips_incompatible_safe_and_repair_rows() -> None:
+    parameter = torch.zeros(2, requires_grad=True)
+    result = route_strict_final_update(
+        parameters=(parameter,),
+        target_loss=parameter[1],
+        safe_constraint_losses={"safe": parameter[0]},
+        violated_constraint_losses={"violated": parameter[0]},
+    )
+    assert not result.feasible
+    assert result.mode == "skip_infeasible_constraints"
+    assert torch.equal(result.gradient, torch.zeros_like(parameter))
+
+
+def test_mixed_backtracking_requires_safe_feasibility_and_real_repair() -> None:
+    parameter = torch.tensor([1.0], requires_grad=True)
+
+    def evaluate(candidate):
+        value = float(candidate[0][0])
+        return {"safe": value * value, "violated": value}
+
+    accepted = backtrack_mixed_multi_parameter_constraints(
+        parameters=(parameter,),
+        flattened_gradient=torch.tensor([1.0]),
+        step_size=0.5,
+        evaluate_constraints=evaluate,
+        safe_limits={"safe": 0.8},
+        violated_baselines={"violated": 1.0},
+        record_trace=True,
+    )
+    assert accepted.accepted
+    assert accepted.values == pytest.approx({"safe": 0.25, "violated": 0.5})
+    assert accepted.trace[-1].accepted
+
+    skipped = backtrack_mixed_multi_parameter_constraints(
+        parameters=(parameter,),
+        flattened_gradient=torch.tensor([-1.0]),
+        step_size=0.5,
+        evaluate_constraints=evaluate,
+        safe_limits={"safe": 4.0},
+        violated_baselines={"violated": 1.0},
+    )
+    assert not skipped.accepted
+    assert skipped.status == "skip"

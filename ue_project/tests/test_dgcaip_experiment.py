@@ -16,9 +16,11 @@ from ue_framework.methods.dgcaip_experiment import (
     R3_DIAGNOSTIC_ARMS,
     _constraint_limits,
     _p1_replay_report,
+    _strict_candidate_metrics,
     _validate_d0_report_binding,
 )
 from ue_framework.methods.sdh_experiment import (
+    DGCAIP_DATASET_CGR_PROXY_SPEC_ID,
     DGCAIP_R3_DIAG_SPEC_ID,
     DGCAIP_R4_DIAG_SPEC_ID,
     DGCAIP_P4_E20_SPEC_ID,
@@ -70,6 +72,113 @@ def _config():
         "source_p1_state_sha256": "a" * 64,
     }
     return config
+
+
+def _dataset_config():
+    config = _config()
+    config["spec"]["spec_id"] = DGCAIP_DATASET_CGR_PROXY_SPEC_ID
+    config["dgcaip"].pop("protection_ratio")
+    config["dgcaip"]["run_mode"] = "dataset_risk_scan"
+    config["model"]["protection_surrogate_snapshots"] = [
+        {"id": "e1", "checkpoint": "/root/data/e1.pt", "sha256": "1" * 64},
+        {"id": "e5", "checkpoint": "/root/data/e5.pt", "sha256": "5" * 64},
+        {"id": "e20", "checkpoint": "/root/data/e20.pt", "sha256": "2" * 64},
+    ]
+    config["dataset_ranking"] = {
+        "js_weight": 0.7,
+        "kl_weight": 0.3,
+        "top_fraction": 0.25,
+        "minimum_coverage": 0.90,
+        "high_risk_replay_fraction": 0.50,
+    }
+    config["strict_route"] = {
+        "repair_floor_fraction": 0.05,
+        "max_repair_norm_ratio": 0.25,
+        "max_projection_iterations": 64,
+    }
+    config["proxy_agreement"] = {
+        "minimum_spearman": 0.40,
+        "minimum_top_overlap": 0.50,
+        "minimum_coverage": 0.90,
+    }
+    return config
+
+
+def test_dataset_cgr_proxy_config_is_versioned_and_fail_closed() -> None:
+    config = _dataset_config()
+    validate_sdh_experiment_config(config)
+    assert config["dgcaip"]["run_mode"] == "dataset_risk_scan"
+    assert [item["id"] for item in config["model"]["protection_surrogate_snapshots"]] == [
+        "e1",
+        "e5",
+        "e20",
+    ]
+    wrong = copy.deepcopy(config)
+    wrong["dataset_ranking"]["js_weight"] = 0.6
+    with pytest.raises(ValueError, match="js_weight"):
+        validate_sdh_experiment_config(wrong)
+    wrong = copy.deepcopy(config)
+    wrong["model"]["protection_surrogate_snapshots"][1]["id"] = "other"
+    with pytest.raises(ValueError, match="e1/e5/e20"):
+        validate_sdh_experiment_config(wrong)
+
+    strict = copy.deepcopy(config)
+    strict["dgcaip"]["run_mode"] = "strict_mechanism"
+    with pytest.raises(ValueError, match="risk_bank path"):
+        validate_sdh_experiment_config(strict)
+    strict["dataset_ranking"].update(
+        {
+            "risk_bank": "/root/data/risk.json",
+            "risk_bank_file_sha256": "a" * 64,
+            "risk_bank_canonical_sha256": "b" * 64,
+            "replay_manifest": "/root/data/replay.json",
+            "replay_manifest_file_sha256": "c" * 64,
+        }
+    )
+    validate_sdh_experiment_config(strict)
+
+    short = copy.deepcopy(config)
+    short["dgcaip"]["run_mode"] = "short_victim_risk_scan"
+    short["dgcaip"].pop("source_p1_state")
+    short["dgcaip"].pop("source_p1_state_sha256")
+    short["dgcaip"]["source_carrier_state"] = "/root/data/p5.pt"
+    short["dgcaip"]["source_carrier_state_sha256"] = "f" * 64
+    short["model"]["protection_surrogate_snapshots"] = [
+        {"id": "v3", "checkpoint": "/root/data/v3.pt", "sha256": "3" * 64}
+    ]
+    validate_sdh_experiment_config(short)
+
+
+def test_dataset_cgr_proxy_routes_to_dedicated_stage(monkeypatch) -> None:
+    from ue_framework.methods import dgcaip_dataset_risk_experiment
+
+    config = _dataset_config()
+    captured = {}
+
+    def fake_run(bound, *, config_base):
+        captured["spec_id"] = bound["spec"]["spec_id"]
+        captured["config_base"] = config_base
+        return {"schema": "dataset-risk-test"}
+
+    monkeypatch.setattr(
+        dgcaip_dataset_risk_experiment,
+        "run_dataset_cgr_proxy_stage",
+        fake_run,
+    )
+    result = sdh_experiment.run_mechanism_pilot(
+        config, config_base=Path("/tmp/project")
+    )
+    assert result == {"schema": "dataset-risk-test"}
+    assert captured["spec_id"] == DGCAIP_DATASET_CGR_PROXY_SPEC_ID
+
+
+def test_strict_candidate_missing_metric_is_rejected_with_finite_sentinel() -> None:
+    filtered = _strict_candidate_metrics(
+        {"e1/7:js": 0.02},
+        {"e1/7:js": 0.02, "e5/7:probability": 0.01},
+    )
+    assert filtered["e1/7:js"] == pytest.approx(0.02)
+    assert filtered["e5/7:probability"] == pytest.approx(1.01)
 
 
 def _dg_result() -> DGCAIPResult:

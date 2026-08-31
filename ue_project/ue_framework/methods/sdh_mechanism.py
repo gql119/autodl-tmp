@@ -332,6 +332,9 @@ class SDHObservationEngine:
         target_rms_ratio: float = 0.35,
         dgcaip_mode: str = "off",
         dgcaip_component_weights: Optional[Mapping[str, float]] = None,
+        dgcaip_dataset_percentile_ranks: Optional[
+            Mapping[Tuple[str, int, int], float]
+        ] = None,
         trace_callback: Optional[Callable[[str, Mapping[str, Any]], None]] = None,
     ) -> SDHObservation:
         if dgcaip_mode not in {"off", "caip", "dist", "dgcaip"}:
@@ -490,6 +493,8 @@ class SDHObservationEngine:
                 box_tolerance=self.dgcaip_box_tolerance,
                 alignment_tolerance=self.dgcaip_alignment_tolerance,
                 minimum_rank_instances=self.dgcaip_minimum_rank_instances,
+                image_ids=batch.image_ids,
+                dataset_percentile_ranks=dgcaip_dataset_percentile_ranks,
             )
         probability_drop = {}
         for class_id in nla.active_classes:
