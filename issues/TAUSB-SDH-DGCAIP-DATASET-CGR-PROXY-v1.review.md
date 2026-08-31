@@ -15,17 +15,18 @@ only the risk rank, while the strict protection rows still came from the main
 surrogate. The strict path now keeps one independently named protection row per
 snapshot and hashes all three frozen models before and after optimization.
 
-Focused dependency-backed tests are still pending. The local bundled Python
-does not contain torch, pytest, or PyYAML, so this row cannot be marked PASS on
-compile evidence alone.
+The dependency-backed tests were executed on the authorized AutoDL no-card
+instance from detached commit `f8fe99e5ef3ac19294ec1a932bd73c5ef2de63f3`.
+The implementation review therefore passes; this does not authorize or imply a
+GPU scientific result.
 
 ## Regression review
 
 Code-path review confirms that legacy P4/R4 configs retain batch-local ranking
 and their historical additive route functions. Only
 `TAUSB-SDH-DGCAIP-DATASET-CGR-PROXY-v1` with `strict_mechanism` loads the frozen
-dataset bank and selects strict final-update routing. Runtime regression still
-requires the no-card pytest suite.
+dataset bank and selects strict final-update routing. The focused legacy
+regression suite completed with exit code 0.
 
 ## Evidence
 
@@ -36,13 +37,15 @@ requires the no-card pytest suite.
   row was corrected before execution.
 - `git diff --check`: PASS apart from Windows line-ending notices.
 - GPU: not started.
-- pytest: pending no-card environment with project dependencies.
-- last known AutoDL SSH port `32464`: connection refused on 2026-08-31, so
-  remote no-card tests were not started.
+- new and modified DG-CAIP focused suite: PASS, 49 tests in 5.70 seconds.
+- legacy sparse/P4, victim seed, P1 determinism, multi-parameter CGR,
+  mechanism-objective and config regression: PASS, 73 tests collected, exit 0.
+- remote review worktree: detached at `f8fe99e`, clean after tests; no GPU device
+  was exposed in no-card mode.
 - the G2 `short_victim_risk_scan` consumer and agreement gate are implemented;
   the actual 3-epoch fresh-victim job must be bound to the frozen G1 candidate
   and fixed train subset only after L0/G0/G1 pass.
 
 ## Decision
 
-`in_progress_waiting_for_nocard_tests`
+`pass_l0_ready_for_g0_binding`
