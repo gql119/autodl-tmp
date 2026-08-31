@@ -89,7 +89,41 @@ experiment path was created by either invocation.
 ## Next gate
 
 Enable GPU only for `C0-SNAPSHOT-REFRESH`. Run the reviewed controller at
-commit `77aefc7` with `--shutdown-on-exit`. On completion, reopen no-card mode,
+commit `f5e223a` with `--shutdown-on-exit`. On completion, reopen no-card mode,
 read `c0_snapshot_manifest.json`, and bind the resulting three checkpoint
 paths and hashes into the G0 dataset-risk configuration. No G0 risk scan is
 authorized until that manifest passes.
+
+## C0 snapshot R1 terminal and R2 correction
+
+The first GPU attempt at commit `77aefc7` was terminated by the fatal-log gate
+before epoch 0. Model construction, AMP checks, train scanning, and the start of
+validation scanning completed, after which PyTorch workers raised
+`OSError: AF_UNIX path too long`. The controller reported
+`C0_TRAIN failed: fatal_log_signal`; no checkpoint or experimental result was
+produced. The R1 run, control, and log roots remain preserved.
+
+The failure was caused by the long data-disk `TMPDIR`, not by the DG-CAIP
+method, VOC binding, model definition, or GPU memory. Commit
+`f5e223a73d17939402de7613f2152e50a77b07b8` makes three scoped corrections:
+
+- moves the retry to a fresh `-R2` run root;
+- requires the temporary root to be at most 48 bytes and binds the reviewed
+  retry to `/root/autodl-tmp/t/dg0r2`;
+- avoids the instance's unsafe `/usr/bin/shutdown` text wrapper and performs no
+  filesystem deletion; terminal shutdown now signals only the detected
+  `supervisord` process.
+
+R2 no-card evidence:
+
+- remote focused tests: 14 passed in 3.69 seconds;
+- config SHA-256: `a267146adfb7f49ef78d21fe17b393ad8597aaf02a9a60f87217d287d146ac86`;
+- preflight evidence SHA-256: `a17b9190eff563d14fd2fe2c45b2730094cde92b6edf01fbcd748865446a15a6`;
+- live sparse audit again returned 16,551 total, 6,095 person, and 0 poisoned;
+- all five R2 output roots remain absent;
+- R1 controller evidence remains present;
+- safe shutdown discovery found the current no-card `supervisord` PID without
+  changing it;
+- no GPU device was visible and no training was launched.
+
+Decision: `pass_r2_no_card_ready_for_single_c0_gpu_refresh`.
