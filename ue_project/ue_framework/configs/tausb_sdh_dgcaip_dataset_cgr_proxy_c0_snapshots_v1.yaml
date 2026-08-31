@@ -29,7 +29,7 @@ data:
 
 platform:
   mode: cloud
-  run_root: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-C0-SNAPSHOTS
+  run_root: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-C0-SNAPSHOTS-R2
   resume: false
   zip_after_stage: false
   save_every_n_images: 50

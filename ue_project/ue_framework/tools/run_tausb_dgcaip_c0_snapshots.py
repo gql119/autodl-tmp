@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -31,6 +32,7 @@ WALL_SECONDS = 45 * 60
 FIRST_PROGRESS_SECONDS = 5 * 60
 IDLE_SECONDS = 15 * 60
 MIN_FREE_BYTES = 5 * 1024 ** 3
+MAX_TMP_ROOT_BYTES = 48
 EXPECTED_VICTIM_INIT_TENSOR_SHA256 = (
     "54aaf431f8a67b3f3067319a8164d1d6db6874497a46109a17af76a15d2b994c"
 )
@@ -142,6 +144,17 @@ def _require_fresh(paths: Sequence[Path]) -> None:
     existing = [str(path) for path in paths if path.exists()]
     if existing:
         raise FileExistsError("Fresh C0 snapshot paths already exist: %s" % existing)
+
+
+def validate_tmp_root_path(path: Path) -> None:
+    # torch.multiprocessing appends pymp/resource-sharer socket names. Keep
+    # enough headroom under Linux's 108-byte AF_UNIX address limit.
+    length = len(os.fsencode(str(path.resolve())))
+    if length > MAX_TMP_ROOT_BYTES:
+        raise ValueError(
+            "TMP root is too long for PyTorch AF_UNIX sockets: %d > %d bytes."
+            % (length, MAX_TMP_ROOT_BYTES)
+        )
 
 
 def _validate_config(config_path: Path) -> Dict[str, Any]:
@@ -266,6 +279,7 @@ def _preflight(args: argparse.Namespace, *, require_gpu: bool) -> Dict[str, Any]
     for output in (control_root, log_root, cache_root, tmp_root):
         if not _inside(storage_root, output):
             raise ValueError("Output escapes required storage root: %s" % output)
+    validate_tmp_root_path(tmp_root)
 
     cfg = _validate_config(config_path)
     run_root = Path(cfg["platform"]["run_root"]).resolve()
@@ -499,10 +513,29 @@ def _run(args: argparse.Namespace) -> int:
         raise
 
 
+def _supervisord_pids(proc_root: Path = Path("/proc")) -> Sequence[int]:
+    pids = []
+    for entry in proc_root.iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            if (entry / "comm").read_text(encoding="utf-8").strip() == "supervisord":
+                pids.append(int(entry.name))
+        except (FileNotFoundError, PermissionError, ProcessLookupError):
+            continue
+    return tuple(sorted(pids))
+
+
 def _shutdown() -> None:
-    shutdown = Path("/usr/bin/shutdown")
-    if shutdown.is_file():
-        subprocess.run((str(shutdown), "-h", "now"), check=False)
+    # This AutoDL image ships /usr/bin/shutdown as an unsafe text wrapper that
+    # also performs a recursive delete. Terminating its container supervisor is
+    # the provider's actual stop mechanism and avoids all filesystem deletion.
+    pids = _supervisord_pids()
+    if not pids:
+        print("[DGCAIP-C0-Snapshots] no supervisord PID found for shutdown", file=sys.stderr)
+        return
+    for pid in pids:
+        os.kill(pid, signal.SIGTERM)
 
 
 def main() -> int:

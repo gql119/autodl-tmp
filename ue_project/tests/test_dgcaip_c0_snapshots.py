@@ -7,10 +7,12 @@ import pytest
 import yaml
 
 from ue_framework.tools.run_tausb_dgcaip_c0_snapshots import (
+    MAX_TMP_ROOT_BYTES,
     SNAPSHOT_EPOCHS,
     WALL_SECONDS,
     _validate_config,
     validate_checkpoint_epoch,
+    validate_tmp_root_path,
 )
 
 
@@ -77,3 +79,13 @@ def test_checkpoint_epoch_metadata_rejects_epoch5_as_e5() -> None:
 def test_checkpoint_epoch_metadata_requires_integer(payload) -> None:
     with pytest.raises(ValueError, match="not an integer"):
         validate_checkpoint_epoch(payload, 4)
+
+
+def test_tmp_root_keeps_af_unix_socket_headroom(tmp_path: Path) -> None:
+    short = Path("/root/autodl-tmp/t/dg0r2")
+    assert len(str(short).encode()) <= MAX_TMP_ROOT_BYTES
+    validate_tmp_root_path(short)
+
+    long_path = tmp_path / ("x" * (MAX_TMP_ROOT_BYTES + 1))
+    with pytest.raises(ValueError, match="AF_UNIX"):
+        validate_tmp_root_path(long_path)
