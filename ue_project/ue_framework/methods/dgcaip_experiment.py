@@ -1220,18 +1220,6 @@ def run_dgcaip_pilot(
                             "route_feasible": routed.feasible,
                             "target_gradient_norm": routed.target_norm,
                             "final_gradient_norm": routed.final_norm,
-                            "target_progress": routed.target_progress,
-                            "target_cosine": routed.target_cosine,
-                            "precast_max_safe_row_dot": (
-                                routed.precast_max_safe_row_dot
-                            ),
-                            "precast_min_violated_row_dot": (
-                                routed.precast_min_violated_row_dot
-                            ),
-                            "precast_target_progress": (
-                                routed.precast_target_progress
-                            ),
-                            "solver_dtype": routed.solver_dtype,
                             "batch_sha256": batch_sha256,
                             "routed_gradient_sha256": _parameter_sha256(
                                 (routed.gradient,)
@@ -1241,6 +1229,23 @@ def run_dgcaip_pilot(
                             ],
                         }
                     )
+                    if strict_route_mode == "nonworsening_target_progress_v2":
+                        step_row.update(
+                            {
+                                "target_progress": routed.target_progress,
+                                "target_cosine": routed.target_cosine,
+                                "precast_max_safe_row_dot": (
+                                    routed.precast_max_safe_row_dot
+                                ),
+                                "precast_min_violated_row_dot": (
+                                    routed.precast_min_violated_row_dot
+                                ),
+                                "precast_target_progress": (
+                                    routed.precast_target_progress
+                                ),
+                                "solver_dtype": routed.solver_dtype,
+                            }
+                        )
                 if r3_enabled:
                     serialized_trace = [
                         asdict(item) for item in backtracked.trace
