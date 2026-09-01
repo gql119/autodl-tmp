@@ -138,19 +138,6 @@ def build_sdh_fresh_victim_comparison(
             }
         )
     non_target = [row for row in per_class if not row["is_target"]]
-    worse_than_historical_p1_by_005 = 0
-    if dgcaip_p4:
-        if set(HISTORICAL_P1_E20_NON_TARGET_DROPS) != {
-            row["class_name"] for row in non_target
-        }:
-            raise ValueError("Historical P1 E20 non-target baseline is incomplete.")
-        for row in non_target:
-            historical_drop = HISTORICAL_P1_E20_NON_TARGET_DROPS[row["class_name"]]
-            additional_drop = float(row["drop_C0_minus_M1"]) - historical_drop
-            row["historical_p1_e20_drop"] = historical_drop
-            row["additional_drop_vs_historical_p1_e20"] = additional_drop
-            if additional_drop > 0.05:
-                worse_than_historical_p1_by_005 += 1
     person = next(row for row in per_class if row["is_target"])
     macro_drop = float(np.mean([row["drop_C0_minus_P1V"] for row in non_target]))
     recovery = float(counterfactual["person_ap50_recovery"])
@@ -305,6 +292,19 @@ def build_sdh_e2e_v0_comparison(
         )
     person = next(row for row in per_class if row["is_target"])
     non_target = [row for row in per_class if not row["is_target"]]
+    worse_than_historical_p1_by_005 = 0
+    if dgcaip_p4:
+        if set(HISTORICAL_P1_E20_NON_TARGET_DROPS) != {
+            row["class_name"] for row in non_target
+        }:
+            raise ValueError("Historical P1 E20 non-target baseline is incomplete.")
+        for row in non_target:
+            historical_drop = HISTORICAL_P1_E20_NON_TARGET_DROPS[row["class_name"]]
+            additional_drop = float(row["drop_C0_minus_M1"]) - historical_drop
+            row["historical_p1_e20_drop"] = historical_drop
+            row["additional_drop_vs_historical_p1_e20"] = additional_drop
+            if additional_drop > 0.05:
+                worse_than_historical_p1_by_005 += 1
     person_drop = float(person["drop_C0_minus_M1"])
     non_target_macro_drop = float(
         np.mean([row["drop_C0_minus_M1"] for row in non_target])
