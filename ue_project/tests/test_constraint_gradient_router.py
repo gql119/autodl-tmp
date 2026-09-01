@@ -7,6 +7,7 @@ from ue_framework.methods.constraint_gradient_router import (
     ConstraintTerm,
     backtrack_mixed_multi_parameter_constraints,
     backtracking_candidate,
+    flatten_loss_gradient,
     route_strict_final_update,
     route_coefficient_gradient,
 )
@@ -156,6 +157,45 @@ def test_strict_route_constrains_the_complete_final_update() -> None:
     assert result.mode == "strict_projected_target"
     assert result.gradient.tolist() == pytest.approx([0.0, 1.0], abs=1e-7)
     assert result.max_safe_final_row_dot <= 1.0e-6
+
+
+def test_precomputed_strict_gradients_match_loss_based_route() -> None:
+    parameter = torch.zeros(3, requires_grad=True)
+    target_loss = parameter[0] + 2.0 * parameter[1] + parameter[2]
+    safe_loss = parameter[0] + parameter[1]
+    violated_loss = parameter[2]
+    loss_based = route_strict_final_update(
+        parameters=(parameter,),
+        target_loss=target_loss,
+        safe_constraint_losses={"safe": safe_loss},
+        violated_constraint_losses={"violated": violated_loss},
+    )
+    target_gradient = flatten_loss_gradient(
+        target_loss, (parameter,), retain_graph=True
+    )
+    safe_gradient = flatten_loss_gradient(
+        safe_loss, (parameter,), retain_graph=True
+    )
+    violated_gradient = flatten_loss_gradient(
+        violated_loss, (parameter,), retain_graph=False
+    )
+    precomputed = route_strict_final_update(
+        parameters=(parameter,),
+        target_gradient=target_gradient,
+        safe_constraint_gradients={"safe": safe_gradient},
+        violated_constraint_gradients={"violated": violated_gradient},
+    )
+    assert precomputed.mode == loss_based.mode
+    assert precomputed.feasible == loss_based.feasible
+    assert precomputed.gradient.tolist() == pytest.approx(
+        loss_based.gradient.tolist(), abs=1.0e-7
+    )
+    assert precomputed.max_safe_final_row_dot == pytest.approx(
+        loss_based.max_safe_final_row_dot, abs=1.0e-7
+    )
+    assert precomputed.min_violated_final_row_dot == pytest.approx(
+        loss_based.min_violated_final_row_dot, abs=1.0e-7
+    )
 
 
 def test_strict_route_repairs_inside_safe_nullspace() -> None:

@@ -119,8 +119,11 @@ def partition_nonlinear_constraints(
 def run_strict_dgcaip_step(
     *,
     parameters: Sequence[torch.Tensor],
-    target_loss: torch.Tensor,
-    observation: SDHObservation,
+    target_loss: torch.Tensor | None,
+    observation: SDHObservation | None,
+    target_gradient: torch.Tensor | None = None,
+    safe_constraint_gradients: Mapping[str, torch.Tensor] | None = None,
+    violated_constraint_gradients: Mapping[str, torch.Tensor] | None = None,
     protection_observations: Mapping[str, SDHObservation] | None = None,
     current_metrics: Mapping[str, float],
     evaluate_constraints: Callable[
@@ -134,11 +137,23 @@ def run_strict_dgcaip_step(
     max_backtracks: int = 5,
     record_trace: bool = True,
 ) -> StrictDGCAIPStepResult:
-    safe_losses, violated_losses = (
-        multi_snapshot_constraint_losses(protection_observations)
-        if protection_observations is not None
-        else strict_constraint_losses(observation)
-    )
+    using_precomputed = target_gradient is not None
+    if using_precomputed:
+        if (
+            safe_constraint_gradients is None
+            or violated_constraint_gradients is None
+        ):
+            raise ValueError("Strict DG-CAIP precomputed gradient rows are missing.")
+        safe_losses = None
+        violated_losses = None
+    else:
+        if observation is None:
+            raise ValueError("Strict DG-CAIP observation is missing.")
+        safe_losses, violated_losses = (
+            multi_snapshot_constraint_losses(protection_observations)
+            if protection_observations is not None
+            else strict_constraint_losses(observation)
+        )
     safe_limits, violated_baselines = partition_nonlinear_constraints(
         current_metrics, js_epsilon=js_epsilon
     )
@@ -147,6 +162,9 @@ def run_strict_dgcaip_step(
         target_loss=target_loss,
         safe_constraint_losses=safe_losses,
         violated_constraint_losses=violated_losses,
+        target_gradient=target_gradient,
+        safe_constraint_gradients=safe_constraint_gradients,
+        violated_constraint_gradients=violated_constraint_gradients,
         repair_floor_fraction=repair_floor_fraction,
         max_repair_norm_ratio=max_repair_norm_ratio,
         max_projection_iterations=max_projection_iterations,

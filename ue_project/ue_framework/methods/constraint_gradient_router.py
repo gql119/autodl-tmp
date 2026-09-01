@@ -192,10 +192,13 @@ def unflatten_parameter_tensor(
     return tuple(output)
 
 
-def _multi_parameter_gradient(
+def flatten_loss_gradient(
     value: torch.Tensor,
     parameters: Sequence[torch.Tensor],
+    *,
+    retain_graph: bool = False,
 ) -> torch.Tensor:
+    parameters = _validate_parameters(parameters)
     if not torch.is_tensor(value) or value.numel() != 1:
         raise ValueError("Routed losses must be scalar tensors.")
     if not value.requires_grad:
@@ -203,7 +206,7 @@ def _multi_parameter_gradient(
     gradients = torch.autograd.grad(
         value,
         parameters,
-        retain_graph=True,
+        retain_graph=bool(retain_graph),
         allow_unused=True,
     )
     materialized = tuple(
@@ -213,6 +216,13 @@ def _multi_parameter_gradient(
     if any(not torch.isfinite(gradient).all() for gradient in materialized):
         raise ValueError("Non-finite omega gradient.")
     return flatten_parameter_tensors(materialized, parameters)
+
+
+def _multi_parameter_gradient(
+    value: torch.Tensor,
+    parameters: Sequence[torch.Tensor],
+) -> torch.Tensor:
+    return flatten_loss_gradient(value, parameters, retain_graph=True)
 
 
 def route_multi_parameter_gradients(
@@ -471,12 +481,47 @@ def _normalized_loss_rows(
     return tuple(names), tuple(rows)
 
 
+def _normalized_gradient_rows(
+    gradients: Mapping[str, torch.Tensor],
+    parameters: Sequence[torch.Tensor],
+    *,
+    epsilon: float,
+) -> Tuple[Tuple[str, ...], Tuple[torch.Tensor, ...]]:
+    expected = sum(parameter.numel() for parameter in parameters)
+    device = parameters[0].device
+    dtype = parameters[0].dtype
+    names = []
+    rows = []
+    for name in sorted(gradients):
+        gradient = gradients[name]
+        if (
+            not torch.is_tensor(gradient)
+            or gradient.ndim != 1
+            or gradient.numel() != expected
+        ):
+            raise ValueError("Precomputed strict gradient has the wrong shape.")
+        if gradient.device != device or gradient.dtype != dtype:
+            raise ValueError("Precomputed strict gradient device or dtype differs.")
+        gradient = gradient.detach()
+        if not torch.isfinite(gradient).all():
+            raise ValueError("Precomputed strict gradient is non-finite.")
+        norm = gradient.norm()
+        if float(norm) <= epsilon:
+            continue
+        names.append(str(name))
+        rows.append(gradient / norm)
+    return tuple(names), tuple(rows)
+
+
 def route_strict_final_update(
     *,
     parameters: Sequence[torch.Tensor],
-    target_loss: torch.Tensor,
-    safe_constraint_losses: Mapping[str, torch.Tensor],
-    violated_constraint_losses: Mapping[str, torch.Tensor],
+    target_loss: torch.Tensor | None = None,
+    safe_constraint_losses: Mapping[str, torch.Tensor] | None = None,
+    violated_constraint_losses: Mapping[str, torch.Tensor] | None = None,
+    target_gradient: torch.Tensor | None = None,
+    safe_constraint_gradients: Mapping[str, torch.Tensor] | None = None,
+    violated_constraint_gradients: Mapping[str, torch.Tensor] | None = None,
     repair_floor_fraction: float = 0.05,
     max_repair_norm_ratio: float = 0.25,
     max_projection_iterations: int = 64,
@@ -491,23 +536,62 @@ def route_strict_final_update(
     """
 
     omega = _validate_parameters(parameters)
-    if set(safe_constraint_losses).intersection(violated_constraint_losses):
-        raise ValueError("Safe and violated constraint names must be disjoint.")
     if not 0 <= repair_floor_fraction or not 0 <= max_repair_norm_ratio:
         raise ValueError("Strict-route repair fractions must be non-negative.")
     if max_projection_iterations < 1 or svd_relative_tolerance <= 0:
         raise ValueError("Strict-route iteration and SVD tolerances are invalid.")
 
-    target = _multi_parameter_gradient(target_loss, omega)
+    if target_gradient is None:
+        if target_loss is None:
+            raise ValueError("Strict routing requires a target loss or gradient.")
+        if safe_constraint_losses is None or violated_constraint_losses is None:
+            raise ValueError("Strict routing loss maps are missing.")
+        if (
+            safe_constraint_gradients is not None
+            or violated_constraint_gradients is not None
+        ):
+            raise ValueError("Strict routing cannot mix loss and gradient rows.")
+        if set(safe_constraint_losses).intersection(violated_constraint_losses):
+            raise ValueError("Safe and violated constraint names must be disjoint.")
+        target = _multi_parameter_gradient(target_loss, omega)
+        safe_names, safe_rows = _normalized_loss_rows(
+            safe_constraint_losses, omega, epsilon=epsilon
+        )
+        violated_names, violated_rows = _normalized_loss_rows(
+            violated_constraint_losses, omega, epsilon=epsilon
+        )
+    else:
+        if (
+            target_loss is not None
+            or safe_constraint_losses is not None
+            or violated_constraint_losses is not None
+        ):
+            raise ValueError("Strict routing cannot mix loss and gradient inputs.")
+        if safe_constraint_gradients is None or violated_constraint_gradients is None:
+            raise ValueError("Strict routing gradient maps are missing.")
+        if set(safe_constraint_gradients).intersection(
+            violated_constraint_gradients
+        ):
+            raise ValueError("Safe and violated constraint names must be disjoint.")
+        expected = sum(parameter.numel() for parameter in omega)
+        if (
+            target_gradient.ndim != 1
+            or target_gradient.numel() != expected
+            or target_gradient.device != omega[0].device
+            or target_gradient.dtype != omega[0].dtype
+            or not torch.isfinite(target_gradient).all()
+        ):
+            raise ValueError("Precomputed strict target gradient is invalid.")
+        target = target_gradient.detach()
+        safe_names, safe_rows = _normalized_gradient_rows(
+            safe_constraint_gradients, omega, epsilon=epsilon
+        )
+        violated_names, violated_rows = _normalized_gradient_rows(
+            violated_constraint_gradients, omega, epsilon=epsilon
+        )
     target_norm_tensor = target.norm()
     if float(target_norm_tensor.detach()) <= epsilon:
         raise ValueError("Target loss has a zero omega gradient.")
-    safe_names, safe_rows = _normalized_loss_rows(
-        safe_constraint_losses, omega, epsilon=epsilon
-    )
-    violated_names, violated_rows = _normalized_loss_rows(
-        violated_constraint_losses, omega, epsilon=epsilon
-    )
     dimension = int(target.numel())
     if safe_rows:
         safe_matrix = torch.stack(safe_rows)

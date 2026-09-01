@@ -15,6 +15,7 @@ from ..data_utils import label_path_for_image, read_yolo_annotations
 from .constraint_gradient_router import (
     backtrack_multi_parameter_constraints,
     backtrack_multi_parameter_update,
+    flatten_loss_gradient,
     route_budgeted_protection_gradients,
     route_multi_parameter_gradients,
 )
@@ -26,7 +27,7 @@ from .dgcaip_r3_diagnostics import (
     build_rejection_attribution,
     build_same_process_replay,
 )
-from .dgcaip_strict_step import run_strict_dgcaip_step
+from .dgcaip_strict_step import run_strict_dgcaip_step, strict_constraint_losses
 from .instance_cicr import FrozenInstanceCICRBank
 from .non_target_logit_alignment import FrozenNLAGradientCalibration
 from .p1_determinism_audit import backend_manifest, payload_sha256
@@ -963,8 +964,19 @@ def run_dgcaip_pilot(
                 elif strict_dataset:
                     if observation.dgcaip is None:
                         raise RuntimeError("Strict DG-CAIP observation is missing.")
-                    protection_observations = {
-                        snapshot_id: snapshot_engine.observe(
+                    target_gradient = flatten_loss_gradient(
+                        objective.loss,
+                        parameters,
+                        retain_graph=False,
+                    ).detach()
+                    del observation, objective, components
+                    safe_constraint_gradients = {}
+                    violated_constraint_gradients = {}
+                    current_metrics = {}
+                    for snapshot_id, snapshot_engine in sorted(
+                        protection_engines.items()
+                    ):
+                        protected = snapshot_engine.observe(
                             batch,
                             carrier,
                             primary_secret,
@@ -972,26 +984,53 @@ def run_dgcaip_pilot(
                             dgcaip_component_weights=dg_weights,
                             dgcaip_dataset_percentile_ranks=dataset_ranks,
                         )
-                        for snapshot_id, snapshot_engine in sorted(
-                            protection_engines.items()
+                        if protected.dgcaip is None:
+                            raise RuntimeError(
+                                "Strict protection snapshot observation is missing."
+                            )
+                        current_metrics.update(
+                            {
+                                "%s/%s" % (snapshot_id, name): value
+                                for name, value in _dgcaip_class_metrics(
+                                    protected.dgcaip
+                                ).items()
+                            }
                         )
-                    }
-                    if any(
-                        protected.dgcaip is None
-                        for protected in protection_observations.values()
-                    ):
-                        raise RuntimeError(
-                            "Strict protection snapshot observation is missing."
+                        safe_losses, violated_losses = strict_constraint_losses(
+                            protected
                         )
-                    current_metrics = {
-                        "%s/%s" % (snapshot_id, name): value
-                        for snapshot_id, protected in sorted(
-                            protection_observations.items()
-                        )
-                        for name, value in _dgcaip_class_metrics(
-                            protected.dgcaip
-                        ).items()
-                    }
+                        gradient_rows = [
+                            (
+                                safe_constraint_gradients,
+                                "%s/%s" % (snapshot_id, name),
+                                loss,
+                            )
+                            for name, loss in sorted(safe_losses.items())
+                        ] + [
+                            (
+                                violated_constraint_gradients,
+                                "%s/%s" % (snapshot_id, name),
+                                loss,
+                            )
+                            for name, loss in sorted(violated_losses.items())
+                        ]
+                        requiring_grad = [
+                            index
+                            for index, (_, _, loss) in enumerate(gradient_rows)
+                            if loss.requires_grad
+                        ]
+                        last_gradient = max(requiring_grad, default=-1)
+                        for index, (destination, name, loss) in enumerate(
+                            gradient_rows
+                        ):
+                            destination[name] = flatten_loss_gradient(
+                                loss,
+                                parameters,
+                                retain_graph=index != last_gradient,
+                            ).detach()
+                        del protected, safe_losses, violated_losses, gradient_rows
+                        if device.type == "cuda":
+                            torch.cuda.empty_cache()
 
                     def evaluate_strict(candidate):
                         _copy_parameters_(parameters, candidate)
@@ -1027,9 +1066,11 @@ def run_dgcaip_pilot(
 
                     strict_step = run_strict_dgcaip_step(
                         parameters=parameters,
-                        target_loss=objective.loss,
-                        observation=observation,
-                        protection_observations=protection_observations,
+                        target_loss=None,
+                        observation=None,
+                        target_gradient=target_gradient,
+                        safe_constraint_gradients=safe_constraint_gradients,
+                        violated_constraint_gradients=violated_constraint_gradients,
                         current_metrics=current_metrics,
                         evaluate_constraints=evaluate_strict,
                         step_size=float(config["mechanism"]["learning_rate"]),
