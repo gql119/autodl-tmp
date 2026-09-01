@@ -346,3 +346,43 @@ Enable GPU only for `G1-STRICT-R3` at commit
 `d861dd461094982ddc77c2c01af7999c4f470fbb`. Preserve the same eight-step
 method, 20-minute hard cap and automatic shutdown. Advance to G2 only if R3
 writes all three artifacts and every mechanism check passes.
+
+## G1 R3 terminal scientific-gate result
+
+G1 R3 completed the full eight-step mechanism path at exact execution commit
+`d861dd461094982ddc77c2c01af7999c4f470fbb`. The controller completed after
+35.16 seconds, the mechanism child exited 0 after 28.13 seconds, a GPU process
+was observed, and the fatal scan found no Traceback, OOM, NaN/Inf, assertion,
+or hard-cap event. The run wrote and independently rehashed all three required
+artifacts:
+
+- mechanism metrics:
+  `59db322eb5ec1db975e2614e0fe74e6a3bd2f65d24543981c5b409e174f08608`;
+- nonlinear trace:
+  `e561c7a9515a5367d138ceab671ab7fafe5c34e069d0be6fde96c20c41e110da`;
+- failed-gate candidate state:
+  `3e72d4d53a2d2ecc04e18adfadf179c1ce3ea372866f75c2a415517f8a535c6e`.
+
+This is the first complete scientific result for the approved strict route,
+and it is a gate failure rather than another runtime defect. All eight steps
+were finite, risk-bank/replay/snapshot bindings passed, frozen modules stayed
+unchanged, support leakage was zero, and projected target-gradient retention
+was strong (minimum 0.7771, median 0.9026, maximum 1.0). The safe constraint
+rank was only 0--5 in a 3,523-dimensional coefficient space, leaving
+3,518--3,523 null dimensions. The failure is therefore not null-space collapse.
+
+Every step required a repair vector larger than the frozen 0.25 target-gradient
+norm budget. Observed repair/target ratios were 0.3166--0.7575 with median
+0.5984. Although the pre-budget candidate reached each positive repair floor
+within the configured 1e-6 tolerance, the budget made every route infeasible;
+the selected final gradient was consequently zero, nonlinear backtracking was
+never entered, and 0/8 updates were accepted. Some pre-budget candidates also
+had safe-row numerical residuals above 1e-5 (maximum 4.37e-5), which must be
+audited in any revision rather than hidden by a looser gate.
+
+Decision: `scientific_gate_fail / stop_G2`. Per the approved staged protocol,
+the three-epoch short-victim audit and full M1 remain closed. The failed state
+is preserved only as evidence and is not eligible for poison materialization
+or victim training. The minimum next action is a separately approved strict
+route feasibility-calibration revision; changing the 0.25 repair budget or
+positive repair floor inside this completed run would be post-hoc tuning.
