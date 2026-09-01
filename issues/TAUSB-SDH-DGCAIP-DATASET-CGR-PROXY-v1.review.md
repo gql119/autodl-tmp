@@ -308,3 +308,41 @@ Enable GPU only for `G1-STRICT-R2` and run commit
 `2d89caa5df87bf502779af7c06b90ef42b8d1bc6` with the same 20-minute hard
 cap and safe automatic shutdown. Do not start G2 unless the R2 scientific
 decision passes all checks.
+
+## G1 R2 post-mechanism audit failure and R3 correction
+
+R2 confirms that sequential snapshot-gradient extraction solved the R1 OOM.
+The complete mechanism path ran through the held-out summary and reached the
+final support audit. It then failed before writing metrics because this PyTorch
+version forbids subtracting a boolean tensor: the audit used
+`1.0 - union_support`. This expression is outside the gradient and candidate
+path. No scientific decision or candidate artifact was emitted, so R2 remains
+a runtime failure rather than a mechanism result. Its controller SHA-256 is
+`4cea30344aafbcdf3982b444dd147229667b3c29bbf08ce8c3a499b33d2fd43b`.
+
+Commit `d861dd461094982ddc77c2c01af7999c4f470fbb` replaces that expression
+with the exactly equivalent boolean complement followed by conversion to the
+perturbation dtype. A focused regression asserts correct outside-support Linf
+for a boolean union mask. The retry moves to the fresh `G1-STRICT-R3` root.
+
+R3 no-card evidence:
+
+- mask compatibility, sequential gradients, strict router, G1/G0 and adjacent
+  regression: 66 passed in 5.94 seconds;
+- config SHA-256:
+  `ebc7c213f9ab8575347289d1e9cc47618990fb3fcaa70c77ce03fd3bb1ba8ce7`;
+- preflight evidence SHA-256:
+  `406d4c778f0e1f68ca9e0b49303a4fe4128b4073f5f5ceb62f850ebb82d57d8a`;
+- complete G0 chain, replay, snapshots and P1 revalidated;
+- all five R3 output roots remained absent;
+- data-disk free space: 9,013,673,984 bytes;
+- no GPU device was exposed and no R3 run was launched.
+
+Current decision: `pass_g1_r3_no_card_ready_for_single_gpu_run`.
+
+## Current next gate after G1 R2
+
+Enable GPU only for `G1-STRICT-R3` at commit
+`d861dd461094982ddc77c2c01af7999c4f470fbb`. Preserve the same eight-step
+method, 20-minute hard cap and automatic shutdown. Advance to G2 only if R3
+writes all three artifacts and every mechanism check passes.
