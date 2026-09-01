@@ -109,3 +109,32 @@ def test_strict_step_accepts_sequentially_precomputed_gradient_rows() -> None:
     assert result.route.gradient.tolist() == pytest.approx([0.0, 1.0])
     assert result.route.max_safe_final_row_dot <= 1.0e-6
     assert result.backtracking.accepted
+
+
+def test_strict_step_v2_routes_and_backtracks_the_complete_update() -> None:
+    parameter = torch.zeros(2, requires_grad=True)
+
+    def evaluate(candidate):
+        return {"e1/1:probability": 1.0 + float(candidate[0][0])}
+
+    result = run_strict_dgcaip_step(
+        parameters=(parameter,),
+        target_loss=None,
+        observation=None,
+        target_gradient=torch.tensor([1.0, -1.0]),
+        safe_constraint_gradients={},
+        violated_constraint_gradients={"e1/1": torch.tensor([1.0, 0.0])},
+        current_metrics={"e1/1:probability": 1.0},
+        evaluate_constraints=evaluate,
+        step_size=0.1,
+        js_epsilon=1.0e-9,
+        route_mode="nonworsening_target_progress_v2",
+        minimum_target_progress=0.60,
+        max_projection_iterations=128,
+        svd_relative_tolerance=1.0e-6,
+    )
+    assert result.route.feasible
+    assert result.route.target_progress >= 0.60
+    assert result.route.min_violated_final_row_dot >= -1.0e-6
+    assert result.backtracking.accepted
+    assert result.backtracking.values["e1/1:probability"] < 1.0

@@ -226,6 +226,101 @@ def test_strict_route_skips_incompatible_safe_and_repair_rows() -> None:
     assert torch.equal(result.gradient, torch.zeros_like(parameter))
 
 
+def test_strict_route_v2_replaces_the_observed_repair_budget_failure() -> None:
+    parameter = torch.zeros(2, requires_grad=True)
+    target = torch.tensor([1.0, -1.0])
+    violated = torch.tensor([0.0, 1.0])
+    legacy = route_strict_final_update(
+        parameters=(parameter,),
+        target_gradient=target,
+        safe_constraint_gradients={},
+        violated_constraint_gradients={"violated": violated},
+        repair_floor_fraction=0.05,
+        max_repair_norm_ratio=0.25,
+    )
+    revised = route_strict_final_update(
+        parameters=(parameter,),
+        target_gradient=target,
+        safe_constraint_gradients={},
+        violated_constraint_gradients={"violated": violated},
+        route_mode="nonworsening_target_progress_v2",
+        minimum_target_progress=0.60,
+        max_projection_iterations=128,
+        svd_relative_tolerance=1.0e-6,
+    )
+    assert not legacy.feasible
+    assert legacy.repair_norm / legacy.target_norm > 0.25
+    assert revised.feasible
+    assert revised.mode == "strict_nonworsening_target_progress_v2"
+    assert revised.min_violated_final_row_dot >= -1.0e-6
+    assert revised.target_progress >= 0.60 - 1.0e-6
+    assert revised.solver_dtype == "float64"
+
+
+def test_strict_route_v2_audits_complete_postcast_update() -> None:
+    parameter = torch.zeros(3, dtype=torch.float32, requires_grad=True)
+    result = route_strict_final_update(
+        parameters=(parameter,),
+        target_gradient=torch.tensor([1.0, -1.0, 1.0]),
+        safe_constraint_gradients={"safe": torch.tensor([0.0, 0.0, 1.0])},
+        violated_constraint_gradients={
+            "violated": torch.tensor([0.0, 1.0, 0.0])
+        },
+        route_mode="nonworsening_target_progress_v2",
+        minimum_target_progress=0.60,
+        max_projection_iterations=128,
+        svd_relative_tolerance=1.0e-6,
+    )
+    assert result.feasible
+    assert result.gradient.dtype == torch.float32
+    assert result.max_safe_final_row_dot <= 1.0e-5
+    assert result.precast_max_safe_row_dot <= 1.0e-8
+    assert result.min_violated_final_row_dot >= -1.0e-6
+    assert result.target_progress >= 0.60 - 1.0e-6
+    assert result.target_cosine > 0.0
+    assert torch.dot(result.safe_constraint_matrix[0], result.gradient).abs() <= 1.0e-5
+    assert torch.dot(result.violated_constraint_matrix[0], result.gradient) >= -1.0e-6
+
+
+def test_strict_route_v2_skips_infeasible_target_progress_without_mutation() -> None:
+    parameter = torch.zeros(1, requires_grad=True)
+    result = route_strict_final_update(
+        parameters=(parameter,),
+        target_gradient=torch.ones(1),
+        safe_constraint_gradients={"safe": torch.ones(1)},
+        violated_constraint_gradients={},
+        route_mode="nonworsening_target_progress_v2",
+        minimum_target_progress=0.60,
+        max_projection_iterations=128,
+        svd_relative_tolerance=1.0e-6,
+    )
+    assert not result.feasible
+    assert result.mode == "skip_infeasible_constraints_v2"
+    assert torch.equal(result.gradient, torch.zeros_like(parameter))
+    assert torch.equal(parameter, torch.zeros_like(parameter))
+
+
+def test_strict_route_v2_is_deterministic_for_precomputed_rows() -> None:
+    parameter = torch.zeros(3, requires_grad=True)
+    kwargs = {
+        "parameters": (parameter,),
+        "target_gradient": torch.tensor([1.0, -1.0, 1.0]),
+        "safe_constraint_gradients": {"safe": torch.tensor([0.0, 0.0, 1.0])},
+        "violated_constraint_gradients": {
+            "violated": torch.tensor([0.0, 1.0, 0.0])
+        },
+        "route_mode": "nonworsening_target_progress_v2",
+        "minimum_target_progress": 0.60,
+        "max_projection_iterations": 128,
+        "svd_relative_tolerance": 1.0e-6,
+    }
+    first = route_strict_final_update(**kwargs)
+    second = route_strict_final_update(**kwargs)
+    assert torch.equal(first.gradient, second.gradient)
+    assert first.target_progress == second.target_progress
+    assert first.max_safe_final_row_dot == second.max_safe_final_row_dot
+
+
 def test_mixed_backtracking_requires_safe_feasibility_and_real_repair() -> None:
     parameter = torch.tensor([1.0], requires_grad=True)
 

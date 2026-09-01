@@ -66,6 +66,7 @@ DGCAIP_P4_E20_SPEC_ID = "TAUSB-SDH-DGCAIP-P4-SPARSE-E20-v1"
 DGCAIP_DATASET_CGR_PROXY_SPEC_ID = (
     "TAUSB-SDH-DGCAIP-DATASET-CGR-PROXY-v1"
 )
+DGCAIP_STRICT_ROUTE_V2_SPEC_ID = "TAUSB-SDH-DGCAIP-STRICT-ROUTE-v2"
 DGCAIP_P1_DETERMINISM_AUDIT_SPEC_ID = (
     "TAUSB-SDH-DGCAIP-P1-DETERMINISM-AUDIT-v1"
 )
@@ -79,6 +80,7 @@ DGCAIP_SPEC_IDS = {
     DGCAIP_SPEC_ID,
     DGCAIP_P4_E20_SPEC_ID,
     DGCAIP_DATASET_CGR_PROXY_SPEC_ID,
+    DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
     *DGCAIP_DIAG_SPEC_IDS,
     *DGCAIP_AUDIT_SPEC_IDS,
 }
@@ -499,6 +501,8 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
                 "proxy_victim_audit",
                 "production_e20",
             }
+        elif spec_id == DGCAIP_STRICT_ROUTE_V2_SPEC_ID:
+            expected_run_modes = {"strict_mechanism"}
         elif spec_id == DGCAIP_P4_E20_SPEC_ID:
             expected_run_modes = {"production_e20"}
         elif spec_id in DGCAIP_DIAG_SPEC_IDS:
@@ -521,7 +525,10 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         for key, expected in frozen.items():
             if float(dgcaip.get(key, float("nan"))) != expected:
                 raise ValueError("DG-CAIP %s must remain %s." % (key, expected))
-        if spec_id == DGCAIP_DATASET_CGR_PROXY_SPEC_ID:
+        if spec_id in {
+            DGCAIP_DATASET_CGR_PROXY_SPEC_ID,
+            DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
+        }:
             ranking = config.get("dataset_ranking")
             strict_route = config.get("strict_route")
             agreement = config.get("proxy_agreement")
@@ -542,16 +549,6 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
                     "high_risk_replay_fraction",
                     0.50,
                 ),
-                "strict_route.repair_floor_fraction": (
-                    strict_route,
-                    "repair_floor_fraction",
-                    0.05,
-                ),
-                "strict_route.max_repair_norm_ratio": (
-                    strict_route,
-                    "max_repair_norm_ratio",
-                    0.25,
-                ),
                 "proxy_agreement.minimum_spearman": (
                     agreement,
                     "minimum_spearman",
@@ -568,11 +565,63 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
                     0.90,
                 ),
             }
+            if spec_id == DGCAIP_STRICT_ROUTE_V2_SPEC_ID:
+                expected_values.update(
+                    {
+                        "strict_route.repair_floor_fraction": (
+                            strict_route,
+                            "repair_floor_fraction",
+                            0.0,
+                        ),
+                        "strict_route.max_repair_norm_ratio": (
+                            strict_route,
+                            "max_repair_norm_ratio",
+                            0.0,
+                        ),
+                        "strict_route.minimum_target_progress": (
+                            strict_route,
+                            "minimum_target_progress",
+                            0.60,
+                        ),
+                        "strict_route.svd_relative_tolerance": (
+                            strict_route,
+                            "svd_relative_tolerance",
+                            1.0e-6,
+                        ),
+                    }
+                )
+            else:
+                expected_values.update(
+                    {
+                        "strict_route.repair_floor_fraction": (
+                            strict_route,
+                            "repair_floor_fraction",
+                            0.05,
+                        ),
+                        "strict_route.max_repair_norm_ratio": (
+                            strict_route,
+                            "max_repair_norm_ratio",
+                            0.25,
+                        ),
+                    }
+                )
             for name, (section, key, expected) in expected_values.items():
                 if float(section.get(key, float("nan"))) != expected:
                     raise ValueError("%s must remain %s." % (name, expected))
-            if int(strict_route.get("max_projection_iterations", -1)) != 64:
-                raise ValueError("strict_route.max_projection_iterations must remain 64.")
+            expected_projection_iterations = (
+                128 if spec_id == DGCAIP_STRICT_ROUTE_V2_SPEC_ID else 64
+            )
+            if int(strict_route.get("max_projection_iterations", -1)) != (
+                expected_projection_iterations
+            ):
+                raise ValueError(
+                    "strict_route.max_projection_iterations must remain %d."
+                    % expected_projection_iterations
+                )
+            if spec_id == DGCAIP_STRICT_ROUTE_V2_SPEC_ID and str(
+                strict_route.get("mode", "")
+            ) != "nonworsening_target_progress_v2":
+                raise ValueError("Strict-route v2 mode mismatch.")
             snapshots = config["model"].get("protection_surrogate_snapshots")
             expected_snapshot_ids = (
                 ["v3"]
@@ -1279,7 +1328,10 @@ def run_mechanism_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict
         raise ValueError(
             "P1 determinism audit must use the dedicated zero-update runner."
         )
-    if str(config["spec"].get("spec_id", "")) == DGCAIP_DATASET_CGR_PROXY_SPEC_ID:
+    if str(config["spec"].get("spec_id", "")) in {
+        DGCAIP_DATASET_CGR_PROXY_SPEC_ID,
+        DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
+    }:
         from .dgcaip_dataset_risk_experiment import run_dataset_cgr_proxy_stage
 
         return run_dataset_cgr_proxy_stage(config, config_base=config_base)

@@ -145,6 +145,12 @@ class StrictConstrainedRouteResult:
     target_norm: float
     projected_target_norm: float
     final_norm: float
+    target_progress: float = 0.0
+    target_cosine: float = 0.0
+    precast_max_safe_row_dot: float = 0.0
+    precast_min_violated_row_dot: float = 0.0
+    precast_target_progress: float = 0.0
+    solver_dtype: str = "parameter_dtype"
 
 
 def _validate_parameters(parameters: Sequence[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
@@ -526,6 +532,8 @@ def route_strict_final_update(
     max_repair_norm_ratio: float = 0.25,
     max_projection_iterations: int = 64,
     svd_relative_tolerance: float = 1.0e-4,
+    route_mode: str = "repair_budget_v1",
+    minimum_target_progress: float = 0.60,
     epsilon: float = 1.0e-12,
 ) -> StrictConstrainedRouteResult:
     """Route the complete update through safe equalities and repair inequalities.
@@ -535,11 +543,20 @@ def route_strict_final_update(
     dot product produces first-order loss reduction.
     """
 
+    if route_mode not in {
+        "repair_budget_v1",
+        "nonworsening_target_progress_v2",
+    }:
+        raise ValueError("Unknown strict route mode: %s" % route_mode)
     omega = _validate_parameters(parameters)
     if not 0 <= repair_floor_fraction or not 0 <= max_repair_norm_ratio:
         raise ValueError("Strict-route repair fractions must be non-negative.")
     if max_projection_iterations < 1 or svd_relative_tolerance <= 0:
         raise ValueError("Strict-route iteration and SVD tolerances are invalid.")
+    if route_mode == "nonworsening_target_progress_v2" and not (
+        0.0 < minimum_target_progress <= 1.0
+    ):
+        raise ValueError("Strict-route v2 target progress must be in (0, 1].")
 
     if target_gradient is None:
         if target_loss is None:
@@ -588,6 +605,19 @@ def route_strict_final_update(
         )
         violated_names, violated_rows = _normalized_gradient_rows(
             violated_constraint_gradients, omega, epsilon=epsilon
+        )
+    if route_mode == "nonworsening_target_progress_v2":
+        return _route_strict_nonworsening_target_progress(
+            omega=omega,
+            target=target,
+            safe_names=safe_names,
+            safe_rows=safe_rows,
+            violated_names=violated_names,
+            violated_rows=violated_rows,
+            minimum_target_progress=minimum_target_progress,
+            max_projection_iterations=max_projection_iterations,
+            svd_relative_tolerance=svd_relative_tolerance,
+            epsilon=epsilon,
         )
     target_norm_tensor = target.norm()
     if float(target_norm_tensor.detach()) <= epsilon:
@@ -721,6 +751,191 @@ def route_strict_final_update(
         target_norm=float(target_norm_tensor.detach()),
         projected_target_norm=float(projected_norm_tensor.detach()),
         final_norm=float(selected.norm().detach()),
+    )
+
+
+def _route_strict_nonworsening_target_progress(
+    *,
+    omega: Tuple[torch.Tensor, ...],
+    target: torch.Tensor,
+    safe_names: Tuple[str, ...],
+    safe_rows: Tuple[torch.Tensor, ...],
+    violated_names: Tuple[str, ...],
+    violated_rows: Tuple[torch.Tensor, ...],
+    minimum_target_progress: float,
+    max_projection_iterations: int,
+    svd_relative_tolerance: float,
+    epsilon: float,
+) -> StrictConstrainedRouteResult:
+    """Route with float64 safe equalities and non-worsening half-spaces."""
+
+    parameter_dtype = target.dtype
+    solve_dtype = torch.float64
+    target_solve = target.detach().to(dtype=solve_dtype)
+    target_norm = target_solve.norm()
+    target_norm_sq = torch.dot(target_solve, target_solve)
+    if float(target_norm) <= epsilon:
+        raise ValueError("Target loss has a zero omega gradient.")
+    dimension = int(target_solve.numel())
+    safe_matrix = (
+        torch.stack(safe_rows).to(dtype=solve_dtype)
+        if safe_rows
+        else target_solve.new_zeros((0, dimension))
+    )
+    violated_matrix = (
+        torch.stack(violated_rows).to(dtype=solve_dtype)
+        if violated_rows
+        else target_solve.new_zeros((0, dimension))
+    )
+
+    if safe_rows:
+        _, singular_values, vh = torch.linalg.svd(safe_matrix, full_matrices=False)
+        if not torch.isfinite(singular_values).all():
+            raise ValueError("Non-finite singular values in strict CGR v2.")
+        rank = int(
+            (
+                singular_values / singular_values[0].clamp_min(epsilon)
+                >= float(svd_relative_tolerance)
+            ).sum().item()
+        )
+        row_space = vh[:rank]
+
+        def project_safe(vector: torch.Tensor) -> torch.Tensor:
+            return vector - row_space.T @ (row_space @ vector)
+
+    else:
+        singular_values = target_solve.new_zeros((0,))
+        rank = 0
+
+        def project_safe(vector: torch.Tensor) -> torch.Tensor:
+            return vector
+
+    projected = project_safe(target_solve)
+    projected_norm = projected.norm()
+    null_dimension = dimension - rank
+    candidate = projected.clone()
+    projected_violated_rows = tuple(
+        project_safe(row) for row in violated_matrix.unbind(0)
+    )
+    target_direction = projected
+    target_floor = float(minimum_target_progress) * float(target_norm_sq)
+    internal_tolerance = 1.0e-10
+    feasible = null_dimension > 0 and float(projected_norm) > epsilon
+    iterations = 0
+
+    if feasible:
+        for iteration in range(max_projection_iterations):
+            iterations = iteration + 1
+            changed = False
+            for row, direction in zip(
+                violated_matrix.unbind(0), projected_violated_rows
+            ):
+                value = float(torch.dot(row, candidate))
+                if value >= -internal_tolerance:
+                    continue
+                denominator = float(torch.dot(row, direction))
+                if denominator <= epsilon:
+                    feasible = False
+                    break
+                candidate = candidate + ((-value) / denominator) * direction
+                changed = True
+            if not feasible:
+                break
+            target_value = float(torch.dot(target_solve, candidate))
+            if target_value < target_floor - internal_tolerance:
+                denominator = float(torch.dot(target_solve, target_direction))
+                if denominator <= epsilon:
+                    feasible = False
+                    break
+                candidate = candidate + (
+                    (target_floor - target_value) / denominator
+                ) * target_direction
+                changed = True
+            if not changed:
+                break
+
+    precast_max_safe = (
+        float((safe_matrix @ candidate).abs().max()) if safe_rows else 0.0
+    )
+    precast_min_violated = (
+        float((violated_matrix @ candidate).min()) if violated_rows else 0.0
+    )
+    precast_progress = float(torch.dot(target_solve, candidate) / target_norm_sq)
+    feasible = bool(
+        feasible
+        and torch.isfinite(candidate).all()
+        and precast_max_safe <= 1.0e-8
+        and precast_min_violated >= -internal_tolerance
+        and precast_progress + internal_tolerance >= minimum_target_progress
+    )
+
+    postcast_candidate = candidate.to(dtype=parameter_dtype)
+    safe_parameter = safe_matrix.to(dtype=parameter_dtype)
+    violated_parameter = violated_matrix.to(dtype=parameter_dtype)
+    postcast_max_safe = (
+        float((safe_parameter @ postcast_candidate).abs().max())
+        if safe_rows
+        else 0.0
+    )
+    postcast_min_violated = (
+        float((violated_parameter @ postcast_candidate).min())
+        if violated_rows
+        else 0.0
+    )
+    target_norm_sq_parameter = torch.dot(target, target).clamp_min(epsilon)
+    target_progress = float(
+        torch.dot(target, postcast_candidate) / target_norm_sq_parameter
+    )
+    candidate_norm = postcast_candidate.norm()
+    target_cosine = float(
+        torch.dot(target, postcast_candidate)
+        / (target.norm().clamp_min(epsilon) * candidate_norm.clamp_min(epsilon))
+    )
+    feasible = bool(
+        feasible
+        and torch.isfinite(postcast_candidate).all()
+        and postcast_max_safe <= 1.0e-5
+        and postcast_min_violated >= -1.0e-6
+        and target_progress + 1.0e-6 >= minimum_target_progress
+        and float(candidate_norm) > epsilon
+    )
+    repair = postcast_candidate - projected.to(dtype=parameter_dtype)
+    if feasible:
+        selected = postcast_candidate
+        mode = "strict_nonworsening_target_progress_v2"
+    else:
+        selected = torch.zeros_like(target)
+        mode = "skip_infeasible_constraints_v2"
+
+    return StrictConstrainedRouteResult(
+        mode=mode,
+        gradient=selected,
+        parameter_gradients=unflatten_parameter_tensor(selected, omega),
+        target_gradient=target,
+        projected_target_gradient=projected.to(dtype=parameter_dtype),
+        safe_constraint_matrix=safe_parameter,
+        violated_constraint_matrix=violated_parameter,
+        singular_values=singular_values.to(dtype=parameter_dtype),
+        rank=rank,
+        null_dimension=null_dimension,
+        attack_retention=float(projected_norm / target_norm),
+        max_safe_final_row_dot=postcast_max_safe,
+        min_violated_final_row_dot=postcast_min_violated,
+        repair_floor=0.0,
+        repair_norm=float(repair.norm()),
+        repair_iterations=iterations,
+        feasible=feasible,
+        active_safe_constraints=safe_names,
+        active_violated_constraints=violated_names,
+        target_norm=float(target.norm()),
+        projected_target_norm=float(projected.to(dtype=parameter_dtype).norm()),
+        final_norm=float(selected.norm()),
+        target_progress=target_progress,
+        target_cosine=target_cosine,
+        precast_max_safe_row_dot=precast_max_safe,
+        precast_min_violated_row_dot=precast_min_violated,
+        precast_target_progress=precast_progress,
+        solver_dtype="float64",
     )
 
 

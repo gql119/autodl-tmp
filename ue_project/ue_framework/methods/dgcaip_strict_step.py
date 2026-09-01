@@ -134,6 +134,9 @@ def run_strict_dgcaip_step(
     repair_floor_fraction: float = 0.05,
     max_repair_norm_ratio: float = 0.25,
     max_projection_iterations: int = 64,
+    svd_relative_tolerance: float = 1.0e-4,
+    route_mode: str = "repair_budget_v1",
+    minimum_target_progress: float = 0.60,
     max_backtracks: int = 5,
     record_trace: bool = True,
 ) -> StrictDGCAIPStepResult:
@@ -168,6 +171,9 @@ def run_strict_dgcaip_step(
         repair_floor_fraction=repair_floor_fraction,
         max_repair_norm_ratio=max_repair_norm_ratio,
         max_projection_iterations=max_projection_iterations,
+        svd_relative_tolerance=svd_relative_tolerance,
+        route_mode=route_mode,
+        minimum_target_progress=minimum_target_progress,
     )
     if not route.feasible:
         originals = tuple(parameter.detach().clone() for parameter in parameters)

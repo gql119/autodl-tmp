@@ -560,8 +560,14 @@ def run_dgcaip_pilot(
     production_e20 = str(dg_config.get("run_mode", "")) == "production_e20"
     strict_dataset = (
         str(config["spec"].get("spec_id", ""))
-        == "TAUSB-SDH-DGCAIP-DATASET-CGR-PROXY-v1"
+        in {
+            "TAUSB-SDH-DGCAIP-DATASET-CGR-PROXY-v1",
+            "TAUSB-SDH-DGCAIP-STRICT-ROUTE-v2",
+        }
         and str(dg_config.get("run_mode", "")) == "strict_mechanism"
+    )
+    strict_route_mode = str(
+        config.get("strict_route", {}).get("mode", "repair_budget_v1")
     )
     r3_diagnostics = dg_config.get("r3_diagnostics", {})
     r3_enabled = bool(r3_diagnostics.get("enabled", False))
@@ -1097,6 +1103,17 @@ def run_dgcaip_pilot(
                         max_projection_iterations=int(
                             config["strict_route"]["max_projection_iterations"]
                         ),
+                        svd_relative_tolerance=float(
+                            config["strict_route"].get(
+                                "svd_relative_tolerance", 1.0e-4
+                            )
+                        ),
+                        route_mode=strict_route_mode,
+                        minimum_target_progress=float(
+                            config["strict_route"].get(
+                                "minimum_target_progress", 0.60
+                            )
+                        ),
                         max_backtracks=5,
                         record_trace=True,
                     )
@@ -1203,6 +1220,18 @@ def run_dgcaip_pilot(
                             "route_feasible": routed.feasible,
                             "target_gradient_norm": routed.target_norm,
                             "final_gradient_norm": routed.final_norm,
+                            "target_progress": routed.target_progress,
+                            "target_cosine": routed.target_cosine,
+                            "precast_max_safe_row_dot": (
+                                routed.precast_max_safe_row_dot
+                            ),
+                            "precast_min_violated_row_dot": (
+                                routed.precast_min_violated_row_dot
+                            ),
+                            "precast_target_progress": (
+                                routed.precast_target_progress
+                            ),
+                            "solver_dtype": routed.solver_dtype,
                             "batch_sha256": batch_sha256,
                             "routed_gradient_sha256": _parameter_sha256(
                                 (routed.gradient,)
@@ -1327,13 +1356,27 @@ def run_dgcaip_pilot(
                 float(item["max_final_row_dot"]) <= 1.0e-5
                 for item in accepted_steps
             )
-            repair_dot_pass = all(
-                float(item["min_violated_final_row_dot"])
-                + 1.0e-6
-                >= float(item["repair_floor"])
-                for item in accepted_steps
-                if float(item["repair_floor"]) > 0.0
-            )
+            if strict_route_mode == "nonworsening_target_progress_v2":
+                repair_dot_pass = all(
+                    float(item["min_violated_final_row_dot"]) >= -1.0e-6
+                    for item in accepted_steps
+                )
+                target_progress_pass = bool(
+                    accepted_steps
+                    and _median(
+                        float(item["target_progress"]) for item in accepted_steps
+                    )
+                    >= 0.60
+                )
+            else:
+                repair_dot_pass = all(
+                    float(item["min_violated_final_row_dot"])
+                    + 1.0e-6
+                    >= float(item["repair_floor"])
+                    for item in accepted_steps
+                    if float(item["repair_floor"]) > 0.0
+                )
+                target_progress_pass = True
             checks = {
                 "risk_bank_bound": bool(
                     risk_bank is not None
@@ -1365,8 +1408,14 @@ def run_dgcaip_pilot(
                 != arm_initial_hashes[arm_id],
                 "frozen_modules_unchanged": frozen_before == frozen_after,
             }
+            if strict_route_mode == "nonworsening_target_progress_v2":
+                checks["final_target_progress"] = target_progress_pass
             result = {
-                "schema": "tausb.dgcaip-dataset-strict-mechanism.v1",
+                "schema": (
+                    "tausb.dgcaip-dataset-strict-mechanism.v2"
+                    if strict_route_mode == "nonworsening_target_progress_v2"
+                    else "tausb.dgcaip-dataset-strict-mechanism.v1"
+                ),
                 "spec_id": config["spec"]["spec_id"],
                 "split_hash": _split_hash(split),
                 "source_p1_state_sha256": _file_sha256(source_p1_path),
@@ -1382,16 +1431,28 @@ def run_dgcaip_pilot(
                 "decision": {"checks": checks, "pass": all(checks.values())},
                 "elapsed_seconds": time.monotonic() - start,
             }
+            if strict_route_mode == "nonworsening_target_progress_v2":
+                result["strict_route_mode"] = strict_route_mode
             _write_json(
                 output_root / "backtracking_trace.json",
                 {
-                    "schema": "tausb.dgcaip-dataset-strict-backtracking.v1",
+                    "schema": (
+                        "tausb.dgcaip-dataset-strict-backtracking.v2"
+                        if strict_route_mode
+                        == "nonworsening_target_progress_v2"
+                        else "tausb.dgcaip-dataset-strict-backtracking.v1"
+                    ),
                     arm_id: strict_steps,
                 },
             )
             torch.save(
                 {
-                    "schema": "tausb.dgcaip-dataset-strict-state.v1",
+                    "schema": (
+                        "tausb.dgcaip-dataset-strict-state.v2"
+                        if strict_route_mode
+                        == "nonworsening_target_progress_v2"
+                        else "tausb.dgcaip-dataset-strict-state.v1"
+                    ),
                     "spec_id": config["spec"]["spec_id"],
                     "arm_id": arm_id,
                     "carrier_state": arm_states[arm_id],
