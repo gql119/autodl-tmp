@@ -256,3 +256,55 @@ Enable GPU only for `G1-STRICT-R1` and run the reviewed controller at commit
 `216ded9217b98c3f5661eaa355d3bbc8e3c42686` with `--shutdown-on-exit`.
 The only new computation is the eight-step dataset-ranked strict-CGR mechanism.
 Proceed to the 3-epoch short-victim G2 audit only if all recorded G1 checks pass.
+
+## G1 R1 OOM terminal and R2 memory-lifecycle correction
+
+G1 R1 did not produce a scientific mechanism result. The controller stopped
+after about 20 seconds on the first strict step with a CUDA OOM: 22.25 GiB was
+already allocated and only 13.44 MiB remained when a further 20 MiB allocation
+was requested. The traceback identifies the fourth concurrently retained
+observation graph while evaluating the e1/e5/e20 protection snapshots. No
+candidate state, metrics, or backtracking trace was written. The R1 controller
+SHA-256 is
+`6f0c7d625733a703873a940aca4fe714e58b0921916c35cd77866dcf704d4443`;
+its status and log remain preserved, and the instance shut down automatically.
+
+The root cause was graph lifetime, not the G0 bank, replay, data, snapshot
+binding, strict constraint definition, or gradient conflict itself. Commit
+`77e91f0` adds a precomputed-gradient input to the existing strict router and
+changes only the strict multi-snapshot execution schedule:
+
+1. extract and freeze the same target gradient, then release its graph;
+2. observe e1, extract the same named per-class safe/violated gradients, and
+   release that graph;
+3. repeat for e5 and e20;
+4. pass all resulting rows together to the unchanged strict null-space and
+   repair solver, then run the same nonlinear backtracking.
+
+The loss-based and precomputed-gradient router paths are regression-tested for
+equal mode, feasibility, selected gradient and safe/violated row dots. No loss,
+risk rank, replay item, gradient sign, tolerance, SVD threshold, repair budget,
+backtracking rule, or scientific gate changed.
+
+Commit `2d89caa5df87bf502779af7c06b90ef42b8d1bc6` moves the retry to the
+fresh `G1-STRICT-R2` data-disk root. R2 no-card evidence:
+
+- focused sequential-gradient, strict-router, G1/G0 and adjacent regression:
+  65 passed in 5.52 seconds;
+- config SHA-256:
+  `7f04efe9dab3d9b4952afede830489090b9b8f1c1178c2f9eda9347aa0434b75`;
+- preflight evidence SHA-256:
+  `ac0c3b61c1209386054028fc6cc459a4c9c38501c08500de0ad1f72baf5cbd07`;
+- all G0 hashes, 32 replay slots, three snapshots and P1 revalidated;
+- all five R2 output roots remained absent;
+- data-disk free space: 9,013,817,344 bytes;
+- no GPU device was exposed and no retry was launched.
+
+Current decision: `pass_g1_r2_no_card_ready_for_single_gpu_retry`.
+
+## Current next gate after G1 R1
+
+Enable GPU only for `G1-STRICT-R2` and run commit
+`2d89caa5df87bf502779af7c06b90ef42b8d1bc6` with the same 20-minute hard
+cap and safe automatic shutdown. Do not start G2 unless the R2 scientific
+decision passes all checks.
