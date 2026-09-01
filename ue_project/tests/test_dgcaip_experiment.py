@@ -16,6 +16,7 @@ from ue_framework.methods.dgcaip_experiment import (
     R3_DIAGNOSTIC_ARMS,
     _constraint_limits,
     _p1_replay_report,
+    _support_outside_linf,
     _strict_candidate_metrics,
     _validate_d0_report_binding,
 )
@@ -27,6 +28,16 @@ from ue_framework.methods.sdh_experiment import (
     DGCAIP_SPEC_ID,
     validate_sdh_experiment_config,
 )
+
+
+def test_support_outside_linf_accepts_boolean_union_support() -> None:
+    observation = types.SimpleNamespace(
+        rendered=types.SimpleNamespace(
+            perturbation=torch.tensor([[[[0.5, -0.2], [0.1, 0.0]]]]),
+            union_support=torch.tensor([[[[True, False], [False, True]]]]),
+        )
+    )
+    assert _support_outside_linf((observation,)) == pytest.approx(0.2)
 
 
 E2E = (

@@ -92,7 +92,7 @@ proxy_agreement:
   minimum_top_overlap: 0.50
   minimum_coverage: 0.90
 runtime:
-  artifact_root: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-G1-STRICT-R2
+  artifact_root: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-G1-STRICT-R3
   device: cuda:0
   strict_determinism: true
 bindings:
