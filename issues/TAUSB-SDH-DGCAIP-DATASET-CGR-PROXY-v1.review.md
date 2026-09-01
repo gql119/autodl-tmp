@@ -127,3 +127,63 @@ R2 no-card evidence:
 - no GPU device was visible and no training was launched.
 
 Decision: `pass_r2_no_card_ready_for_single_c0_gpu_refresh`.
+
+## C0 snapshot R2 terminal evidence
+
+The corrected C0 refresh completed on the RTX 4090D and shut the instance down
+through the reviewed `supervisord` signal path. The controller status is
+`completed`, all 20 epochs are present, `fatal_count=0`, and the elapsed time was
+1,262.00 seconds. The clean sparse input remained 16,551 total training images,
+6,095 person images, and zero poisoned images. The fresh-victim tensor hash also
+matched the frozen expected value.
+
+The snapshot manifest passed and binds the exact post-epoch states required by
+the Spec:
+
+- e1: internal epoch 0, SHA-256
+  `6ebacf59d7fa27ae8d30bb86571d5f089392e19d52ba9ffd7fd204faa70c5ae1`;
+- e5: internal epoch 4, SHA-256
+  `cfaf454563e7ac81676468ec09fb08a94718a9902c5ee7057ee3db0d63202fc4`;
+- e20: internal epoch 19, SHA-256
+  `e660ed4b2f36e8b866f89a4f88a02e3d3a7eed6f2727f99573cc3c4d8bfaad53`.
+
+The controller-status SHA-256 is
+`8c19fee403622a84ceaee6b07b52e65e73053fc313ab948d8f8329c9f7b18288`,
+and the snapshot-manifest SHA-256 is
+`718a971b9cd7c09c24909f1e49e8d4c4e9a6de71b045e4c9e8c9ab1e3058b6fc`.
+
+## G0 risk-scan binding and no-card gate
+
+Commit `cc0f9b42e265100a835985bfc4ab3e95411470dd` adds the bound G0
+controller and configuration. It freezes the three C0 snapshots above, the C0
+manifest and execution commit, and the existing P1 state SHA-256
+`2e102026a9356116de38acb1f5056bf5728afcd453e3447b516d4222f4d70b81`.
+The scan is limited to `dataset_risk_scan`, has a 60-minute method budget and a
+65-minute controller hard cap, writes only to the AutoDL data disk, preserves a
+scientifically failed coverage decision, and uses the reviewed safe shutdown
+path.
+
+Remote no-card evidence:
+
+- focused G0 plus adjacent dataset-risk, strict-CGR, proxy-agreement, C0 and
+  config tests: 49 passed in 28.53 seconds;
+- exact detached checkout: `cc0f9b42e265100a835985bfc4ab3e95411470dd`,
+  clean tracked worktree;
+- config SHA-256:
+  `45aef454982548c1a9b9b954342cd4c794ef2ca8a4172e882740c57df1a95c66`;
+- preflight evidence SHA-256:
+  `fa705b97645a3cbd4a60aa920f0d723f3750fb828738f6acc6cf7bacf75852e9`;
+- live data-disk free space: 9,024,917,504 bytes;
+- all five G0 output roots remained absent after preflight;
+- `nvidia-smi` exposed no device, so no GPU scan was launched.
+
+Current decision: `pass_g0_risk_no_card_ready_for_single_gpu_scan`.
+
+## Current next gate
+
+Enable GPU only for `G0-RISK-R1` and run the reviewed controller at commit
+`cc0f9b42e265100a835985bfc4ab3e95411470dd` with `--shutdown-on-exit`.
+The controller will scan person-cooccurrence non-target instances under the
+frozen e1/e5/e20 teachers, write the dataset-level risk bank, replay manifest,
+raw records, coverage decision and controller evidence, then shut down on every
+terminal exit. It does not generate a new poison dataset or train a victim.
