@@ -13,6 +13,7 @@ from ue_framework.methods import dgcaip_experiment, sdh_experiment
 from ue_framework.methods.dgcaip import DGCAIPInstanceTerm, DGCAIPResult
 from ue_framework.methods.dgcaip_experiment import (
     _accepted_target_progress_pass,
+    _v4_layered_gate_decision,
     DGCAIP_ARMS,
     R3_DIAGNOSTIC_ARMS,
     _constraint_limits,
@@ -525,6 +526,32 @@ def test_v3_target_progress_gate_uses_the_postcast_tolerance() -> None:
         minimum=0.60,
         tolerance=1.0e-6,
     )
+
+
+def test_v4_gate_uses_actual_acceptance_and_final_progress_only_for_promotion() -> None:
+    decision = _v4_layered_gate_decision(
+        {"finite": True, "frozen_modules_unchanged": True},
+        {"at_least_one_update": True, "adapter_changed": True},
+        accepted_update_ratio=0.50,
+        minimum_accepted_update_ratio=0.50,
+        target_progress_pass=True,
+    )
+    assert decision["runtime_pass"] is True
+    assert decision["mechanism_valid"] is True
+    assert decision["promotion_pass"] is True
+    assert decision["pass"] is True
+    assert "attack_retention" not in decision["checks"]
+    assert "backtrack_skip" not in decision["checks"]
+
+    blocked = _v4_layered_gate_decision(
+        {"finite": True},
+        {"at_least_one_update": True},
+        accepted_update_ratio=0.375,
+        minimum_accepted_update_ratio=0.50,
+        target_progress_pass=True,
+    )
+    assert blocked["promotion_pass"] is False
+    assert blocked["pass"] is False
 
 
 def test_v3_candidate_registry_fails_closed_on_missing_or_extra_rows() -> None:

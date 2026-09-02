@@ -70,6 +70,9 @@ DGCAIP_STRICT_ROUTE_V2_SPEC_ID = "TAUSB-SDH-DGCAIP-STRICT-ROUTE-v2"
 DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID = (
     "TAUSB-SDH-DGCAIP-COMPONENT-ALIGNED-ROUTE-v3"
 )
+DGCAIP_RELAXED_GATE_V4_SPEC_ID = (
+    "TAUSB-SDH-DGCAIP-RELAXED-PROMOTION-GATE-v4"
+)
 DGCAIP_P1_DETERMINISM_AUDIT_SPEC_ID = (
     "TAUSB-SDH-DGCAIP-P1-DETERMINISM-AUDIT-v1"
 )
@@ -85,6 +88,7 @@ DGCAIP_SPEC_IDS = {
     DGCAIP_DATASET_CGR_PROXY_SPEC_ID,
     DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
     DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID,
+    DGCAIP_RELAXED_GATE_V4_SPEC_ID,
     *DGCAIP_DIAG_SPEC_IDS,
     *DGCAIP_AUDIT_SPEC_IDS,
 }
@@ -508,6 +512,7 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         elif spec_id in {
             DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
             DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID,
+            DGCAIP_RELAXED_GATE_V4_SPEC_ID,
         }:
             expected_run_modes = {"strict_mechanism"}
         elif spec_id == DGCAIP_P4_E20_SPEC_ID:
@@ -536,6 +541,7 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
             DGCAIP_DATASET_CGR_PROXY_SPEC_ID,
             DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
             DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID,
+            DGCAIP_RELAXED_GATE_V4_SPEC_ID,
         }:
             ranking = config.get("dataset_ranking")
             strict_route = config.get("strict_route")
@@ -576,6 +582,7 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
             if spec_id in {
                 DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
                 DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID,
+                DGCAIP_RELAXED_GATE_V4_SPEC_ID,
             }:
                 expected_values.update(
                     {
@@ -625,6 +632,7 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
                 in {
                     DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
                     DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID,
+                    DGCAIP_RELAXED_GATE_V4_SPEC_ID,
                 }
                 else 64
             )
@@ -643,6 +651,23 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
                 strict_route.get("mode", "")
             ) != "component_aligned_target_progress_v3":
                 raise ValueError("Component-aligned route v3 mode mismatch.")
+            if spec_id == DGCAIP_RELAXED_GATE_V4_SPEC_ID:
+                if str(strict_route.get("mode", "")) != (
+                    "component_aligned_target_progress_v3"
+                ):
+                    raise ValueError("Relaxed promotion gate v4 route mode mismatch.")
+                if float(
+                    strict_route.get("nonlinear_comparison_tolerance", float("nan"))
+                ) != 1.0e-6:
+                    raise ValueError(
+                        "v4 nonlinear comparison tolerance must remain 1e-6."
+                    )
+                if float(
+                    strict_route.get("minimum_accepted_update_ratio", float("nan"))
+                ) != 0.50:
+                    raise ValueError(
+                        "v4 minimum accepted-update ratio must remain 0.50."
+                    )
             snapshots = config["model"].get("protection_surrogate_snapshots")
             expected_snapshot_ids = (
                 ["v3"]
@@ -1353,6 +1378,7 @@ def run_mechanism_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict
         DGCAIP_DATASET_CGR_PROXY_SPEC_ID,
         DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
         DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID,
+        DGCAIP_RELAXED_GATE_V4_SPEC_ID,
     }:
         from .dgcaip_dataset_risk_experiment import run_dataset_cgr_proxy_stage
 

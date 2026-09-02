@@ -19,6 +19,7 @@ from ue_framework.tools.run_tausb_dgcaip_g1_strict import (
     SPEC_ID,
     V2_SPEC_ID,
     V3_SPEC_ID,
+    V4_SPEC_ID,
     WALL_SECONDS,
     _validate_binding,
     _verify_result,
@@ -42,6 +43,12 @@ V3_CONFIG = (
     / "ue_framework"
     / "configs"
     / "tausb_sdh_dgcaip_component_route_v3_g1.yaml"
+)
+V4_CONFIG = (
+    Path(__file__).parents[1]
+    / "ue_framework"
+    / "configs"
+    / "tausb_sdh_dgcaip_relaxed_gate_v4_g1.yaml"
 )
 
 
@@ -205,6 +212,31 @@ def test_g1_v3_config_changes_only_identity_root_and_route_mode() -> None:
     assert revised["runtime"]["artifact_root"].endswith("SCGR-V3-G1-R1")
 
 
+def test_g1_v4_config_changes_only_gate_identity_and_registered_relaxations() -> None:
+    legacy = yaml.safe_load(V3_CONFIG.read_text(encoding="utf-8"))
+    revised = yaml.safe_load(V4_CONFIG.read_text(encoding="utf-8"))
+    validate_sdh_experiment_config(revised)
+    assert revised["spec"]["spec_id"] == V4_SPEC_ID
+    assert revised["strict_route"] == {
+        **legacy["strict_route"],
+        "nonlinear_comparison_tolerance": 1.0e-6,
+        "minimum_accepted_update_ratio": 0.50,
+    }
+    for section in (
+        "dataset",
+        "model",
+        "secrets",
+        "hiding",
+        "mechanism",
+        "dgcaip",
+        "dataset_ranking",
+        "proxy_agreement",
+        "bindings",
+    ):
+        assert revised[section] == legacy[section]
+    assert revised["runtime"]["artifact_root"].endswith("SCGR-V4-G1-R1")
+
+
 def test_g1_binding_accepts_v2_with_the_frozen_v1_g0_chain(tmp_path: Path) -> None:
     config, config_path = _bound_fixture(tmp_path)
     config["spec"]["spec_id"] = V2_SPEC_ID
@@ -228,6 +260,18 @@ def test_g1_binding_accepts_v3_with_the_frozen_v1_g0_chain(tmp_path: Path) -> No
     config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
     result = _validate_binding(config, config_path)
     assert result["spec_id"] == V3_SPEC_ID
+    assert result["replay_slots"] == 32
+
+
+def test_g1_binding_accepts_v4_with_the_frozen_v1_g0_chain(tmp_path: Path) -> None:
+    config, config_path = _bound_fixture(tmp_path)
+    config["spec"]["spec_id"] = V4_SPEC_ID
+    config["strict_route"] = yaml.safe_load(
+        V4_CONFIG.read_text(encoding="utf-8")
+    )["strict_route"]
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    result = _validate_binding(config, config_path)
+    assert result["spec_id"] == V4_SPEC_ID
     assert result["replay_slots"] == 32
 
 
@@ -387,6 +431,66 @@ def test_g1_result_verifies_v3_component_schema(tmp_path: Path) -> None:
     )
     result = _verify_result(config_path)
     assert result["gate_pass"] is True
+
+
+def test_g1_result_verifies_v4_layered_decision(tmp_path: Path) -> None:
+    config, config_path = _bound_fixture(tmp_path)
+    config["spec"]["spec_id"] = V4_SPEC_ID
+    config["strict_route"] = yaml.safe_load(
+        V4_CONFIG.read_text(encoding="utf-8")
+    )["strict_route"]
+    output_root = tmp_path / "outputs-v4"
+    config["runtime"]["artifact_root"] = str(output_root)
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    strict_root = output_root / RUN_MODE
+    strict_root.mkdir(parents=True)
+    _write_json(strict_root / "backtracking_trace.json", {"trace": []})
+    (strict_root / "p5_dataset_strict_state.pt").write_bytes(b"candidate-v4")
+    _write_json(
+        strict_root / "mechanism_metrics.json",
+        {
+            "schema": "tausb.dgcaip-dataset-strict-mechanism.v4",
+            "strict_route_mode": "component_aligned_target_progress_v3",
+            "constraint_row_schema": "snapshot_class_family_v3",
+            "spec_id": V4_SPEC_ID,
+            "source_p1_state_sha256": config["dgcaip"]["source_p1_state_sha256"],
+            "risk_bank_canonical_sha256": config["dataset_ranking"][
+                "risk_bank_canonical_sha256"
+            ],
+            "risk_bank_file_sha256": config["dataset_ranking"][
+                "risk_bank_file_sha256"
+            ],
+            "replay_manifest_file_sha256": config["dataset_ranking"][
+                "replay_manifest_file_sha256"
+            ],
+            "protection_snapshot_sha256": {
+                item["id"]: item["sha256"]
+                for item in config["model"]["protection_surrogate_snapshots"]
+            },
+            "elapsed_seconds": 3.0,
+            "decision": {
+                "checks": {
+                    "finite": True,
+                    "accepted_update_ratio": True,
+                    "final_target_progress": True,
+                },
+                "runtime_pass": True,
+                "mechanism_valid": True,
+                "promotion_pass": True,
+                "pass": True,
+            },
+        },
+    )
+    result = _verify_result(config_path)
+    assert result["gate_pass"] is True
+    assert result["checks"]["accepted_update_ratio"] is True
+
+    metrics_path = strict_root / "mechanism_metrics.json"
+    inconsistent = json.loads(metrics_path.read_text(encoding="utf-8"))
+    inconsistent["decision"]["promotion_pass"] = False
+    _write_json(metrics_path, inconsistent)
+    with pytest.raises(ValueError, match="decision layers are inconsistent"):
+        _verify_result(config_path)
 
 
 def test_g1_result_rejects_output_snapshot_drift(tmp_path: Path) -> None:

@@ -245,6 +245,38 @@ def test_component_aligned_step_routes_the_exact_component_row() -> None:
     assert result.backtracking.accepted
 
 
+def test_strict_step_forwards_relaxed_numeric_comparison_tolerance() -> None:
+    parameter = torch.zeros(2, requires_grad=True)
+
+    def evaluate(_candidate):
+        return {
+            "e1/1:safe": 5.0e-7,
+            "e1/1:probability": 1.0 - 2.0e-5,
+        }
+
+    result = run_strict_dgcaip_step(
+        parameters=(parameter,),
+        target_loss=None,
+        observation=None,
+        target_gradient=torch.tensor([1.0, 0.0]),
+        safe_constraint_gradients={"e1/1:safe": torch.tensor([0.0, 1.0])},
+        violated_constraint_gradients={
+            "e1/1:probability": torch.tensor([1.0, 0.0])
+        },
+        current_metrics={"e1/1:safe": 0.0, "e1/1:probability": 1.0},
+        evaluate_constraints=evaluate,
+        step_size=0.1,
+        js_epsilon=1.0e-9,
+        route_mode="component_aligned_target_progress_v3",
+        minimum_target_progress=0.60,
+        max_projection_iterations=128,
+        svd_relative_tolerance=1.0e-6,
+        nonlinear_comparison_tolerance=1.0e-6,
+    )
+    assert result.route.feasible
+    assert result.backtracking.accepted
+
+
 def test_component_aligned_route_skips_infeasible_progress_without_mutation() -> None:
     parameter = torch.zeros(1, requires_grad=True)
     result = run_strict_dgcaip_step(

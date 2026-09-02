@@ -376,3 +376,32 @@ def test_mixed_backtracking_requires_safe_feasibility_and_real_repair() -> None:
     )
     assert not skipped.accepted
     assert skipped.status == "skip"
+
+
+def test_mixed_backtracking_separates_numeric_tolerance_from_loss_budget() -> None:
+    parameter = torch.tensor([0.0], requires_grad=True)
+
+    def evaluate(_candidate):
+        return {"safe": 5.0e-7, "violated": 1.0 - 2.0e-5}
+
+    strict = backtrack_mixed_multi_parameter_constraints(
+        parameters=(parameter,),
+        flattened_gradient=torch.tensor([1.0]),
+        step_size=0.1,
+        evaluate_constraints=evaluate,
+        safe_limits={"safe": 0.0},
+        violated_baselines={"violated": 1.0},
+        epsilon=1.0e-9,
+    )
+    relaxed_numeric = backtrack_mixed_multi_parameter_constraints(
+        parameters=(parameter,),
+        flattened_gradient=torch.tensor([1.0]),
+        step_size=0.1,
+        evaluate_constraints=evaluate,
+        safe_limits={"safe": 0.0},
+        violated_baselines={"violated": 1.0},
+        epsilon=1.0e-6,
+    )
+    assert not strict.accepted
+    assert relaxed_numeric.accepted
+    assert relaxed_numeric.values["safe"] == pytest.approx(5.0e-7)

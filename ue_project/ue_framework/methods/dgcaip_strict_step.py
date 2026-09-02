@@ -174,6 +174,7 @@ def run_strict_dgcaip_step(
     route_mode: str = "repair_budget_v1",
     minimum_target_progress: float = 0.60,
     max_backtracks: int = 5,
+    nonlinear_comparison_tolerance: float = 1.0e-9,
     record_trace: bool = True,
 ) -> StrictDGCAIPStepResult:
     using_precomputed = target_gradient is not None
@@ -238,6 +239,7 @@ def run_strict_dgcaip_step(
             safe_limits=safe_limits,
             violated_baselines=violated_baselines,
             max_backtracks=max_backtracks,
+            epsilon=nonlinear_comparison_tolerance,
             record_trace=record_trace,
         )
     return StrictDGCAIPStepResult(
