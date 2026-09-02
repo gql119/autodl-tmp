@@ -63,6 +63,42 @@ def strict_constraint_losses(
     return safe, violated
 
 
+def strict_component_constraint_losses(
+    observation: SDHObservation,
+) -> Dict[str, torch.Tensor]:
+    """Return the exact per-class component scalars audited by v3."""
+
+    if observation.dgcaip is None:
+        raise ValueError("Component-aligned routing requires a DG-CAIP observation.")
+    rows: Dict[str, torch.Tensor] = {
+        "%s:nla" % class_id: loss
+        for class_id, loss in sorted(observation.nla.per_class_loss.items())
+    }
+    attributes = {
+        "probability": "classification_loss",
+        "iou": "box_loss",
+        "alignment": "alignment_loss",
+        "js": "distribution_loss",
+    }
+    class_ids = sorted({int(term.class_id) for term in observation.dgcaip.instances})
+    for class_id in class_ids:
+        terms = tuple(
+            term
+            for term in observation.dgcaip.instances
+            if int(term.class_id) == class_id
+        )
+        for family, attribute in attributes.items():
+            values = [
+                float(term.weight) * getattr(term, attribute)
+                for term in terms
+            ]
+            if values:
+                rows["%s:%s" % (class_id, family)] = torch.stack(values).mean()
+    if not rows:
+        raise ValueError("Component-aligned routing produced no constraint rows.")
+    return rows
+
+
 def multi_snapshot_constraint_losses(
     observations: Mapping[str, SDHObservation],
 ) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
@@ -160,6 +196,13 @@ def run_strict_dgcaip_step(
     safe_limits, violated_baselines = partition_nonlinear_constraints(
         current_metrics, js_epsilon=js_epsilon
     )
+    if route_mode == "component_aligned_target_progress_v3":
+        if set(safe_constraint_gradients or {}) != set(safe_limits):
+            raise ValueError("Component-aligned safe gradient and metric keys differ.")
+        if set(violated_constraint_gradients or {}) != set(violated_baselines):
+            raise ValueError(
+                "Component-aligned violated gradient and metric keys differ."
+            )
     route = route_strict_final_update(
         parameters=parameters,
         target_loss=target_loss,

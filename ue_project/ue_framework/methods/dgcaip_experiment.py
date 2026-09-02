@@ -27,7 +27,12 @@ from .dgcaip_r3_diagnostics import (
     build_rejection_attribution,
     build_same_process_replay,
 )
-from .dgcaip_strict_step import run_strict_dgcaip_step, strict_constraint_losses
+from .dgcaip_strict_step import (
+    partition_nonlinear_constraints,
+    run_strict_dgcaip_step,
+    strict_component_constraint_losses,
+    strict_constraint_losses,
+)
 from .instance_cicr import FrozenInstanceCICRBank
 from .non_target_logit_alignment import FrozenNLAGradientCalibration
 from .p1_determinism_audit import backend_manifest, payload_sha256
@@ -96,6 +101,20 @@ def _all_finite(value: Any) -> bool:
     if isinstance(value, (float, np.floating)):
         return math.isfinite(float(value))
     return True
+
+
+def _accepted_target_progress_pass(
+    accepted_steps: Sequence[Mapping[str, Any]],
+    *,
+    minimum: float,
+    tolerance: float,
+) -> bool:
+    return bool(
+        accepted_steps
+        and _median(float(item["target_progress"]) for item in accepted_steps)
+        + float(tolerance)
+        >= float(minimum)
+    )
 
 
 def _support_outside_linf(observations: Sequence[SDHObservation]) -> float:
@@ -383,6 +402,22 @@ def _strict_candidate_metrics(
     }
 
 
+def _strict_component_candidate_metrics(
+    values: Mapping[str, float],
+    baselines: Mapping[str, float],
+) -> Dict[str, float]:
+    """Require the v3 candidate registry to match the routed registry exactly."""
+
+    if set(values) != set(baselines):
+        missing = sorted(set(baselines).difference(values))
+        unexpected = sorted(set(values).difference(baselines))
+        raise ValueError(
+            "Component-aligned candidate constraint keys differ: "
+            "missing=%s unexpected=%s" % (missing, unexpected)
+        )
+    return {name: float(values[name]) for name in sorted(baselines)}
+
+
 def _instance_metric_map(
     observations: Sequence[SDHObservation],
 ) -> Dict[Tuple[str, int, int], Dict[str, float]]:
@@ -563,6 +598,7 @@ def run_dgcaip_pilot(
         in {
             "TAUSB-SDH-DGCAIP-DATASET-CGR-PROXY-v1",
             "TAUSB-SDH-DGCAIP-STRICT-ROUTE-v2",
+            "TAUSB-SDH-DGCAIP-COMPONENT-ALIGNED-ROUTE-v3",
         }
         and str(dg_config.get("run_mode", "")) == "strict_mechanism"
     )
@@ -992,6 +1028,9 @@ def run_dgcaip_pilot(
                     safe_constraint_gradients = {}
                     violated_constraint_gradients = {}
                     current_metrics = {}
+                    component_row_digest = ""
+                    component_safe_row_count = 0
+                    component_violated_row_count = 0
                     for snapshot_id, snapshot_engine in sorted(
                         protection_engines.items()
                     ):
@@ -1007,28 +1046,69 @@ def run_dgcaip_pilot(
                             raise RuntimeError(
                                 "Strict protection snapshot observation is missing."
                             )
-                        current_metrics.update(
-                            {
-                                "%s/%s" % (snapshot_id, name): value
-                                for name, value in _dgcaip_class_metrics(
-                                    protected.dgcaip
+                        if (
+                            strict_route_mode
+                            == "component_aligned_target_progress_v3"
+                        ):
+                            component_losses = {
+                                "%s/%s" % (snapshot_id, name): loss
+                                for name, loss in strict_component_constraint_losses(
+                                    protected
                                 ).items()
                             }
-                        )
-                        safe_losses, violated_losses = strict_constraint_losses(
-                            protected
-                        )
+                            component_metrics = {
+                                name: float(loss.detach())
+                                for name, loss in component_losses.items()
+                            }
+                            snapshot_safe, snapshot_violated = (
+                                partition_nonlinear_constraints(
+                                    component_metrics,
+                                    js_epsilon=float(
+                                        dg_config["js_backtracking_epsilon"]
+                                    ),
+                                )
+                            )
+                            current_metrics.update(component_metrics)
+                            safe_losses = {
+                                name: component_losses[name]
+                                for name in snapshot_safe
+                            }
+                            violated_losses = {
+                                name: component_losses[name]
+                                for name in snapshot_violated
+                            }
+                        else:
+                            current_metrics.update(
+                                {
+                                    "%s/%s" % (snapshot_id, name): value
+                                    for name, value in _dgcaip_class_metrics(
+                                        protected.dgcaip
+                                    ).items()
+                                }
+                            )
+                            snapshot_safe, snapshot_violated = {}, {}
+                            legacy_safe, legacy_violated = strict_constraint_losses(
+                                protected
+                            )
+                            safe_losses = {
+                                "%s/%s" % (snapshot_id, name): loss
+                                for name, loss in legacy_safe.items()
+                            }
+                            violated_losses = {
+                                "%s/%s" % (snapshot_id, name): loss
+                                for name, loss in legacy_violated.items()
+                            }
                         gradient_rows = [
                             (
                                 safe_constraint_gradients,
-                                "%s/%s" % (snapshot_id, name),
+                                name,
                                 loss,
                             )
                             for name, loss in sorted(safe_losses.items())
                         ] + [
                             (
                                 violated_constraint_gradients,
-                                "%s/%s" % (snapshot_id, name),
+                                name,
                                 loss,
                             )
                             for name, loss in sorted(violated_losses.items())
@@ -1048,8 +1128,22 @@ def run_dgcaip_pilot(
                                 retain_graph=index != last_gradient,
                             ).detach()
                         del protected, safe_losses, violated_losses, gradient_rows
+                        if (
+                            strict_route_mode
+                            == "component_aligned_target_progress_v3"
+                        ):
+                            del component_losses, component_metrics
                         if device.type == "cuda":
                             torch.cuda.empty_cache()
+
+                    if strict_route_mode == "component_aligned_target_progress_v3":
+                        component_safe_row_count = len(safe_constraint_gradients)
+                        component_violated_row_count = len(
+                            violated_constraint_gradients
+                        )
+                        component_row_digest = hashlib.sha256(
+                            "\n".join(sorted(current_metrics)).encode("utf-8")
+                        ).hexdigest()
 
                     def evaluate_strict(candidate):
                         _copy_parameters_(parameters, candidate)
@@ -1069,14 +1163,36 @@ def run_dgcaip_pilot(
                                     )
                                     if current.dgcaip is None:
                                         continue
-                                    candidate_values.update(
-                                        {
-                                            "%s/%s" % (snapshot_id, name): value
-                                            for name, value in _dgcaip_class_metrics(
-                                                current.dgcaip
-                                            ).items()
-                                        }
-                                    )
+                                    if (
+                                        strict_route_mode
+                                        == "component_aligned_target_progress_v3"
+                                    ):
+                                        candidate_values.update(
+                                            {
+                                                "%s/%s" % (snapshot_id, name): float(
+                                                    loss.detach()
+                                                )
+                                                for name, loss in strict_component_constraint_losses(
+                                                    current
+                                                ).items()
+                                            }
+                                        )
+                                    else:
+                                        candidate_values.update(
+                                            {
+                                                "%s/%s" % (snapshot_id, name): value
+                                                for name, value in _dgcaip_class_metrics(
+                                                    current.dgcaip
+                                                ).items()
+                                            }
+                                        )
+                            if (
+                                strict_route_mode
+                                == "component_aligned_target_progress_v3"
+                            ):
+                                return _strict_component_candidate_metrics(
+                                    candidate_values, current_metrics
+                                )
                             return _strict_candidate_metrics(
                                 candidate_values, current_metrics
                             )
@@ -1229,7 +1345,10 @@ def run_dgcaip_pilot(
                             ],
                         }
                     )
-                    if strict_route_mode == "nonworsening_target_progress_v2":
+                    if strict_route_mode in {
+                        "nonworsening_target_progress_v2",
+                        "component_aligned_target_progress_v3",
+                    }:
                         step_row.update(
                             {
                                 "target_progress": routed.target_progress,
@@ -1244,6 +1363,21 @@ def run_dgcaip_pilot(
                                     routed.precast_target_progress
                                 ),
                                 "solver_dtype": routed.solver_dtype,
+                            }
+                        )
+                    if strict_route_mode == "component_aligned_target_progress_v3":
+                        step_row.update(
+                            {
+                                "constraint_row_schema": (
+                                    "snapshot_class_family_v3"
+                                ),
+                                "safe_component_row_count": (
+                                    component_safe_row_count
+                                ),
+                                "violated_component_row_count": (
+                                    component_violated_row_count
+                                ),
+                                "constraint_row_name_sha256": component_row_digest,
                             }
                         )
                 if r3_enabled:
@@ -1361,17 +1495,26 @@ def run_dgcaip_pilot(
                 float(item["max_final_row_dot"]) <= 1.0e-5
                 for item in accepted_steps
             )
-            if strict_route_mode == "nonworsening_target_progress_v2":
+            if strict_route_mode in {
+                "nonworsening_target_progress_v2",
+                "component_aligned_target_progress_v3",
+            }:
                 repair_dot_pass = all(
                     float(item["min_violated_final_row_dot"]) >= -1.0e-6
                     for item in accepted_steps
                 )
-                target_progress_pass = bool(
-                    accepted_steps
-                    and _median(
-                        float(item["target_progress"]) for item in accepted_steps
-                    )
-                    >= 0.60
+                progress_tolerance = (
+                    1.0e-6
+                    if strict_route_mode
+                    == "component_aligned_target_progress_v3"
+                    else 0.0
+                )
+                target_progress_pass = _accepted_target_progress_pass(
+                    accepted_steps,
+                    minimum=float(
+                        config["strict_route"]["minimum_target_progress"]
+                    ),
+                    tolerance=progress_tolerance,
                 )
             else:
                 repair_dot_pass = all(
@@ -1413,13 +1556,22 @@ def run_dgcaip_pilot(
                 != arm_initial_hashes[arm_id],
                 "frozen_modules_unchanged": frozen_before == frozen_after,
             }
-            if strict_route_mode == "nonworsening_target_progress_v2":
+            if strict_route_mode in {
+                "nonworsening_target_progress_v2",
+                "component_aligned_target_progress_v3",
+            }:
                 checks["final_target_progress"] = target_progress_pass
             result = {
                 "schema": (
-                    "tausb.dgcaip-dataset-strict-mechanism.v2"
-                    if strict_route_mode == "nonworsening_target_progress_v2"
-                    else "tausb.dgcaip-dataset-strict-mechanism.v1"
+                    "tausb.dgcaip-dataset-strict-mechanism.v3"
+                    if strict_route_mode
+                    == "component_aligned_target_progress_v3"
+                    else (
+                        "tausb.dgcaip-dataset-strict-mechanism.v2"
+                        if strict_route_mode
+                        == "nonworsening_target_progress_v2"
+                        else "tausb.dgcaip-dataset-strict-mechanism.v1"
+                    )
                 ),
                 "spec_id": config["spec"]["spec_id"],
                 "split_hash": _split_hash(split),
@@ -1436,16 +1588,26 @@ def run_dgcaip_pilot(
                 "decision": {"checks": checks, "pass": all(checks.values())},
                 "elapsed_seconds": time.monotonic() - start,
             }
-            if strict_route_mode == "nonworsening_target_progress_v2":
+            if strict_route_mode in {
+                "nonworsening_target_progress_v2",
+                "component_aligned_target_progress_v3",
+            }:
                 result["strict_route_mode"] = strict_route_mode
+            if strict_route_mode == "component_aligned_target_progress_v3":
+                result["constraint_row_schema"] = "snapshot_class_family_v3"
             _write_json(
                 output_root / "backtracking_trace.json",
                 {
                     "schema": (
-                        "tausb.dgcaip-dataset-strict-backtracking.v2"
+                        "tausb.dgcaip-dataset-strict-backtracking.v3"
                         if strict_route_mode
-                        == "nonworsening_target_progress_v2"
-                        else "tausb.dgcaip-dataset-strict-backtracking.v1"
+                        == "component_aligned_target_progress_v3"
+                        else (
+                            "tausb.dgcaip-dataset-strict-backtracking.v2"
+                            if strict_route_mode
+                            == "nonworsening_target_progress_v2"
+                            else "tausb.dgcaip-dataset-strict-backtracking.v1"
+                        )
                     ),
                     arm_id: strict_steps,
                 },
@@ -1453,10 +1615,15 @@ def run_dgcaip_pilot(
             torch.save(
                 {
                     "schema": (
-                        "tausb.dgcaip-dataset-strict-state.v2"
+                        "tausb.dgcaip-dataset-strict-state.v3"
                         if strict_route_mode
-                        == "nonworsening_target_progress_v2"
-                        else "tausb.dgcaip-dataset-strict-state.v1"
+                        == "component_aligned_target_progress_v3"
+                        else (
+                            "tausb.dgcaip-dataset-strict-state.v2"
+                            if strict_route_mode
+                            == "nonworsening_target_progress_v2"
+                            else "tausb.dgcaip-dataset-strict-state.v1"
+                        )
                     ),
                     "spec_id": config["spec"]["spec_id"],
                     "arm_id": arm_id,

@@ -67,6 +67,9 @@ DGCAIP_DATASET_CGR_PROXY_SPEC_ID = (
     "TAUSB-SDH-DGCAIP-DATASET-CGR-PROXY-v1"
 )
 DGCAIP_STRICT_ROUTE_V2_SPEC_ID = "TAUSB-SDH-DGCAIP-STRICT-ROUTE-v2"
+DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID = (
+    "TAUSB-SDH-DGCAIP-COMPONENT-ALIGNED-ROUTE-v3"
+)
 DGCAIP_P1_DETERMINISM_AUDIT_SPEC_ID = (
     "TAUSB-SDH-DGCAIP-P1-DETERMINISM-AUDIT-v1"
 )
@@ -81,6 +84,7 @@ DGCAIP_SPEC_IDS = {
     DGCAIP_P4_E20_SPEC_ID,
     DGCAIP_DATASET_CGR_PROXY_SPEC_ID,
     DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
+    DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID,
     *DGCAIP_DIAG_SPEC_IDS,
     *DGCAIP_AUDIT_SPEC_IDS,
 }
@@ -501,7 +505,10 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
                 "proxy_victim_audit",
                 "production_e20",
             }
-        elif spec_id == DGCAIP_STRICT_ROUTE_V2_SPEC_ID:
+        elif spec_id in {
+            DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
+            DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID,
+        }:
             expected_run_modes = {"strict_mechanism"}
         elif spec_id == DGCAIP_P4_E20_SPEC_ID:
             expected_run_modes = {"production_e20"}
@@ -528,6 +535,7 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
         if spec_id in {
             DGCAIP_DATASET_CGR_PROXY_SPEC_ID,
             DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
+            DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID,
         }:
             ranking = config.get("dataset_ranking")
             strict_route = config.get("strict_route")
@@ -565,7 +573,10 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
                     0.90,
                 ),
             }
-            if spec_id == DGCAIP_STRICT_ROUTE_V2_SPEC_ID:
+            if spec_id in {
+                DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
+                DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID,
+            }:
                 expected_values.update(
                     {
                         "strict_route.repair_floor_fraction": (
@@ -609,7 +620,13 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
                 if float(section.get(key, float("nan"))) != expected:
                     raise ValueError("%s must remain %s." % (name, expected))
             expected_projection_iterations = (
-                128 if spec_id == DGCAIP_STRICT_ROUTE_V2_SPEC_ID else 64
+                128
+                if spec_id
+                in {
+                    DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
+                    DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID,
+                }
+                else 64
             )
             if int(strict_route.get("max_projection_iterations", -1)) != (
                 expected_projection_iterations
@@ -622,6 +639,10 @@ def validate_sdh_experiment_config(config: Mapping[str, Any]) -> None:
                 strict_route.get("mode", "")
             ) != "nonworsening_target_progress_v2":
                 raise ValueError("Strict-route v2 mode mismatch.")
+            if spec_id == DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID and str(
+                strict_route.get("mode", "")
+            ) != "component_aligned_target_progress_v3":
+                raise ValueError("Component-aligned route v3 mode mismatch.")
             snapshots = config["model"].get("protection_surrogate_snapshots")
             expected_snapshot_ids = (
                 ["v3"]
@@ -1331,6 +1352,7 @@ def run_mechanism_pilot(config: Mapping[str, Any], *, config_base: Path) -> Dict
     if str(config["spec"].get("spec_id", "")) in {
         DGCAIP_DATASET_CGR_PROXY_SPEC_ID,
         DGCAIP_STRICT_ROUTE_V2_SPEC_ID,
+        DGCAIP_COMPONENT_ROUTE_V3_SPEC_ID,
     }:
         from .dgcaip_dataset_risk_experiment import run_dataset_cgr_proxy_stage
 

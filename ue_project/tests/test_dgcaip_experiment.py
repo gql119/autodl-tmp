@@ -12,9 +12,11 @@ import yaml
 from ue_framework.methods import dgcaip_experiment, sdh_experiment
 from ue_framework.methods.dgcaip import DGCAIPInstanceTerm, DGCAIPResult
 from ue_framework.methods.dgcaip_experiment import (
+    _accepted_target_progress_pass,
     DGCAIP_ARMS,
     R3_DIAGNOSTIC_ARMS,
     _constraint_limits,
+    _strict_component_candidate_metrics,
     _p1_replay_report,
     _support_outside_linf,
     _strict_candidate_metrics,
@@ -504,3 +506,37 @@ def test_load_engine_explicitly_binds_frozen_dgcaip_parameters(monkeypatch) -> N
     assert captured["dgcaip_box_tolerance"] == 0.02
     assert captured["dgcaip_alignment_tolerance"] == 0.05
     assert captured["dgcaip_minimum_rank_instances"] == 4
+
+
+def test_v3_target_progress_gate_uses_the_postcast_tolerance() -> None:
+    accepted = [{"target_progress": 0.5999999642372131}]
+    assert _accepted_target_progress_pass(
+        accepted,
+        minimum=0.60,
+        tolerance=1.0e-6,
+    )
+    assert not _accepted_target_progress_pass(
+        accepted,
+        minimum=0.60,
+        tolerance=0.0,
+    )
+    assert not _accepted_target_progress_pass(
+        [{"target_progress": 0.599998}],
+        minimum=0.60,
+        tolerance=1.0e-6,
+    )
+
+
+def test_v3_candidate_registry_fails_closed_on_missing_or_extra_rows() -> None:
+    baselines = {"e1/1:nla": 0.2, "e1/1:probability": 0.3}
+    assert _strict_component_candidate_metrics(
+        dict(baselines), baselines
+    ) == pytest.approx(baselines)
+    with pytest.raises(ValueError, match="candidate constraint keys differ"):
+        _strict_component_candidate_metrics(
+            {"e1/1:nla": 0.2}, baselines
+        )
+    with pytest.raises(ValueError, match="candidate constraint keys differ"):
+        _strict_component_candidate_metrics(
+            {**baselines, "e1/1:js": 0.0}, baselines
+        )

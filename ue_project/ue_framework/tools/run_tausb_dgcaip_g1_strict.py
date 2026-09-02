@@ -31,7 +31,8 @@ from ue_framework.tools.run_tausb_sdh_e2e_v0_oneboot import run_guarded
 
 SPEC_ID = "TAUSB-SDH-DGCAIP-DATASET-CGR-PROXY-v1"
 V2_SPEC_ID = "TAUSB-SDH-DGCAIP-STRICT-ROUTE-v2"
-SUPPORTED_SPEC_IDS = {SPEC_ID, V2_SPEC_ID}
+V3_SPEC_ID = "TAUSB-SDH-DGCAIP-COMPONENT-ALIGNED-ROUTE-v3"
+SUPPORTED_SPEC_IDS = {SPEC_ID, V2_SPEC_ID, V3_SPEC_ID}
 RUN_MODE = "strict_mechanism"
 WALL_SECONDS = 20 * 60
 MIN_FREE_BYTES = 5 * 1024 ** 3
@@ -199,9 +200,13 @@ def _preflight(args: argparse.Namespace, *, require_gpu: bool) -> Dict[str, Any]
         raise ValueError("Data disk has less than 5 GiB free.")
     result = {
         "schema": (
-            "tausb.dgcaip-g1-strict-preflight.v2"
-            if binding["spec_id"] == V2_SPEC_ID
-            else "tausb.dgcaip-g1-strict-preflight.v1"
+            "tausb.dgcaip-g1-strict-preflight.v3"
+            if binding["spec_id"] == V3_SPEC_ID
+            else (
+                "tausb.dgcaip-g1-strict-preflight.v2"
+                if binding["spec_id"] == V2_SPEC_ID
+                else "tausb.dgcaip-g1-strict-preflight.v1"
+            )
         ),
         "spec_id": binding["spec_id"],
         "status": "passed",
@@ -236,16 +241,26 @@ def _verify_result(config_path: Path) -> Dict[str, Any]:
     current_spec_id = str(config["spec"].get("spec_id", ""))
     route_mode = str(config.get("strict_route", {}).get("mode", "repair_budget_v1"))
     expected_schema = (
-        "tausb.dgcaip-dataset-strict-mechanism.v2"
-        if route_mode == "nonworsening_target_progress_v2"
-        else "tausb.dgcaip-dataset-strict-mechanism.v1"
+        "tausb.dgcaip-dataset-strict-mechanism.v3"
+        if route_mode == "component_aligned_target_progress_v3"
+        else (
+            "tausb.dgcaip-dataset-strict-mechanism.v2"
+            if route_mode == "nonworsening_target_progress_v2"
+            else "tausb.dgcaip-dataset-strict-mechanism.v1"
+        )
     )
     if metrics.get("schema") != expected_schema:
         raise ValueError("G1 metrics schema mismatch.")
     if metrics.get("spec_id") != current_spec_id:
         raise ValueError("G1 metrics Spec mismatch.")
-    if current_spec_id == V2_SPEC_ID and metrics.get("strict_route_mode") != route_mode:
-        raise ValueError("G1 v2 output route mode differs.")
+    if current_spec_id in {V2_SPEC_ID, V3_SPEC_ID} and metrics.get(
+        "strict_route_mode"
+    ) != route_mode:
+        raise ValueError("G1 output route mode differs.")
+    if current_spec_id == V3_SPEC_ID and metrics.get(
+        "constraint_row_schema"
+    ) != "snapshot_class_family_v3":
+        raise ValueError("G1 v3 component-row schema differs.")
     if metrics.get("source_p1_state_sha256") != str(
         config["dgcaip"]["source_p1_state_sha256"]
     ).lower():
@@ -308,9 +323,13 @@ def _run(args: argparse.Namespace) -> int:
     status_path = control_root / "controller_status.json"
     status: Dict[str, Any] = {
         "schema": (
-            "tausb.dgcaip-g1-strict-controller-status.v2"
-            if preflight["spec_id"] == V2_SPEC_ID
-            else "tausb.dgcaip-g1-strict-controller-status.v1"
+            "tausb.dgcaip-g1-strict-controller-status.v3"
+            if preflight["spec_id"] == V3_SPEC_ID
+            else (
+                "tausb.dgcaip-g1-strict-controller-status.v2"
+                if preflight["spec_id"] == V2_SPEC_ID
+                else "tausb.dgcaip-g1-strict-controller-status.v1"
+            )
         ),
         "spec_id": preflight["spec_id"],
         "status": "running",

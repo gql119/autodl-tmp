@@ -1,0 +1,106 @@
+spec:
+  spec_id: TAUSB-SDH-DGCAIP-COMPONENT-ALIGNED-ROUTE-v3
+  exp_id: TAUSB-SDH-DGCAIP-S0-DSR-SCGR-V3-G1-R1
+  seed: 0
+dataset:
+  root: /root/autodl-tmp/ue_project/VOC_0712_Kaggle_Ready
+  train_images: images/train
+  train_labels: labels/train
+  target_class_id: 14
+  expected_train_images: 16551
+  expected_person_images: 6095
+  train_image_manifest_sha256: 4954727df8686532a788668fd815092112ac3e3ee1414eba83b616e683708fbd
+  train_label_manifest_sha256: 3cd05ad1ab6a546bf2afd5e63cb6c3ff6667064d80af129dd819325625b9d848
+model:
+  surrogate_checkpoint: /root/autodl-tmp/ue_project/checkpoints/voc20_surrogate.pt
+  surrogate_checkpoint_sha256: 8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89
+  protection_surrogate_snapshots:
+    - id: e1
+      checkpoint: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-C0-SNAPSHOTS-R2/artifacts/tausb_sdh/steps40/seed0_C0/train_runs/victim/weights/epoch0.pt
+      sha256: 6ebacf59d7fa27ae8d30bb86571d5f089392e19d52ba9ffd204faa70c5ae1
+    - id: e5
+      checkpoint: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-C0-SNAPSHOTS-R2/artifacts/tausb_sdh/steps40/seed0_C0/train_runs/victim/weights/epoch4.pt
+      sha256: cfaf454563e7ac81676468ec09fb08a94718a9902c5ee7057ee3db0d63202fc4
+    - id: e20
+      checkpoint: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-C0-SNAPSHOTS-R2/artifacts/tausb_sdh/steps40/seed0_C0/train_runs/victim/weights/epoch19.pt
+      sha256: e660ed4b2f36e8b866f89a4f88a02e3d3a7eed6f2727f99573cc3c4d8bfaad53
+  num_classes: 20
+  image_size: 640
+secrets:
+  manifest: ../research_workspace/sources/secret_assets/manifest.json
+  manifest_sha256: a25277499e07310e68a39277461f176dd0d8666e69a4b890328d7b913601ac3e
+  primary_id: bg-building-sky-09
+  primary_source_sha256: 66bd89ebef12b21d578341e945d56ed315372b213e52c2cc07d2110543cc6a48
+  primary_tensor_sha256: cb4b9bba70701c118cc869738ca2713a049ec23b86e89238f32353b06bd4adaf
+hiding:
+  steps: 120
+  batch_size: 8
+  learning_rate: 0.0002
+  cover_weight: 0.01
+  max_seconds: 1200
+  hf_subband_scale: 1.0
+  rms_cv_gate_enabled: true
+  source_artifact_root: /root/tausb-sdh-runs/TAUSB-SDH-LFC-CICR-CGR-NLA-S0-r2
+  source_metrics_sha256: c7d1b120ffbadeb7385be41669dda704b00a2cee60940e3c3d97112e24e59246
+  source_checkpoint_sha256: a765e27a62bb1a1939aaae487ff6e61ec405f457056d2329c1c49f91e02c9f36
+  allow_failed_scientific_gates: true
+mechanism:
+  epsilon: 0.06274509803921569
+  batch_size: 4
+  calibration_batches: 16
+  heldout_batches: 24
+  weight_calibration_batches: 4
+  optimization_steps: 8
+  learning_rate: 0.0005
+  assignment_topk: 100
+  pag_layer_ratios: [0.25, 0.25, 0.25]
+  pag_min_pos: [1, 1, 1]
+  box_teacher_weight: 1.0
+  probability_drop_tolerance: 0.005
+  max_backtracks: 5
+  max_seconds: 1100
+  eot_enabled: false
+  jnd_enabled: false
+dgcaip:
+  run_mode: strict_mechanism
+  temperature: 2.0
+  classification_tolerance: 0.005
+  box_tolerance: 0.02
+  alignment_tolerance: 0.05
+  js_backtracking_epsilon: 1.0e-09
+  minimum_rank_instances: 4
+  expected_split_sha256: 9506fb1a981cc5e072dc4176994608b14bb8c39363de615919a2a392fedf4280
+  source_p1_state: /root/tausb-sdh-runs/TAUSB-SDH-E2E-V0-S0-E20-MECH/mechanism/p1_state.pt
+  source_p1_state_sha256: 2e102026a9356116de38acb1f5056bf5728afcd453e3447b516d4222f4d70b81
+dataset_ranking:
+  js_weight: 0.7
+  kl_weight: 0.3
+  top_fraction: 0.25
+  minimum_coverage: 0.90
+  high_risk_replay_fraction: 0.50
+  risk_bank: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-G0-RISK-R1/dataset_risk_scan/dgcaip_risk_bank.json
+  risk_bank_file_sha256: 21cf001ed69b030a6dce1a7e9ea67b07de45f0f41189a9c828fe9b9e3488fabe
+  risk_bank_canonical_sha256: 3dcc755fc7629cc5d2b37bd7b6931088001bf0ca0d3976343d7420d4236eb5fc
+  replay_manifest: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-G0-RISK-R1/dataset_risk_scan/dgcaip_replay_manifest.json
+  replay_manifest_file_sha256: e5dd31cac06d038f4fc305970a9a60a2e2f34b3ae61e55af7405568fbbb7e457
+strict_route:
+  mode: component_aligned_target_progress_v3
+  repair_floor_fraction: 0.0
+  max_repair_norm_ratio: 0.0
+  minimum_target_progress: 0.60
+  max_projection_iterations: 128
+  svd_relative_tolerance: 1.0e-6
+proxy_agreement:
+  minimum_spearman: 0.40
+  minimum_top_overlap: 0.50
+  minimum_coverage: 0.90
+runtime:
+  artifact_root: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-V3-G1-R1
+  device: cuda:0
+  strict_determinism: true
+bindings:
+  g0_risk_manifest: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-G0-RISK-R1/dataset_risk_scan/dgcaip_risk_manifest.json
+  g0_risk_manifest_sha256: 543c632810e498daf147d6687e8dc6ac7c50fcbac7404170dabd87e9e2246a62
+  g0_controller_status: /root/autodl-tmp/tausb-dgcaip-control/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-G0-RISK-R1/controller_status.json
+  g0_controller_status_sha256: ffbd210e9fe889f584d4fa6a4c84384bcf518382818bfa48031bb660a0c63d3b
+  g0_execution_commit: cc0f9b42e265100a835985bfc4ab3e95411470dd

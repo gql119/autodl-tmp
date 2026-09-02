@@ -321,6 +321,31 @@ def test_strict_route_v2_is_deterministic_for_precomputed_rows() -> None:
     assert first.max_safe_final_row_dot == second.max_safe_final_row_dot
 
 
+def test_component_aligned_route_reuses_v2_geometry_with_v3_identity() -> None:
+    parameter = torch.zeros(2, requires_grad=True)
+    common = {
+        "parameters": (parameter,),
+        "target_gradient": torch.tensor([1.0, -1.0]),
+        "safe_constraint_gradients": {},
+        "violated_constraint_gradients": {
+            "e1/1:probability": torch.tensor([0.0, 1.0])
+        },
+        "minimum_target_progress": 0.60,
+        "max_projection_iterations": 128,
+        "svd_relative_tolerance": 1.0e-6,
+    }
+    legacy = route_strict_final_update(
+        **common, route_mode="nonworsening_target_progress_v2"
+    )
+    component = route_strict_final_update(
+        **common, route_mode="component_aligned_target_progress_v3"
+    )
+    assert component.mode == "strict_nonworsening_target_progress_v3"
+    assert torch.equal(component.gradient, legacy.gradient)
+    assert component.target_progress == legacy.target_progress
+    assert component.min_violated_final_row_dot == legacy.min_violated_final_row_dot
+
+
 def test_mixed_backtracking_requires_safe_feasibility_and_real_repair() -> None:
     parameter = torch.tensor([1.0], requires_grad=True)
 

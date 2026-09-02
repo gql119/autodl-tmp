@@ -546,6 +546,7 @@ def route_strict_final_update(
     if route_mode not in {
         "repair_budget_v1",
         "nonworsening_target_progress_v2",
+        "component_aligned_target_progress_v3",
     }:
         raise ValueError("Unknown strict route mode: %s" % route_mode)
     omega = _validate_parameters(parameters)
@@ -553,7 +554,10 @@ def route_strict_final_update(
         raise ValueError("Strict-route repair fractions must be non-negative.")
     if max_projection_iterations < 1 or svd_relative_tolerance <= 0:
         raise ValueError("Strict-route iteration and SVD tolerances are invalid.")
-    if route_mode == "nonworsening_target_progress_v2" and not (
+    if route_mode in {
+        "nonworsening_target_progress_v2",
+        "component_aligned_target_progress_v3",
+    } and not (
         0.0 < minimum_target_progress <= 1.0
     ):
         raise ValueError("Strict-route v2 target progress must be in (0, 1].")
@@ -606,7 +610,10 @@ def route_strict_final_update(
         violated_names, violated_rows = _normalized_gradient_rows(
             violated_constraint_gradients, omega, epsilon=epsilon
         )
-    if route_mode == "nonworsening_target_progress_v2":
+    if route_mode in {
+        "nonworsening_target_progress_v2",
+        "component_aligned_target_progress_v3",
+    }:
         return _route_strict_nonworsening_target_progress(
             omega=omega,
             target=target,
@@ -618,6 +625,11 @@ def route_strict_final_update(
             max_projection_iterations=max_projection_iterations,
             svd_relative_tolerance=svd_relative_tolerance,
             epsilon=epsilon,
+            result_version=(
+                "v3"
+                if route_mode == "component_aligned_target_progress_v3"
+                else "v2"
+            ),
         )
     target_norm_tensor = target.norm()
     if float(target_norm_tensor.detach()) <= epsilon:
@@ -766,6 +778,7 @@ def _route_strict_nonworsening_target_progress(
     max_projection_iterations: int,
     svd_relative_tolerance: float,
     epsilon: float,
+    result_version: str,
 ) -> StrictConstrainedRouteResult:
     """Route with float64 safe equalities and non-worsening half-spaces."""
 
@@ -900,12 +913,14 @@ def _route_strict_nonworsening_target_progress(
         and float(candidate_norm) > epsilon
     )
     repair = postcast_candidate - projected.to(dtype=parameter_dtype)
+    if result_version not in {"v2", "v3"}:
+        raise ValueError("Strict non-worsening route version is invalid.")
     if feasible:
         selected = postcast_candidate
-        mode = "strict_nonworsening_target_progress_v2"
+        mode = "strict_nonworsening_target_progress_%s" % result_version
     else:
         selected = torch.zeros_like(target)
-        mode = "skip_infeasible_constraints_v2"
+        mode = "skip_infeasible_constraints_%s" % result_version
 
     return StrictConstrainedRouteResult(
         mode=mode,
