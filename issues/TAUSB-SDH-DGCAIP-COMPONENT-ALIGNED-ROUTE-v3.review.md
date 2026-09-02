@@ -1,6 +1,6 @@
 # TAUSB-SDH-DGCAIP-COMPONENT-ALIGNED-ROUTE-v3 review
 
-Status: no-card gate passed; one guarded GPU G1 may be requested.
+Status: guarded GPU G1 completed; scientific gate failed; G2/M1 closed.
 
 ## Reviewed execution identity
 
@@ -99,3 +99,18 @@ turns on GPU mode. Required controls remain:
 Passing G1 would establish only local component-aligned routing and nonlinear
 acceptance. It would not yet establish person unlearnability or non-target AP50
 preservation.
+
+## GPU G1 terminal review
+
+The one authorized G1 completed with exit code 0 in 50.16 seconds and triggered
+automatic shutdown. GPU activity was observed and all expected artifacts were
+written. This was not an early crash.
+
+The scientific decision was negative. One of eight updates was accepted;
+`attack_retention` and `backtrack_skip` failed, while all integrity, linear
+route, final target-progress, finiteness and frozen-module checks passed. The
+result is retained without reinterpretation.
+
+The full evidence-grounded diagnosis is recorded at
+`research_workspace/experiments/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-V3-G1-R1/analysis/HEN.md`.
+No G2, M1 or victim training is authorized from this result.
