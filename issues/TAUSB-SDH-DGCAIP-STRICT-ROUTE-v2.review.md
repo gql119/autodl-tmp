@@ -55,3 +55,29 @@ The GPU run must use the existing guarded controller, a 20-minute wall cap and
 shutdown on every terminal path. It must retain pass or fail evidence and must
 not tune on-GPU, reuse the failed v1 state, or continue into G2/M1 in the same
 boot. Scientific effectiveness is still unproven until this real G1 completes.
+
+## GPU G1 terminal result — 2026-09-02
+
+The exact approved commit completed normally on an RTX 4090D. The controller
+reported exit code `0`, observed a GPU process, finished in `35.17` seconds and
+automatically shut the instance down. The fatal scan was clean and the complete
+minimal evidence set was pulled back with matching controller hashes.
+
+The scientific gate failed. All eight v2 linear routes were feasible and passed
+safe/violated dot audits, but nonlinear backtracking accepted only one update;
+the skip ratio was `0.875`. The other failed gate is an exact-comparison defect:
+the accepted target progress was `0.599999964`, within the router's frozen
+`1e-6` tolerance but below a separate exact `>=0.60` final comparison.
+
+Root-cause inspection found a more important constraint mismatch. Routing uses
+one combined NLA + DG-CAIP gradient row per snapshot/class, whereas nonlinear
+backtracking independently checks probability, IoU, alignment and JS. A
+non-worsening combined row cannot guarantee that every checked component is
+non-worsening. Therefore increasing backtracks or broadly relaxing tolerances
+is not approved as the next repair.
+
+The full evidence analysis is at
+`research_workspace/experiments/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-V2-G1-R1/analysis/HEN.md`.
+G2 and victim training remain closed. The next revision must align gradient-row
+and nonlinear-check granularity and must harmonize the post-cast progress
+tolerance before another single G1 can be proposed.
