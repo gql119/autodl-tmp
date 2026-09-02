@@ -62,3 +62,20 @@ The next action is exactly one eight-step guarded v4 G1 using execution commit
 automatic shutdown on success or failure. Both passing and failed scientific
 results must be retained. No G2, victim training, EOT or live parameter tuning
 is authorized in the same boot.
+
+## First GPU enable attempt
+
+The first launch request on 2026-09-02 did not enter GPU computation. The
+operator-supplied temporary root was
+`/root/autodl-tmp/tausb-dgcaip-tmp/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-V4-G1-R1`,
+whose 71-byte resolved path exceeds the controller's 48-byte PyTorch AF_UNIX
+socket limit. Preflight rejected the command before creating the control, log,
+cache, temporary or formal artifact roots, and `--shutdown-on-exit` closed the
+instance. This was a launch-parameter error rather than a method, loss or gate
+result.
+
+After no-card restart, the otherwise identical exact command passed preflight
+with the reviewed short temporary root `/root/autodl-tmp/tv4g1r1`. The frozen
+execution commit, config hash, artifact/control/log/cache roots and all
+scientific parameters remain unchanged. The next action is one GPU retry using
+that short temporary root; it is still the first actual v4 G1 computation.
