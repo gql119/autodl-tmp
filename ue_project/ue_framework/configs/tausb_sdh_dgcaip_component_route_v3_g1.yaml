@@ -17,7 +17,7 @@ model:
   protection_surrogate_snapshots:
     - id: e1
       checkpoint: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-C0-SNAPSHOTS-R2/artifacts/tausb_sdh/steps40/seed0_C0/train_runs/victim/weights/epoch0.pt
-      sha256: 6ebacf59d7fa27ae8d30bb86571d5f089392e19d52ba9ffd204faa70c5ae1
+      sha256: 6ebacf59d7fa27ae8d30bb86571d5f089392e19d52ba9ffd7fd204faa70c5ae1
     - id: e5
       checkpoint: /root/autodl-tmp/tausb-dgcaip-runs/TAUSB-SDH-DGCAIP-S0-DSR-SCGR-PROXY-C0-SNAPSHOTS-R2/artifacts/tausb_sdh/steps40/seed0_C0/train_runs/victim/weights/epoch4.pt
       sha256: cfaf454563e7ac81676468ec09fb08a94718a9902c5ee7057ee3db0d63202fc4
