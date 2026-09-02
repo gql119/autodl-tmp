@@ -1,6 +1,6 @@
 # TAUSB-SDH-DGCAIP-RELAXED-PROMOTION-GATE-v4 review
 
-Status: local implementation complete; remote no-card pytest and preflight pending.
+Status: remote pytest passed; revised exact-commit preflight pending.
 
 ## Approved scope
 
@@ -16,9 +16,6 @@ dirty files and raw experiment artifacts are excluded from the revision.
 
 ## Pending evidence
 
-- focused and regression pytest result (the bundled local Python has no
-  PyTorch/pytest, so this must run in the existing AutoDL environment);
-- exact config validation;
 - remote no-card controller preflight on fresh v4 roots;
 - reviewed execution commit and hashes.
 
@@ -29,7 +26,16 @@ dirty files and raw experiment artifacts are excluded from the revision.
 - `git diff --check` passed;
 - no user dirty file or experiment artifact is included in the v4 change set.
 
-The configured SSH endpoint returned connection refused during this review, so
-remote results are deliberately not claimed.
+After the instance became reachable, the four focused/regression files passed
+`65` tests in `8.10s`; JUnit SHA256 is
+`aed483bb950fb570d2a431454cd82628020766c0f7e2c409b5c8b144d5f1d5b4`.
+Remote `py_compile`, exact v4 config validation and fresh-root checks also
+passed.
+
+The initial formal preflight then rejected the data disk because only
+`5,095,329,792` bytes were free versus the legacy `5 GiB` threshold. The prior
+same-shape v3 G1 used only `2.8 MiB` of artifacts and approximately `16 KiB` of
+control/log data. The v4-only threshold is consequently registered at `4 GiB`;
+legacy thresholds remain unchanged. A new exact-commit preflight is pending.
 
 GPU G1 remains closed until these items pass.

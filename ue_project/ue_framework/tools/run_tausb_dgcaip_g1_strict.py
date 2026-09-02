@@ -36,7 +36,12 @@ V4_SPEC_ID = "TAUSB-SDH-DGCAIP-RELAXED-PROMOTION-GATE-v4"
 SUPPORTED_SPEC_IDS = {SPEC_ID, V2_SPEC_ID, V3_SPEC_ID, V4_SPEC_ID}
 RUN_MODE = "strict_mechanism"
 WALL_SECONDS = 20 * 60
-MIN_FREE_BYTES = 5 * 1024 ** 3
+LEGACY_MIN_FREE_BYTES = 5 * 1024 ** 3
+V4_MIN_FREE_BYTES = 4 * 1024 ** 3
+
+
+def _minimum_free_bytes(spec_id: str) -> int:
+    return V4_MIN_FREE_BYTES if spec_id == V4_SPEC_ID else LEGACY_MIN_FREE_BYTES
 
 
 def _arguments() -> argparse.Namespace:
@@ -197,8 +202,12 @@ def _preflight(args: argparse.Namespace, *, require_gpu: bool) -> Dict[str, Any]
         raise ValueError("G1 artifact root escapes required storage root.")
     _require_fresh((artifact_root, control_root, log_root, cache_root, tmp_root))
     free_bytes = shutil.disk_usage(str(storage_root)).free
-    if free_bytes < MIN_FREE_BYTES:
-        raise ValueError("Data disk has less than 5 GiB free.")
+    minimum_free_bytes = _minimum_free_bytes(binding["spec_id"])
+    if free_bytes < minimum_free_bytes:
+        raise ValueError(
+            "Data disk has less than the registered %.0f GiB free."
+            % (minimum_free_bytes / float(1024 ** 3))
+        )
     result = {
         "schema": (
             "tausb.dgcaip-g1-strict-preflight.v4"
@@ -220,6 +229,7 @@ def _preflight(args: argparse.Namespace, *, require_gpu: bool) -> Dict[str, Any]
         "artifact_root": str(artifact_root),
         "storage_root": str(storage_root),
         "storage_free_bytes": free_bytes,
+        "minimum_free_bytes": minimum_free_bytes,
         "binding": binding,
         "gpu_required": bool(require_gpu),
     }

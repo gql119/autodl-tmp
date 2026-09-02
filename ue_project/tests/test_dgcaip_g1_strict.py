@@ -21,6 +21,7 @@ from ue_framework.tools.run_tausb_dgcaip_g1_strict import (
     V3_SPEC_ID,
     V4_SPEC_ID,
     WALL_SECONDS,
+    _minimum_free_bytes,
     _validate_binding,
     _verify_result,
 )
@@ -164,6 +165,12 @@ def test_g1_config_freezes_strict_route_and_exact_g0_artifacts() -> None:
         "e5dd31cac06d038f4fc305970a9a60a2e2f34b3ae61e55af7405568fbbb7e457"
     )
     assert WALL_SECONDS == 20 * 60
+
+
+def test_v4_right_sizes_only_the_short_g1_disk_gate() -> None:
+    assert _minimum_free_bytes(V4_SPEC_ID) == 4 * 1024 ** 3
+    assert _minimum_free_bytes(V3_SPEC_ID) == 5 * 1024 ** 3
+    assert _minimum_free_bytes(SPEC_ID) == 5 * 1024 ** 3
 
 
 def test_g1_v2_config_replaces_only_the_strict_route_geometry() -> None:

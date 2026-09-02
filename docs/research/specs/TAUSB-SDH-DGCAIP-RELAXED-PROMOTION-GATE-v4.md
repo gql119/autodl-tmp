@@ -42,6 +42,12 @@ The following remain unchanged from v3:
 This Spec changes gate semantics only. It does not alter the carrier, losses,
 gradient rows, risk ranking or route geometry.
 
+The v4 short-G1 data-disk preflight minimum is `4 GiB`. The otherwise identical
+v3 G1 consumed only `2.8 MiB` of experiment artifacts plus approximately
+`16 KiB` of control/log files. Legacy G1 Specs retain their historical `5 GiB`
+minimum. This registered v4 limit is therefore conservative without requiring
+destructive cleanup merely to satisfy an unrelated storage reserve.
+
 ## 3. Numeric nonlinear comparison
 
 The existing JS budget remains `1e-9`; it is not redefined. Candidate scalar
@@ -112,7 +118,7 @@ Before GPU execution:
 5. verify v4 output requires `runtime_pass`, `mechanism_valid` and
    `promotion_pass`;
 6. run focused tests, bytecode compilation and exact no-card controller
-   preflight on fresh roots.
+   preflight on fresh roots, including the v4-only `4 GiB` disk threshold.
 
 After those checks, one eight-step guarded v4 G1 may run. If it passes, proceed
 to the already scoped victim experiment rather than adding further mechanism
