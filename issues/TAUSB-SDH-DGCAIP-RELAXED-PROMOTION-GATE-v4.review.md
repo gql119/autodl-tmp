@@ -79,3 +79,20 @@ with the reviewed short temporary root `/root/autodl-tmp/tv4g1r1`. The frozen
 execution commit, config hash, artifact/control/log/cache roots and all
 scientific parameters remain unchanged. The next action is one GPU retry using
 that short temporary root; it is still the first actual v4 G1 computation.
+
+## Completed v4 G1
+
+The corrected GPU run completed in `50.18` controller seconds with mechanism
+exit code `0`; all nine pulled evidence files match their remote SHA256 values.
+Runtime, mechanism validity and promotion all passed. Seven of eight updates
+were accepted, all steps reached target progress `0.60`, and every accepted
+route retained a non-zero protection nullspace. The promoted candidate state is
+bound by SHA256
+`6574b876913b5d58dbc68f88c57f619a3c383bc6c7c1cf73c37f9891f561fdf8`.
+
+The pass remains surrogate-only. CICR direction concentration was weak
+(median `0.315388`, Q25 `0.046106`), and the per-class proxy drops for
+`tvmonitor`, `dog` and `sheep` were materially larger than the macro average.
+These are registered victim-stage risks, not reasons to add another mechanism
+gate. The next action is to bind this exact candidate into the scoped fresh
+victim experiment and report person plus every non-target AP50.
