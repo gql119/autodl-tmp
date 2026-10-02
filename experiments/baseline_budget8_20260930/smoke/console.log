@@ -1,0 +1,6 @@
+Derived index of actual remote probe terminal results, candidate 541e3389317f12e6f5f74d5c010341019c9ddb99.
+em_det two-block smoke: exit 0, passed, forward 6, backward 6, optimizer 2, noise steps 8.
+rem_det two-block smoke: exit 0, passed, forward 8, backward 8, optimizer 2, PGD steps 8.
+entf_push_det two-block smoke: exit 0, passed, forward 5, backward 4, Push steps 8.
+sem_det two-block smoke: exit 0, passed, forward 6, backward 6, optimizer 2, stability samples 4.
+The four original probe.json files adjacent to this index are the primary numerical evidence.

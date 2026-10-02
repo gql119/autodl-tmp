@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "mode": "two-block-smoke",
+  "method": "entf_push_det",
+  "official_metrics_disabled": true,
+  "artifact_ingest_disabled": true,
+  "production_entrypoint_reached": true,
+  "official_run": false,
+  "seed": 0,
+  "batch_size": 2,
+  "fixed_train_stems": [
+    "008775",
+    "2008_008500"
+  ],
+  "dataset_fingerprint": "29b131dfca2e3636e9c47502961caa6297acf0450f646ff6409b7b3bfb21b3fa",
+  "protocol_lock_sha256": "b328a4a74b6a6f637217f3e20f3d94151c7d55c51b29461d4d67c1bbf9627671",
+  "surrogate_sha256": "8de8a0c78c6414ad0bf98052b3bc96c33d8e854a2a2a905d47c8195363975b89",
+  "candidate_code_commit": "541e3389317f12e6f5f74d5c010341019c9ddb99",
+  "source_file_sha256": {
+    "scripts/generate_detection_baseline.py": "d39117f70d41239e3955f2381075f7fbbbceb641fc2df17ab4cfc9d8e435fa5c",
+    "scripts/baseline_batch_probe.py": "5f36b04cb1eae2671f7a5e4f733fc722a898cdab0f96d4e68d87d22d3b9eda58",
+    "ue_framework/baselines_det/production.py": "9eec794e4c19aaefd707f0ff5c294670555de64b9a510504ced25570e71232fe",
+    "ue_framework/baselines_det/core.py": "82399d47133cf30599a832a6825029d1f29597848a1630bbc05cdf19059d6aa0",
+    "ue_framework/baselines_det/em.py": "fc8d375b4470e6119ff5442cb4a7b190b977e517bcd25a1d1390dba940e83d39",
+    "ue_framework/baselines_det/rem.py": "2ffeb88c669dad29f1eefd5f230a49b0174a301c39db44ef493f474a0e2da34a",
+    "ue_framework/baselines_det/sem.py": "a55a1f79300acdca4022fdea6f165911640abed830c4100b74a2823ffafe6e71",
+    "ue_framework/baselines_det/entf.py": "d64e762a184689d108182af758ca5ac3ec0c446baf66dd7d1893efb4f3388e7b",
+    "ue_framework/baselines_det/robust_common.py": "71fca6b1b00c462116daa193f6ce249e699533a7b610a1942d978af524c4b1eb",
+    "ue_framework/baselines_det/locked_data.py": "18a6c512eafc610ebca15c318f2475b8e5a346e8a43d5f3282e6cf989df15dae",
+    "ue_framework/data_utils.py": "aa260a5e65195a2f8b2ebb2725377810301984fdc13c33e91b89206a84551688"
+  },
+  "finite_loss": true,
+  "loss_observation_count": 4,
+  "loss_observations": [
+    -0.02124771848320961,
+    -0.025011403486132622,
+    -0.028974207118153572,
+    -0.033144548535346985
+  ],
+  "finite_delta": true,
+  "continued_from_first_block": true,
+  "first_block_displacement_mean_abs": 0.004209877923130989,
+  "nonzero_target_displacement_mean_abs": 0.004247428849339485,
+  "model_state_before": "e0dc15ecfd82a3377b6d37c424b32e324d23f1e9d9dccbbdf2c737e1448eadbc",
+  "model_state_after": "e0dc15ecfd82a3377b6d37c424b32e324d23f1e9d9dccbbdf2c737e1448eadbc",
+  "surrogate_updated": false,
+  "peak_gpu_memory_bytes": 449116672,
+  "update_duration_seconds": 0.3921058177947998,
+  "index_and_load_duration_seconds": 3.0734364986419678,
+  "counters": {
+    "forward_calls": 5,
+    "backward_calls": 4,
+    "optimizer_steps": 0,
+    "pgd_steps": 0,
+    "noise_steps": 0,
+    "eot_samples": 0,
+    "stability_samples": 0,
+    "push_steps": 8
+  },
+  "per_item": [
+    {
+      "stem": "008775",
+      "max_abs_delta": 0.0313725546002388,
+      "changed_support_pixels": 78717
+    },
+    {
+      "stem": "2008_008500",
+      "max_abs_delta": 0.0313725546002388,
+      "changed_support_pixels": 10505
+    }
+  ],
+  "cleanup_policy": "retain_all",
+  "checkpoint_cleanup_completed": false,
+  "deleted_paths": [],
+  "checkpoint_paths_remaining": [],
+  "centroid_identity": null
+}

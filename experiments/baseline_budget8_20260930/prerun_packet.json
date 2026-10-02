@@ -1,0 +1,56 @@
+{
+  "schema_version": "prerun.scientific-review.v1",
+  "review_mode": "scientific_review",
+  "repo_root": "C:/Users/20272/.codex/visualizations/2026/09/17/01a0afba-bca4-7582-815c-b2a5241bad4a/baseline_det_source_20260928",
+  "pre_run_code_commit": "541e3389317f12e6f5f74d5c010341019c9ddb99",
+  "review_diff_base_commit": "69fb8bb63ce9281e7e766e074aac090404ea66da",
+  "approved_basis": [
+    "User request of 2026-09-30: test whether all four detection baselines improve when noise optimization uses up to eight hours per method.",
+    "Prior user limit: preserve each method's inner computation and sampling, while permitting complete outer-cycle count changes; independent random YOLOv8n victim remains 200 epochs."
+  ],
+  "implementation_intent": "Distinct eight-hour compute-budget sensitivity variant for EM-Det, REM-Det, EntF-Push-Det and SEM-Det. Preserve per-block equations, data and victim protocol; persist perturbations and surrogate optimizer across full passes. Explicitly override EM's original train-error early stop only in this variant; extend EntF by continuing the same delta through additional 300-step Push blocks.",
+  "exact_command": "/project/guoqinglong/miniconda3/envs/cfbdm/bin/python -m scripts.run_four_detection_baselines --sequence-id four_methods_budget8_seed0_20260930 --budget-variant --batch-size 128 --time-cap-hours 8 --code-commit 541e3389317f12e6f5f74d5c010341019c9ddb99",
+  "output_collision_policy": "fail",
+  "local_validation": [
+    {"command": "python -m py_compile on four changed runtime files and probe", "exit_code": 0, "observation": "All affected files compiled."},
+    {"command": "python -m unittest discover -s tests -p test_detection_baseline_*.py on the isolated server candidate", "exit_code": 0, "observation": "13 baseline contract tests passed."},
+    {"command": "git diff --check", "exit_code": 0, "observation": "No whitespace errors."}
+  ],
+  "pre_review_smoke": {
+    "schema_version": "prerun.pre-review-smoke.v1",
+    "disposition": "passed",
+    "computation_kind": "training",
+    "candidate_commit": "541e3389317f12e6f5f74d5c010341019c9ddb99",
+    "run_id": "four distinct method-specific budget8_two_block_541e338 sanity RunIDs",
+    "exact_command": "python -m scripts.baseline_batch_probe --mode two-block-smoke --method METHOD --batch-size 2 --dataset-root /data/guoqinglong/datasets/VOC_0712_Kaggle_Ready --surrogate /project/guoqinglong/projects/legacy_kproto_ret_dev_20260923/checkpoints/voc20_surrogate.pt --protocol-lock protocol_lock.json --output UNIQUE_SANITY_PATH --code-commit 541e3389317f12e6f5f74d5c010341019c9ddb99, for each of four methods",
+    "exit_code": 0,
+    "step_budget": 100,
+    "completed_steps": 8,
+    "finite_loss": true,
+    "production_entrypoint_reached": true,
+    "isolated_output": true,
+    "official_metrics_disabled": true,
+    "artifact_ingest_disabled": true,
+    "evidence_paths": ["C:/Users/20272/.codex/visualizations/2026/09/17/01a0afba-bca4-7582-815c-b2a5241bad4a/baseline_det_source_20260928/ue_project/experiments/baseline_budget8_20260930/smoke/em_det.probe.json", "C:/Users/20272/.codex/visualizations/2026/09/17/01a0afba-bca4-7582-815c-b2a5241bad4a/baseline_det_source_20260928/ue_project/experiments/baseline_budget8_20260930/smoke/rem_det.probe.json", "C:/Users/20272/.codex/visualizations/2026/09/17/01a0afba-bca4-7582-815c-b2a5241bad4a/baseline_det_source_20260928/ue_project/experiments/baseline_budget8_20260930/smoke/entf_push_det.probe.json", "C:/Users/20272/.codex/visualizations/2026/09/17/01a0afba-bca4-7582-815c-b2a5241bad4a/baseline_det_source_20260928/ue_project/experiments/baseline_budget8_20260930/smoke/sem_det.probe.json"],
+    "cleanup_policy": "retain_all",
+    "checkpoint_cleanup_completed": false,
+    "checkpoint_paths_remaining": [],
+    "deleted_paths": [],
+    "retained_evidence_paths": ["C:/Users/20272/.codex/visualizations/2026/09/17/01a0afba-bca4-7582-815c-b2a5241bad4a/baseline_det_source_20260928/ue_project/experiments/baseline_budget8_20260930/smoke/console.log", "C:/Users/20272/.codex/visualizations/2026/09/17/01a0afba-bca4-7582-815c-b2a5241bad4a/baseline_det_source_20260928/ue_project/experiments/baseline_budget8_20260930/smoke/status.json", "C:/Users/20272/.codex/visualizations/2026/09/17/01a0afba-bca4-7582-815c-b2a5241bad4a/baseline_det_source_20260928/ue_project/experiments/baseline_budget8_20260930/smoke/smoke_summary.json"]
+  },
+  "critical_values": [
+    {"name": "persistent per-image delta", "source": "generator cycle loop and in-memory delta_state", "sink": "BatchItem.raw_delta in EM, REM and SEM; initial_deltas in EntF Push", "evidence": "Committed generator/production diff and four two-block GPU probes."},
+    {"name": "eight-hour cycle gate", "source": "CLI time-cap-hours and measured completed-cycle duration", "sink": "budget_allows_next_cycle before another complete target pass; hard generation timeout", "evidence": "Committed generator and pipeline code with unique RunIDs, 1.25 factor and 600-second reserve."},
+    {"name": "EM budget variant stopping", "source": "budget-variant CLI and measured train error", "sink": "EM records threshold crossing but continues complete train/noise/error cycles", "evidence": "Committed EM generator loop and distinct budget-variant method_schedule stop policy."},
+    {"name": "EntF reference and initialization", "source": "train-only all-object centroid and one initial uniform perturbation", "sink": "frozen centroid and persisted initial_deltas across additional 300-step Push blocks", "evidence": "Committed EntF production sink and two-block GPU probe."},
+    {"name": "matched downstream evaluation", "source": "original protocol_lock.json and materialization audit", "sink": "unchanged 200-epoch random-init YOLOv8n and clean VOC20 AP50", "evidence": "Committed pipeline retains the original materialization and victim scripts; generation status must show at least one complete cycle."}
+  ],
+  "experiment": {
+    "benchmark": "VOC20 clean validation, person target, detection-adapted EM/REM/EntF/SEM",
+    "dataset": "16,551 locked VOC train images, 4,952 byte-identical clean validation images",
+    "checkpoint": "Locked clean VOC20 surrogate; independent random-init YOLOv8n victim",
+    "seed": 0,
+    "metric_policy": "Per-class AP50, person Recall, person/non-target/all mean AP50; no final validation for cycle selection",
+    "output_path": "/project/guoqinglong/projects/legacy_kproto_ret_dev_20260923/b2_adaptive_dev_20260926/semantic_dev_20260926/baseline_dev_20260928/four_methods_budget8_seed0_20260930.json and unique per-method RunIDs"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "state": "passed",
+  "candidate_commit": "541e3389317f12e6f5f74d5c010341019c9ddb99",
+  "run_ids": ["em_budget8_two_block_541e338", "rem_det_budget8_two_block_541e338", "entf_push_det_budget8_two_block_541e338", "sem_det_budget8_two_block_541e338"],
+  "exit_codes": [0, 0, 0, 0],
+  "official_metrics_disabled": true,
+  "artifact_ingest_disabled": true,
+  "cleanup_policy": "retain_all",
+  "checkpoint_paths_remaining": [],
+  "deleted_paths": []
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": "prerun.pre-review-smoke.v1",
+  "candidate_commit": "541e3389317f12e6f5f74d5c010341019c9ddb99",
+  "method_probe_files": ["em_det.probe.json", "rem_det.probe.json", "entf_push_det.probe.json", "sem_det.probe.json"],
+  "production_entrypoint_reached": true,
+  "completed_short_update_blocks_per_method": 2,
+  "total_short_update_blocks": 8,
+  "all_finite_loss": true,
+  "all_finite_delta": true,
+  "all_continued_from_first_block": true,
+  "official_metrics_disabled": true,
+  "artifact_ingest_disabled": true,
+  "isolation": "new unique remote training-only sanity RunIDs under baseline_dev_20260928/sanity",
+  "cleanup_policy": "retain_all",
+  "checkpoint_cleanup_completed": false,
+  "checkpoint_paths_remaining": [],
+  "deleted_paths": []
+}

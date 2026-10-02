@@ -1,0 +1,23 @@
+{
+  "schema_version": "prerun.change-route.v1",
+  "reviewed_commit": "69fb8bb63ce9281e7e766e074aac090404ea66da",
+  "candidate_commit": "541e3389317f12e6f5f74d5c010341019c9ddb99",
+  "changes": [
+    {
+      "path": "ue_project/scripts/generate_detection_baseline.py",
+      "change_class": "entrypoint",
+      "production_reachable": true,
+      "dependency_closure_changed": true,
+      "blocker_ids": [],
+      "probes": [{"command": "four method two-block GPU smokes", "exit_code": 0, "observation": "Four fixed train-sample two-block probes passed finite loss, delta, and continuation checks", "reaches_production": true}]
+    },
+    {
+      "path": "ue_project/ue_framework/baselines_det/production.py",
+      "change_class": "computation_sink",
+      "production_reachable": true,
+      "dependency_closure_changed": false,
+      "blocker_ids": [],
+      "probes": [{"command": "EntF two-block GPU smoke", "exit_code": 0, "observation": "Production Push continuation accepted first-block deltas and remained finite", "reaches_production": true}]
+    }
+  ]
+}
